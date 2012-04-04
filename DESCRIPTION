@@ -1,0 +1,9 @@
+Package: ISfit
+Version: 0.1-0
+Date: 2012-01-13
+Title: Incoherent scatter plasma parameter fits
+Author: Ilkka Virtanen <ilkka.i.virtanen@oulu.fi> 
+Maintainer: Ilkka Virtanen <ilkka.i.virtanen@oulu.fi>
+Description: Incoherent scatter plasma parameter estimation for multistatic radar systems
+License: GPL-2
+Depends: IGRF11, ISspectrum, NLSQ, iri2011, ISgeometry
