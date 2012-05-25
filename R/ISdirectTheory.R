@@ -40,20 +40,22 @@ ISdirectTheory <- function( param , scaleFun , nData , nIon , nSite , iSite , fS
   parlist        <- ISparamVec2List(sparam,nIon)
 
   # spectra at each site
-  sSite          <<- vector(mode='list',length=nSite)
+  nf             <- sapply( xSite , length )
+  sSite          <<- matrix(0,nrow=max(nf),ncol=nSite)
   for(k in seq(nSite)){
-    sSite[[k]]     <<- ISspectrum.3D( ele=parlist$ele , ion=parlist$ion , Bdir=B , kdir=kSite[[k]] , fradar=fSite[[k]] ,
+    sSite[1:nf[k],k]     <<- ISspectrum.3D( ele=parlist$ele , ion=parlist$ion , Bdir=B , kdir=kSite[[k]] , fradar=fSite[[k]] ,
                                      scattAngle=aSite[[k]] , freq=xSite[[k]] )
   }
 
   # ACFs
-  dirtheData     <- vector(mode='complex',length=nData)
-  for(k in seq(nSite)){
-    ind             <- which(iSite==k)
-    dirtheData[ind] <- (sSite[[k]]%*%fAmb)[ind]*parlist$cSite[k] # selecting columns to the matrix products takes more time
-                                                                 # than just calculating and then selecting in most cases
-  }
+  return( .Call( "crossprods" ,
+                as.integer( nData ),
+                c(fAmb),
+                as.integer( max(nf) ),
+                as.integer( iSite - 1),
+                c(sSite),
+                parlist$cSite
+                )
+         )
 
-  return(dirtheData)
-  
 } # ISdirectTheory

@@ -1,21 +1,44 @@
-#include <stdlib.h>
+#include "ISfit.h"
 
-void crossprods(double *dirtheDataR, double *dirtheDataI, int *nData, double *fAmbR, double *fAmbI, int *nFreq, int *iSite, double *sSite, double *cSite)
+SEXP crossprods( SEXP nData , SEXP fAmb , SEXP nFreq , SEXP iSite , SEXP sSite , SEXP cSite )
 {
+  int nd = *INTEGER( nData );
+  Rcomplex * ambig = COMPLEX( fAmb );
+  int nf = *INTEGER( nFreq );
+  int    * is = INTEGER( iSite );
+  double * ss = REAL( sSite );
+  double * cs = REAL( cSite );
 
-  register int k,l,n,m;
+  SEXP dirtheData;
+  Rcomplex * dData;
+  R_len_t  k,l,n,m;
 
-  for( k=0 ; k < *nData ; ++k){
-    l = *nFreq * iSite[k];
-    m = *nFreq * k;
-    dirtheDataR[k] = 0.0;
-    dirtheDataI[k] = 0.0;
-    for( n=0 ; n < *nFreq ; ++n){
-      dirtheDataR[k] = dirtheDataR[k] + fAmbR[ m + n] * sSite[ l + n ];
-      dirtheDataI[k] = dirtheDataI[k] + fAmbI[ m + n] * sSite[ l + n ];
+  // allocate the direct theory vector
+  PROTECT( dirtheData = allocVector( CPLXSXP , nd ) );
+
+  // a pointer to the allocated vector
+  dData = COMPLEX( dirtheData );
+
+  // walk through data points
+  for ( k = 0 ; k < nd ; ++k ){
+
+    // initialise to zero
+    dData[k].r = .0;
+    dData[k].i = .0;
+
+    // walk through frequency points
+    for( l = 0 ; l < nf ; ++l ){
+
+      //            frequency ambiguity * spectrum           * scaling for this site
+      dData[k].r += ambig[ k*nf + l ].r * ss[ is[k]*nf + l ] * cs[is[k]];
+      dData[k].i += ambig[ k*nf + l ].i * ss[ is[k]*nf + l ] * cs[is[k]];
     }
-    dirtheDataR[k] = dirtheDataR[k] * cSite[ iSite[ k ] ];
-    dirtheDataI[k] = dirtheDataI[k] * cSite[ iSite[ k ] ];
+
   }
+
+  UNPROTECT(1);
+
+  return(dirtheData);
+
 
 }
