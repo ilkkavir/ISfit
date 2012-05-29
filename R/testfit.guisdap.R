@@ -14,9 +14,7 @@ testfit.guisdap <- function(refPoint  = KIR,
                        maxIter   = 100,
 
                        time      = c(2009,7,1,11,0,0),
-                       heibeg    = 1,
-                       heiend    = 1000,
-                       heistp    = 1,
+                       heights   = seq(1,1000),
                        initErr   = c(1e10,100,.3,0,0,0,0)
                        ){
 #
@@ -54,17 +52,19 @@ testfit.guisdap <- function(refPoint  = KIR,
   aSite <- 180
 
   # parameters from iri model
-  ptmp           <- iri(time=time,latitude=refPoint[1],longitude=refPoint[2],heibeg=heibeg,heiend=heiend,heistp=heistp)
+  ptmp           <- iriParams(time=time,latitude=refPoint[1],longitude=refPoint[2],heights=heights)
 
   # height point closest to the user input value
-  h              <- which(abs(seq(heibeg,heiend,by=heistp)-hTarg)==min(abs(seq(heibeg,heiend,by=heistp)-hTarg)))[1]
+  h              <- which(abs(heights-hTarg)==min(abs(heights-hTarg)))[1]
 
   # an approximation for NO+-neutral colllision frequency (Schunk & Walker, Planet. Space Sci., 1971)
   # the densities in outfmsis are in cm^-3
-  ioncoll        <- (2.44e-16*ptmp$outfmsis[2,h] + 4.34e-16*ptmp$outfmsis[3,h] + 4.28e-16*ptmp$outfmsis[4,h])*1e6
+  ioncoll        <- sum( ionNeutralCollisionFrequency(ptmp[,h])['NO+',] )
+#  ioncoll        <- (2.44e-16*ptmp$outfmsis[2,h] + 4.34e-16*ptmp$outfmsis[3,h] + 4.28e-16*ptmp$outfmsis[4,h])*1e6
   
   # parameters
-  par            <- c( ptmp$outf[c(1,3),h] , ptmp$outf[4,h]/ptmp$outf[3,h] , ioncoll , vion , ptmp$outf[5,h]/100 , ptmp$outf[6,h]/100)
+#  par            <- c( ptmp$outf[c(1,3),h] , ptmp$outf[4,h]/ptmp$outf[3,h] , ioncoll , vion , ptmp$outf[5,h]/100 , ptmp$outf[6,h]/100)
+  par            <- c( ptmp['e-',h] , ptmp['Ti',h] , ptmp['Te',h]/ptmp['Ti',h] , ioncoll , vion , ptmp['O+',h]/ptmp['e-',h] , ptmp['H+',h]/ptmp['e-',h] )
 
 
   # initial (and apriori) parameter values
@@ -91,20 +91,21 @@ testfit.guisdap <- function(refPoint  = KIR,
   # apriori information
   apriori        <- ISapriori.default.guisdap( initParam , nIon )
 
-
   #
   # generate the simulated ACF data and other
   #
   nData    <- length(lags) * nacf
   freq     <- seq(-100000,100000,by=1000)*fradar/1e9
-  simuData <- rep(
-                  simuACF(
-                          ele = c(par[1],par[2]*par[3],par[2]*par[3],par[4]*.35714,par[5],0,0),
-                          ion = list(
+  ele <- c(par[1],par[2]*par[3],par[2]*par[3],par[4]*.35714,par[5],0,0)
+  ion <-  list(
                             c(mIon[1],(1-sum(par[6:7]))*par[1],par[2],par[2],par[4],par[5],0,0),
                             c(mIon[2],par[6]*par[1],par[2],par[2],par[4],par[5],0,0),
                             c(mIon[3],par[7]*par[1],par[2],par[2],par[4],par[5],0,0)
-                            ),
+                            )
+  simuData <- rep(
+                  simuACF(
+                          ele = ele,
+                          ion = ion,
                           kdir = c(1,0,0),
                           fradar = fradar,
                           scattAngle = aSite,
@@ -116,6 +117,18 @@ testfit.guisdap <- function(refPoint  = KIR,
                   ) + (rnorm(nData) + 1i*rnorm(nData))*dataStd/sqrt(2)
   simuVar   <- rep(dataStd**2,nData)
 
+
+  plot(Re(simuACF(
+                          ele = ele,
+                          ion = ion,
+                          kdir = c(1,0,0),
+                          fradar = fradar,
+                          scattAngle = aSite,
+                          freq = freq,
+                          lags = lags,
+                          Bdir = c(1,0,0)
+                          )))
+  
   print(
         system.time(
                     fitpar   <- ISparamfit.guisdap(
