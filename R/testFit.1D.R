@@ -13,31 +13,22 @@ testfit.1D <- function(h=200,fradar=933e6,plotTest=F,diffLimit=1e-2,absLimit=5,n
 #
 
   # parameters from iri model
-  ptmp           <- iriParams()
+  ptmp           <- iri()
 
   # an approximation for NO+-neutral colllision frequency (Schunk & Walker, Planet. Space Sci., 1971)
   # the densities in outfmsis are in cm^-3
-#  ioncoll        <- (2.44e-16*ptmp$outfmsis[2,h] + 4.34e-16*ptmp$outfmsis[3,h] + 4.28e-16*ptmp$outfmsis[4,h])*1e6
-  ioncoll        <- sum( ionNeutralCollisionFrequency(ptmp[,h])['NO+',] )
-
+  ioncoll        <- (2.44e-16*ptmp$outfmsis[2,h] + 4.34e-16*ptmp$outfmsis[3,h] + 4.28e-16*ptmp$outfmsis[4,h])*1e6
   # an approximation for electron-neutral collision frequency
   elecoll        <- ioncoll*.35714
 
   # electron parameters
-#  ele            <- c(ptmp$outf[c(1,4,4),h],elecoll,0,0,0)
-  ele            <- c(ptmp[c('e-','Te','Te'),h],elecoll,0,0,0)
+  ele            <- c(ptmp$outf[c(1,4,4),h],elecoll,0,0,0)
 
   # ion parameters
-# ion             <- list(
-#                         c(30.5,(ptmp$outf[8,h]+ptmp$outf[9,h]),rep(ptmp$outf[3,h],2),ioncoll,0,0,0),
-#                         c(16.0,ptmp$outf[5,h],rep(ptmp$outf[3,h],2),ioncoll,0,0,0),
-#                         c(1.0,ptmp$outf[6,h],rep(ptmp$outf[3,h],2),ioncoll,0,0,0)
-#                         )
-
  ion             <- list(
-                         c(30.5,(ptmp['O2+',h]+ptmp['NO+',h]),ptmp[c('Ti','Ti'),h],ioncoll,0,0,0),
-                         c(16.0,ptmp[c('O+','Ti','Ti'),h],ioncoll,0,0,0),
-                         c(1.0,ptmp[c('H+','Ti','Ti'),h],ioncoll,0,0,0)
+                         c(30.5,(ptmp$outf[8,h]+ptmp$outf[9,h])*ele[1]/100,rep(ptmp$outf[3,h],2),ioncoll,0,0,0),
+                         c(16.0,ptmp$outf[5,h]*ele[1]/100,rep(ptmp$outf[3,h],2),ioncoll,0,0,0),
+                         c(1.0,ptmp$outf[6,h]*ele[1]/100 ,rep(ptmp$outf[3,h],2),ioncoll,0,0,0)
                          )
 
   nIon           <- length(ion)
@@ -47,7 +38,7 @@ testfit.1D <- function(h=200,fradar=933e6,plotTest=F,diffLimit=1e-2,absLimit=5,n
   freq           <- seq(-1000,1000)*100
   lags           <- seq(nlag)*10e-6
   simudata       <- rep(simuACF(ele=ele,ion=ion,fradar=fradar,freq=freq,lags=lags),nacf) + (rnorm(ndata) + 1i*rnorm(ndata))*1e-20/sqrt(2)
-  plot(Re(simuACF(ele=ele,ion=ion,fradar=fradar,freq=freq,lags=lags)))
+
 
   # variance
   simuvar        <- rep(1e-40,ndata)
@@ -56,7 +47,7 @@ testfit.1D <- function(h=200,fradar=933e6,plotTest=F,diffLimit=1e-2,absLimit=5,n
   par            <- ISparamList2Vec(ele,ion,c(1))
 
   # parameter scaling factors
-  parScales      <- ISparamScales.default(par,nIon)
+  parScales      <- ISparamScales.default(par)
 
   # parameter value limits
   parLimits      <- ISparamLimits.default(nIon,1)
@@ -79,7 +70,6 @@ testfit.1D <- function(h=200,fradar=933e6,plotTest=F,diffLimit=1e-2,absLimit=5,n
   initParam[1] <- 2
   initParam[9] <- 2
   initParam[2] <- 3
-
   print(system.time(fitpar         <- ISparamfit( acf=simudata,
                                 var=simuvar,
                                 nData=length(simudata),

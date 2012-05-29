@@ -26,7 +26,9 @@ testfit.3D <- function(refPoint  = KIR,
                        maxIter   = 100,
 
                        time      = c(2009,7,1,11,0,0),
-                       heights   = seq(1000)
+                       heibeg    = 1,
+                       heiend    = 1000,
+                       heistp    = 1
                        ){
 #
 # Test the 3D plasma parameter fit with simulated ACF data
@@ -88,29 +90,29 @@ testfit.3D <- function(refPoint  = KIR,
   xyzTrans <- vector(mode='list',length=nTrans)
   for(k in seq(nTrans)){
     if(locxy){
-      latlonTrans <- ISgeometry:::planarToSpherical.geographic(x=locTrans[[k]][1],y=locTrans[[k]][2],refPoint=refPoint)
+      latlonTrans <- planarToSpherical.geographic(x=locTrans[[k]][1],y=locTrans[[k]][2],refPoint=refPoint)
     }else{
       latlonTrans <- locTrans[[k]]
     }
-    xyzTrans[[k]] <- ISgeometry:::sphericalToCartesian(c(latlonTrans$lat,latlonTrans$lon))
+    xyzTrans[[k]] <- sphericalToCartesian(c(latlonTrans$lat,latlonTrans$lon))
   }
   # receivers
   xyzRec   <- vector(mode='list',length=nRec)
   for(k in seq(nRec)){
     if(locxy){
-      latlonRec  <- ISgeometry:::planarToSpherical.geographic(x=locRec[[k]][1],y=locRec[[k]][2],refPoint=refPoint)
+      latlonRec  <- planarToSpherical.geographic(x=locRec[[k]][1],y=locRec[[k]][2],refPoint=refPoint)
     }else{
       latlonRec  <- locRec[[k]]
     }
-    xyzRec[[k]]  <- ISgeometry:::sphericalToCartesian(c(latlonRec$lat,latlonRec$lon))
+    xyzRec[[k]]  <- sphericalToCartesian(c(latlonRec$lat,latlonRec$lon))
   }
   # target (here we need also latitude and longitude, because they are used by the IRI-model)
   if(locxy){
-    latlonTarg   <- ISgeometry:::planarToSpherical.geographic(x=locTarg[1],y=locTarg[2],refPoint=refPoint)
+    latlonTarg   <- planarToSpherical.geographic(x=locTarg[1],y=locTarg[2],refPoint=refPoint)
   }else{
     latlonTarg   <- locTarg[1:2]
   }
-  xyzTarg        <- ISgeometry:::sphericalToCartesian(c(latlonTarg$lat,latlonTarg$lon,ISgeometry:::EarthRadius()+locTarg[3]))
+  xyzTarg        <- sphericalToCartesian(c(latlonTarg$lat,latlonTarg$lon,EarthRadius()+locTarg[3]))
   
   # lists for site parameters
   kSite <- vector(mode='list',length=nComb)
@@ -119,42 +121,40 @@ testfit.3D <- function(refPoint  = KIR,
   for(t in seq(nTrans)){
     for(r in seq(nRec)){
       # scattering wave vector, in a coordinate system with horizontal x- and y-axes
-      kSite[[(t-1)*nRec+r]] <- ISgeometry:::rotateHorizontal.vector.cartesian(
-                                 ISgeometry:::scatterPlaneNormal.cartesian(xyzTrans[[t]],xyzRec[[r]],xyzTarg),
+      kSite[[(t-1)*nRec+r]] <- rotateHorizontal.vector.cartesian(
+                                 scatterPlaneNormal.cartesian(xyzTrans[[t]],xyzRec[[r]],xyzTarg),
                                  xyzTarg
                                )                                                                 
       # scattering angle (angle between incident and scattered waves)
-      aSite[(t-1)*nRec+r]   <- ISgeometry:::vectorAngle.cartesian((xyzTarg-xyzTrans[[t]]),(xyzRec[[r]]-xyzTarg),degrees=T)
+      aSite[(t-1)*nRec+r]   <- vectorAngle.cartesian((xyzTarg-xyzTrans[[t]]),(xyzRec[[r]]-xyzTarg),degrees=T)
     }
   }
 
   # parameters from iri model
-  ptmp           <- iriParams(time=time,latitude=latlonTarg[['lat']],longitude=latlonTarg[['lon']],heights=heights)
+  ptmp           <- iri(time=time,latitude=latlonTarg[['lat']],longitude=latlonTarg[['lon']],heibeg=heibeg,heiend=heiend,heistp=heistp)
 
   # height point closest to the user input value
-  h              <- which(abs(heights-locTarg[3])==min(abs(heights-locTarg[3])))[1]
+  h              <- which(abs(seq(heibeg,heiend,by=heistp)-locTarg[3])==min(abs(seq(heibeg,heiend,by=heistp)-locTarg[3])))[1]
 
   # an approximation for NO+-neutral colllision frequency (Schunk & Walker, Planet. Space Sci., 1971)
   # the densities in outfmsis are in cm^-3
-  ioncoll        <- sum( ionNeutralCollisionFrequency(ptmp[,h])['NO+',] )
-  
+  ioncoll        <- (2.44e-16*ptmp$outfmsis[2,h] + 4.34e-16*ptmp$outfmsis[3,h] + 4.28e-16*ptmp$outfmsis[4,h])*1e6
   # an approximation for electron-neutral collision frequency
   elecoll        <- ioncoll*.35714
 
   # asymmentric ion temperatures
-  tion           <- ptmp['Ti',h]*c(1,TperpTpar)
+  tion           <- ptmp$outf[3,h]*c(1,TperpTpar)
 
   # electron parameters
-  ele            <- c(ptmp[c('e-','Te','Te'),h],elecoll,0,0,0)
+  ele            <- c(ptmp$outf[c(1,4,4),h],elecoll,vele)
 
   # ion parameters
   ion             <- list(
-                         c(30.5,(ptmp['O2+',h]+ptmp['NO+',h]),tion,ioncoll,0,0,0),
-                         c(16.0,ptmp['O+',h],tion,ioncoll,0,0,0),
-                         c(1.0,ptmp['H+',h],tion,ioncoll,0,0,0)
+                         c(30.5,(ptmp$outf[8,h]+ptmp$outf[9,h])*ele[1]/100,tion,ioncoll,vion),
+                         c(16.0,ptmp$outf[5,h]*ele[1]/100,tion,ioncoll,vion),
+                         c(1.0,ptmp$outf[6,h]*ele[1]/100 ,tion,ioncoll,vion)
                          )
 
-  
   nIon           <- length(ion)
 
 
