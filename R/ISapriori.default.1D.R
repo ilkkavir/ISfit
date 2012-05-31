@@ -35,7 +35,7 @@ ISapriori.default.1D <- function( aprioriParam , nIon , ... ){
   
   aprioriMeas[1:nPar]          <- aprioriParam
   
-  aprioriStd[1]                <- 1e5                # electron density
+  aprioriStd[1]                <- .1                 # electron density
   aprioriStd[2]                <- .1                 # parallel electron temperature
   aprioriStd[3]                <- .1                 # perpendicular electron temperature
   aprioriStd[4]                <- .1                 # electron-neutral collision frequency
@@ -43,7 +43,7 @@ ISapriori.default.1D <- function( aprioriParam , nIon , ... ){
   aprioriStd[6]                <- 1e4                # electron velocity, y-component
   aprioriStd[7]                <- 1e4                # electron velocity, z-component
   aprioriStd[8]                <- 1e-3               # mass of first ion species
-  aprioriStd[9]                <- 1e-3               # density of first ion species
+  aprioriStd[9]                <- 1e-3               # abundance of first ion species
   aprioriStd[10]               <- .1                 # parallel temperature of first ion species
   aprioriStd[11]               <- .1                 # perpendicular temperature of first ion species
   aprioriStd[12]               <- 1e-3               # ion-neutral collision frequency for the first species
@@ -55,7 +55,7 @@ ISapriori.default.1D <- function( aprioriParam , nIon , ... ){
     aprioriStd[16:(nIon*8+7)]  <- rep(
                                          c(
                                            1e-3,        # ion mass
-                                           .1  ,        # ion density
+                                           .1  ,        # ion abundance
                                            .1  ,        # parallel ion temperature
                                            .1  ,        # perpendicular ion temperature
                                            .1  ,        # ion-neutral collision frequency
@@ -67,7 +67,7 @@ ISapriori.default.1D <- function( aprioriParam , nIon , ... ){
                                          )
   }
   aprioriStd[(nIon+1)*8]         <- 1e-3                  # the first site is a reference, do not scale
-  if(nPar>(nIon+1)*8) aprioriStd[((nIon+1)*8+1):length(aprioriParam)] <- .5 # allow scaling for other sites
+  if(nPar>(nIon+1)*8) aprioriStd[((nIon+1)*8+1):length(aprioriParam)] <- .1 # allow scaling for other sites
 
 
   
@@ -96,10 +96,9 @@ ISapriori.default.1D <- function( aprioriParam , nIon , ... ){
   aprioriStd[curRow]             <- 1e-3
   curRow                         <- curRow + 1
 
-  # sum of all ion densities must be equal to the electron density
-  aprioriTheory[curRow,1]        <- 1
-  aprioriTheory[curRow,seq(9,(8*nIon+7),by=8)] <- -1
-  aprioriMeas[curRow]            <- 0
+  # sum of ion abundances must be unity
+  aprioriTheory[curRow,seq(9,(8*nIon+7),by=8)] <- 1
+  aprioriMeas[curRow]            <- 1
   aprioriStd[curRow]             <- 1e-3
   curRow                         <- curRow + 1
 

@@ -35,9 +35,9 @@ testfit.1D <- function(h=200,fradar=933e6,plotTest=F,diffLimit=1e-2,absLimit=5,n
 #                         )
 
  ion             <- list(
-                         c(30.5,(ptmp['O2+',h]+ptmp['NO+',h]),ptmp[c('Ti','Ti'),h],ioncoll,0,0,0),
-                         c(16.0,ptmp[c('O+','Ti','Ti'),h],ioncoll,0,0,0),
-                         c(1.0,ptmp[c('H+','Ti','Ti'),h],ioncoll,0,0,0)
+                         c(30.5,(ptmp['O2+',h]+ptmp['NO+',h])/ele[1],ptmp[c('Ti','Ti'),h],ioncoll,0,0,0),
+                         c(16.0,ptmp[c('O+'),h]/ele[1],ptmp[c('Ti','Ti'),h],ioncoll,0,0,0),
+                         c(1.0,ptmp[c('H+'),h]/ele[1],ptmp[c('Ti','Ti'),h],ioncoll,0,0,0)
                          )
 
   nIon           <- length(ion)
@@ -76,7 +76,7 @@ testfit.1D <- function(h=200,fradar=933e6,plotTest=F,diffLimit=1e-2,absLimit=5,n
   # apriori information
   apriori        <- ISapriori.default.1D( initParam , nIon )
 
-  initParam[1] <- 2
+  initParam[1] <- 10
   initParam[9] <- 2
   initParam[2] <- 3
 

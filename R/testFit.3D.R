@@ -9,15 +9,26 @@ testfit.3D <- function(refPoint  = KIR,
                        locTarg   = c(0,0,200),
                        locxy     = T,
 
+                       fwhmTrans = c(1),
+                       fwhmRec   = c(1),
+                       fwhmRange = c(1),
+                       resNS,
+                       resEW,
+                       resH,
+                       Pt        = 1e6,
+                       Tnoise    = 200,
+                       fradar    = 235e6,
+                       phArrTrans= FALSE,
+                       phArrRec  = FALSE,
+                       absCalib  = FALSE,
+
                        TperpTpar = 1,
                        vion      = c(0,0,0),
                        vele      = vion,
                        
-                       cSite     = rep(1,length(locRec)*length(locTrans)),
-                       fradar    = rep(235e6,length(locTrans)),
-                       nacf      = rep(50,length(locRec)*length(locTrans)),
-                       lags      = rep(list(seq(50)*5e-5),length(locRec)*length(locTrans)),
-                       dataStd   = rep(1e-19,length(locRec)*length(locTrans)),
+                       nlags     = 30,
+                       integrationTime = 10,
+                       dutyCycle = .1,
 
                        plotTest  = F,
                        absLimit  = 5,
@@ -42,15 +53,25 @@ testfit.3D <- function(refPoint  = KIR,
 #   locTarg    c(x,y,h) if locxy=T, or c(lat,lon,h) if locxy=F, target plasma volume location
 #   locxy      logical, if T, the positions of the transmitter and receiver are given in cartesian coordinates
 #
+#   fwhmTrans  full width at half maximum of bore-sight transmitter beam(s), in degrees
+#   fwhmRec    full width at half maximum of bore-sight receiver beam(s), in degrees
+#   fwhmRange  full width at half maximum of the gaussian range ambiguity function, in km
+#   resNS      optional, north-south resolution of spatial integration voxels, in km
+#   resEW      optional, east-west resolution of spatial integration voxels, in km
+#   resH       optinal, height resolution of spatial integration voxels, in km
+#   fradar     transmitter frequencies [Hz]
+#   phArrTrans TRUE if transmitter antenna(s) is(are) phased arrays, a vector with own entry for each antenna
+#   phArrRec   see above, for receiver antennas this time
+#   absCalib   if TRUE, all sites are assumed to be absolutely calibrated, if FALSE, the ACF scalings of all other sites but the first one are assumed to be unknown and are fitted
+#
 #   TperpTpar  ratio of perpendicular and parallel ion temperatures (with respect to local magnetic field direction)
 #   vion       ion velocity vector in cartesian coordinates (z-axis upwards)
 #   vele       electron velocity
 #
 #   cSite      ACF scaling factors for each bistatic combination (scaling with distance and beam shapes are not included in this test)
-#   fradar     transmitter frequencies [Hz]
-#   nacf       number of autocorrelation functions (integration periods) from each bistatic combination
-#   lags       time-lags measured with each bistatic combination [us]
-#   dataStd    standard deviations of measurement noise for each bistatic combination
+#   nlags      number of time-lags, the lag resolution is matched with fwhmRange
+#   integrationTime  integration time of the measurements, in seconds
+#   dutyCycle  duty cycle of the transmitter(s)
 #
 #              - the lists for bistatic combinations are given with receiver index running faster. e.g. with N transmitters and
 #                M receivers the order would be T1R1, T1R2, ... , T1RM, T2R1, ... , T2RM, T3R1, ... , TNRM
@@ -64,8 +85,7 @@ testfit.3D <- function(refPoint  = KIR,
 #   maxIter    Maximum number of iterations (Hess matrix calculations) in the levenberg-marquardt iteration
 #
 #   time       c(year,month,day,hour,min,sec) time for which plasma parameters are calculated with the IRI model
-#   heibeg, heiend, heistp  parameters for the IRI-model call. The model parameters are originally computed at heights
-#              seq(heibeg,heiend,by=heistp). Most probably the user does not need to change these parameters
+#   heights    heights at which iri parameters are originally being calculated, most probably the user does not need to change this value
 #
 #
 #
@@ -90,7 +110,7 @@ testfit.3D <- function(refPoint  = KIR,
     if(locxy){
       latlonTrans <- ISgeometry:::planarToSpherical.geographic(x=locTrans[[k]][1],y=locTrans[[k]][2],refPoint=refPoint)
     }else{
-      latlonTrans <- locTrans[[k]]
+      latlonTrans <- list(lat=locTrans[[k]][1],lon=locTrans[[k]][2])
     }
     xyzTrans[[k]] <- ISgeometry:::sphericalToCartesian(c(latlonTrans$lat,latlonTrans$lon))
   }
@@ -100,7 +120,7 @@ testfit.3D <- function(refPoint  = KIR,
     if(locxy){
       latlonRec  <- ISgeometry:::planarToSpherical.geographic(x=locRec[[k]][1],y=locRec[[k]][2],refPoint=refPoint)
     }else{
-      latlonRec  <- locRec[[k]]
+      latlonRec  <- list(lat=locRec[[k]][1],lon=locRec[[k]][2])
     }
     xyzRec[[k]]  <- ISgeometry:::sphericalToCartesian(c(latlonRec$lat,latlonRec$lon))
   }
@@ -108,13 +128,14 @@ testfit.3D <- function(refPoint  = KIR,
   if(locxy){
     latlonTarg   <- ISgeometry:::planarToSpherical.geographic(x=locTarg[1],y=locTarg[2],refPoint=refPoint)
   }else{
-    latlonTarg   <- locTarg[1:2]
+    latlonTarg   <- list(lat=locTarg[1],lon=locTarg[2])
   }
   xyzTarg        <- ISgeometry:::sphericalToCartesian(c(latlonTarg$lat,latlonTarg$lon,ISgeometry:::EarthRadius()+locTarg[3]))
   
   # lists for site parameters
   kSite <- vector(mode='list',length=nComb)
   aSite <- vector(mode='numeric',length=nComb)
+  fSite <- rep(fradar,length.out=nComb)
 
   for(t in seq(nTrans)){
     for(r in seq(nRec)){
@@ -145,13 +166,13 @@ testfit.3D <- function(refPoint  = KIR,
   tion           <- ptmp['Ti',h]*c(1,TperpTpar)
 
   # electron parameters
-  ele            <- c(ptmp[c('e-','Te','Te'),h],elecoll,0,0,0)
+  ele            <- c(ptmp[c('e-','Te','Te'),h],elecoll,vele)
 
   # ion parameters
   ion             <- list(
-                         c(30.5,(ptmp['O2+',h]+ptmp['NO+',h]),tion,ioncoll,0,0,0),
-                         c(16.0,ptmp['O+',h],tion,ioncoll,0,0,0),
-                         c(1.0,ptmp['H+',h],tion,ioncoll,0,0,0)
+                         c(30.5,(ptmp['O2+',h]+ptmp['NO+',h])/ele[1],tion,ioncoll,vion),
+                         c(16.0,ptmp['O+',h]/ele[1],tion,ioncoll,vion),
+                         c(1.0,ptmp['H+',h]/ele[1],tion,ioncoll,vion)
                          )
 
   
@@ -159,17 +180,23 @@ testfit.3D <- function(refPoint  = KIR,
 
 
   # parameters in the form used by ISparamfit
-  par            <- ISparamList2Vec(ele,ion,cSite)
+  par            <- ISparamList2Vec(ele,ion,rep(1,nComb))
 
   # initial (and apriori) parameter values
   # set initial velocity to zero
-  initParam                         <- par
+#  initParam                         <- par
+#  eleinit <- ele*(1+.1*rnorm(7))
+#  ioninit <- list( ion[[1]]*(1+c(0,.1*rnorm(7))) , ion[[2]]*(1+c(0,.1*rnorm(7))) , ion[[3]]*(1+c(0,.1*rnorm(7))))
+  eleinit <- ele
+  ioninit <- ion
+  initParam <- ISparamList2Vec(eleinit,ioninit,rep(1,nComb))
   initParam[seq(5,(8*nIon+7),by=8)] <- 0
   initParam[seq(6,(8*nIon+7),by=8)] <- 0
   initParam[seq(7,(8*nIon+7),by=8)] <- 0
   # initially isotropic temperatures and Te=Ti
   initParam[c(10,11)]                     <- initParam[10]
   for(k in seq(0,nIon)) initParam[c(10,11)+((k-1)*8)] <- initParam[c(10,11)]
+  
 
   # parameter scaling factors
   parScales      <- ISparamScales.default(initParam,nIon)
@@ -186,53 +213,75 @@ testfit.3D <- function(refPoint  = KIR,
   limitParam[2,] <- scaleParams(parLimits[2,] , parScales , inverse=F)
   
   # apriori information
-  apriori        <- ISapriori.default.3D( initParam , nIon )
+  apriori        <- ISapriori.default.3D( initParam , nIon , absCalib )
 
 
   # magnetic field direction
   Btmp           <- igrf(date=time[1:3],lat=latlonTarg[['lat']],lon=latlonTarg[['lon']],height=locTarg[3],isv=0,itype=1)
   B              <- c(Btmp$x,-Btmp$y,-Btmp$z) # the model has y-axis to east and z-axis downwards
+
+
+  # time-lags
+  lagres <- fwhmRange*2/299792.458
+  lags   <- (seq(nlags)-.5)*lagres
+
+
+  # simulated ACF data
+  simudata <- ISmeas.simu( refPoint=refPoint , locTrans=locTrans , locRec=locRec , locTarg=locTarg , locxy=locxy , fwhmTrans=fwhmTrans ,
+                          fwhmRec=fwhmRec , fwhmRange=fwhmRange , resNS=resNS , resEW=resEW , resH=resH , Pt=Pt , Tnoise=Tnoise , fradar=fradar ,
+                          phArrTrans=phArrTrans , phArrRec=phArrRec , ele=ele , ion=ion , freq=seq(-100000,100000,by=1000)*fradar/1e9 ,
+                          lags=lags , integrationTime=integrationTime , dutyCycle=dutyCycle , time=time)
+
+
+  # wave vectors, scattering angles, and site indices
+  nData <- nlags * nComb
+  isite <- rep(seq(nComb),each=nlags)
+  acf   <- unlist(simudata$ACF)
+  var   <- unlist(simudata$var)
+  lags  <- rep(lags,nComb)
+
   
-  #
-  # generate the simulated ACF data and other
-  #
-  nData    <- sum( sapply(lags,length) * nacf )
-  simuData <- vector(mode='complex',length=nData)
-  simuVar  <- vector(mode='numeric',length=nData)
-  iSite    <- vector(mode='integer',length=nData)
-  n        <- 0
-  for(t in seq(nTrans)){
-    for(r in seq(nRec)){
-      k                      <- (t-1)*nRec+r
-      nd                     <- length(lags[[k]]) * nacf[k]
-      freq                   <- seq(-100000,100000,by=1000)*fradar[t]/1e9
-      simuData[(n+1):(n+nd)] <- cSite[k] *
-                                  rep(
-                                      simuACF(
-                                              ele        = ele,
-                                              ion        = ion,
-                                              kdir       = kSite[[k]],
-                                              fradar     = fradar[t],
-                                              scattAngle = aSite[k],
-                                              freq       = freq,
-                                              lags       = lags[[k]],
-                                              Bdir       = B
-                                              ),
-                                      nacf[k]
-                                      ) + (rnorm(nd) + 1i*rnorm(nd))*dataStd[k]/sqrt(2)
-      simuVar[(n+1):(n+nd)]  <- dataStd[k]**2
-      iSite[(n+1):(n+nd)]    <- k
-      n                      <- n + nd
-    }
-  }
+#  #
+#  # generate the simulated ACF data and other
+#  #
+#  nData    <- sum( sapply(lags,length) * nacf )
+#  simuData <- vector(mode='complex',length=nData)
+#  simuVar  <- vector(mode='numeric',length=nData)
+#  iSite    <- vector(mode='integer',length=nData)
+#  n        <- 0
+#  for(t in seq(nTrans)){
+#    for(r in seq(nRec)){
+#      k                      <- (t-1)*nRec+r
+#      nd                     <- length(lags[[k]]) * nacf[k]
+#      freq                   <- seq(-100000,100000,by=1000)*fradar[t]/1e9
+#      simuData[(n+1):(n+nd)] <- cSite[k] *
+#                                  rep(
+#                                      simuACF(
+#                                              ele        = ele,
+#                                              ion        = ion,
+#                                              kdir       = kSite[[k]],
+#                                              fradar     = fradar[t],
+#                                              scattAngle = aSite[k],
+#                                              freq       = freq,
+#                                              lags       = lags[[k]],
+#                                              Bdir       = B
+#                                              ),
+#                                      nacf[k]
+#                                      ) + (rnorm(nd) + 1i*rnorm(nd))*dataStd[k]/sqrt(2)
+#      simuVar[(n+1):(n+nd)]  <- dataStd[k]**2
+#      iSite[(n+1):(n+nd)]    <- k
+#      n                      <- n + nd
+#    }
+#  }
+
   print(
         system.time(
                     fitpar   <- ISparamfit(
-                                           acf             = simuData,
-                                           var             = simuVar,
+                                           acf             = acf,
+                                           var             = var,
                                            nData           = nData,
-                                           iSite           = iSite,
-                                           fSite           = fradar,
+                                           iSite           = isite,
+                                           fSite           = fSite,
                                            aSite           = aSite,
                                            initParam       = initParam,
                                            invAprioriCovar = apriori$invAprioriCovar,
@@ -245,7 +294,7 @@ testfit.3D <- function(refPoint  = KIR,
                                            diffLimit       = diffLimit,
                                            scaleFun        = scaleParams,
                                            scale           = parScales,
-                                           lags            = unlist(lags),
+                                           lags            = lags,
                                            plotTest        = plotTest,
                                            B               = B,
                                            kSite           = kSite,

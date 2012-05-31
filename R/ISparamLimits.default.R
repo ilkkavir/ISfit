@@ -23,9 +23,9 @@ ISparamLimits.default <- function(nIon,nSite){
 
 
   # electron and ion densities
-  paramLimits[1,1]                <- 1e4
+  paramLimits[1,1]                <- 1e8
   paramLimits[2,1]                <- 1e13
-  paramLimits[2,seq(9,nPar,by=8)] <- 1e13
+  paramLimits[2,seq(9,nPar,by=8)] <- 1
 
   # temperatures
   paramLimits[1,seq(2,nPar,by=8)] <- 10

@@ -17,6 +17,7 @@ export(
        testchisqr.guisdap,
        testfit.1D,
        testfit.3D,
-       testfit.guisdap)
+       testfit.guisdap,
+       ISmeas.simu)
 
 useDynLib(ISfit)
