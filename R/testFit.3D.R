@@ -21,6 +21,7 @@ testfit.3D <- function(refPoint  = KIR,
                        phArrTrans= FALSE,
                        phArrRec  = FALSE,
                        absCalib  = FALSE,
+                       TiIsotropic=FALSE,
 
                        TperpTpar = 1,
                        vion      = c(0,0,0),
@@ -63,6 +64,7 @@ testfit.3D <- function(refPoint  = KIR,
 #   phArrTrans TRUE if transmitter antenna(s) is(are) phased arrays, a vector with own entry for each antenna
 #   phArrRec   see above, for receiver antennas this time
 #   absCalib   if TRUE, all sites are assumed to be absolutely calibrated, if FALSE, the ACF scalings of all other sites but the first one are assumed to be unknown and are fitted
+#   TiIsotropic If true, an isotropic ion temperature is assumed, otherwise difference in between parallel and perpendicular temperatures is allowed
 #
 #   TperpTpar  ratio of perpendicular and parallel ion temperatures (with respect to local magnetic field direction)
 #   vion       ion velocity vector in cartesian coordinates (z-axis upwards)
@@ -213,7 +215,7 @@ testfit.3D <- function(refPoint  = KIR,
   limitParam[2,] <- scaleParams(parLimits[2,] , parScales , inverse=F)
   
   # apriori information
-  apriori        <- ISapriori.default.3D( initParam , nIon , absCalib )
+  apriori        <- ISapriori.default.3D( initParam , nIon , absCalib , TiIsotropic )
 
 
   # magnetic field direction
@@ -241,39 +243,6 @@ testfit.3D <- function(refPoint  = KIR,
   lags  <- rep(lags,nComb)
 
   
-#  #
-#  # generate the simulated ACF data and other
-#  #
-#  nData    <- sum( sapply(lags,length) * nacf )
-#  simuData <- vector(mode='complex',length=nData)
-#  simuVar  <- vector(mode='numeric',length=nData)
-#  iSite    <- vector(mode='integer',length=nData)
-#  n        <- 0
-#  for(t in seq(nTrans)){
-#    for(r in seq(nRec)){
-#      k                      <- (t-1)*nRec+r
-#      nd                     <- length(lags[[k]]) * nacf[k]
-#      freq                   <- seq(-100000,100000,by=1000)*fradar[t]/1e9
-#      simuData[(n+1):(n+nd)] <- cSite[k] *
-#                                  rep(
-#                                      simuACF(
-#                                              ele        = ele,
-#                                              ion        = ion,
-#                                              kdir       = kSite[[k]],
-#                                              fradar     = fradar[t],
-#                                              scattAngle = aSite[k],
-#                                              freq       = freq,
-#                                              lags       = lags[[k]],
-#                                              Bdir       = B
-#                                              ),
-#                                      nacf[k]
-#                                      ) + (rnorm(nd) + 1i*rnorm(nd))*dataStd[k]/sqrt(2)
-#      simuVar[(n+1):(n+nd)]  <- dataStd[k]**2
-#      iSite[(n+1):(n+nd)]    <- k
-#      n                      <- n + nd
-#    }
-#  }
-
   print(
         system.time(
                     fitpar   <- ISparamfit(

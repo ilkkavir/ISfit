@@ -1,4 +1,4 @@
-ISapriori.default.3D <- function( aprioriParam , nIon , absCalib=FALSE , ... ){
+ISapriori.default.3D <- function( aprioriParam , nIon , absCalib=FALSE , TiIsotropic=FALSE, ... ){
 #
 # default apriori theory matrix, "measurements", and covariance matrix for 3D IS parameter fits
 #
@@ -7,6 +7,7 @@ ISapriori.default.3D <- function( aprioriParam , nIon , absCalib=FALSE , ... ){
 #  nIon            number of ions in the parameter vector
 #  absCalib        if TRUE, the different sites are assumed to be absolutely calibrated and ACF scales are fixed to unity for all sites
 #                  if FALSE, only the first site is fixed and others are allowed to scale in the parameter fit
+#  TiIsotropic     if TRUE, isotropic ion temperature is assumed, if FALSE, a difference in between parallel and perpendicular temperatures is allowed
 #  ...             arbitrary parameters to be passed forward to other functions, mainly for compatability reasons
 #
 # OUTPUT:
@@ -20,7 +21,7 @@ ISapriori.default.3D <- function( aprioriParam , nIon , absCalib=FALSE , ... ){
   nPar                         <- length(aprioriParam)
 
   # number of imaginary apriori "measurements"
-  nApriori                     <- ( nPar + (nIon-1)*5 + 5 )
+  nApriori                     <- ( nPar + (nIon-1)*5 + 6 )
   
   # apriori theory matrix
   aprioriTheory                <- matrix( 0 , nrow=nApriori , ncol=nPar )
@@ -86,14 +87,17 @@ ISapriori.default.3D <- function( aprioriParam , nIon , absCalib=FALSE , ... ){
   aprioriStd[curRow]             <- 1e-3
   curRow                         <- curRow + 1
 
-#  # ion temperature anisotropy
-#  aprioriTheory[curRow,c(10,11)] <- c(1,-1)
-#  aprioriMeas[curRow]            <- 0
-#  aprioriStd[curRow]             <- 1000
-#  curRow                         <- curRow + 1
+  # ion temperature anisotropy
+  aprioriTheory[curRow,c(10,11)] <- c(1,-1)
+  aprioriMeas[curRow]            <- 0
+  if(TiIsotropic){
+    aprioriStd[curRow]             <- 1e-3
+  }else{
+    aprioriStd[curRow]             <- 1e3
+  }
+  curRow                         <- curRow + 1
 
   # sum of all ion abundances must be 1
-#  aprioriTheory[curRow,1]        <- 1
   aprioriTheory[curRow,seq(9,(8*nIon+7),by=8)] <- 1
   aprioriMeas[curRow]            <- 1
   aprioriStd[curRow]             <- 1e-3
@@ -148,6 +152,7 @@ ISapriori.default.3D <- function( aprioriParam , nIon , absCalib=FALSE , ... ){
   aprioriTheory <<- aprioriTheory
   aprioriStd    <<- aprioriStd
   aprioriMeas   <<- aprioriMeas
+  
   return(list(aprioriTheory=aprioriTheory,invAprioriCovar=diag(1/aprioriStd**2),aprioriMeas=aprioriMeas))
   
 } # ISapriori.default.3D
