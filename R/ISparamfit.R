@@ -2,7 +2,7 @@ ISparamfit <- function( acf , var , lags , iSite , fSite , aSite , kSite , B , i
                        aprioriTheory , aprioriMeas , invAprioriCovar , 
                        nIon , paramLimits , fitFun=leastSquare.lvmrq , scaleFun=scaleParams , directTheory=ISdirectTheory , ... ){
 #
-# Incoherent scatter plasma parameter
+# Incoherent scatter plasma parameter fit
 # 
 # INPUT:
 #  acf            a vector of complex autocorrelation fucntion values

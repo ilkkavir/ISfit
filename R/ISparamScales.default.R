@@ -14,6 +14,9 @@ ISparamScales.default <- function(param,nIon){
 
   parScales <- param
 
+  # do not allow electron density step sizes smaller than 1e10
+  parScales[1] <- max(parScales[1],1e10)
+
   # make sure that the collision frequency steps are non-zero
   parScales[seq(4,length(parScales),by=8)] <- pmax(parScales[seq(4,length(parScales),by=8)],10)
 
