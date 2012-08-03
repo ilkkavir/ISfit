@@ -257,7 +257,7 @@ testfit.3D.beata <- function(
   }
 
 
-    save(fitpar,parfit,fitstd,kTT,kTK,kTS,B,intersect.latlon,intersect.xyz,file=paste('iper',iper,'.Rdata',sep=''))
+    save(fitpar,parfit,fitstd,kTT,kTK,kTS,B,intersect.latlon,intersect.xyz,acf,var,file=paste('iper',iper,'.Rdata',sep=''))
     
     iper <- iper + 1
   }
