@@ -36,9 +36,9 @@ ISapriori.default.guisdap <- function( aprioriParam ,  ... ){
   aprioriStd[5]                <- 1e4                # ion velocity
   aprioriStd[6:nPar]           <- 1e-3
 
-  aprioriTheory <<- aprioriTheory
-  aprioriStd    <<- aprioriStd
-  aprioriMeas   <<- aprioriMeas
+  aprioriTheory <- aprioriTheory
+  aprioriStd    <- aprioriStd
+  aprioriMeas   <- aprioriMeas
   return(list(aprioriTheory=aprioriTheory,invAprioriCovar=diag(1/aprioriStd**2),aprioriMeas=aprioriMeas))
   
 } # ISapriori.default.3D
