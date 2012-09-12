@@ -33,7 +33,7 @@ plotPlasmaParams <- function(fpath,pdf=NULL,jpg=NULL,figNum=NULL,width=8.27,heig
   # cut off large variances (only Ne is studied)
   if(!is.null(stdThreshold)){
     thrInds <- (datas$std[,1,] / datas$param[,1,]) >  stdThreshold
-    for(k in seq(1,(5+length(datas$mi)))) datas$param[,k,][thrInds] <- NA
+    for(k in seq(dim(datas[["param"]])[2])) datas$param[,k,][thrInds] <- NA
   }
 
   # cut off all data where Ne is below NeMin
