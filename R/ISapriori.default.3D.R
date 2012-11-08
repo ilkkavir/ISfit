@@ -38,33 +38,33 @@ ISapriori.default.3D <- function( aprioriParam , nIon , absCalib=FALSE , TiIsotr
   
   aprioriMeas[1:nPar]          <- aprioriParam
   
-  aprioriStd[1]                <- 1e3                # electron density
-  aprioriStd[2]                <- 1e3                # parallel electron temperature
-  aprioriStd[3]                <- 1e3               # perpendicular electron temperature
+  aprioriStd[1]                <- 1e5               # electron density
+  aprioriStd[2]                <- 1                 # parallel electron temperature
+  aprioriStd[3]                <- 1                 # perpendicular electron temperature
   aprioriStd[4]                <- 1e-3              # electron-neutral collision frequency
   aprioriStd[5]                <- 1e4               # electron velocity, x-component
   aprioriStd[6]                <- 1e4               # electron velocity, y-component
   aprioriStd[7]                <- 1e4               # electron velocity, z-component
   aprioriStd[8]                <- 1e-3              # mass of first ion species
   aprioriStd[9]                <- 1e-3              # abundance of first ion species
-  aprioriStd[10]               <- 1e3                # parallel temperature of first ion species
-  aprioriStd[11]               <- 1e3               # perpendicular temperature of first ion species
+  aprioriStd[10]               <- 1                 # parallel temperature of first ion species
+  aprioriStd[11]               <- 1                 # perpendicular temperature of first ion species
   aprioriStd[12]               <- 1e-3              # ion-neutral collision frequency for the first species
-  aprioriStd[13]               <- 1e3               # velocity, x-component
-  aprioriStd[14]               <- 1e3               # velocity, y-component
-  aprioriStd[15]               <- 1e3               # velocity, z-component
+  aprioriStd[13]               <- 1e4               # velocity, x-component
+  aprioriStd[14]               <- 1e4               # velocity, y-component
+  aprioriStd[15]               <- 1e4               # velocity, z-component
 
   if(nIon>1){
     aprioriStd[16:(nIon*8+7)]  <- rep(
                                          c(
                                            1e-3,       # ion mass
                                            1e-3,       # ion abundance
-                                           1e3 ,        # parallel ion temperature
-                                           1e3 ,        # perpendicular ion temperature
+                                           1   ,        # parallel ion temperature
+                                           1   ,        # perpendicular ion temperature
                                            1e-3  ,     # ion-neutral collision frequency
-                                           1e3 ,       # velocity, x-component
-                                           1e3 ,       # velocity, y-component
-                                           1e3         # velocity, z-component
+                                           1e4 ,       # velocity, x-component
+                                           1e4 ,       # velocity, y-component
+                                           1e4         # velocity, z-component
                                            ),
                                       (nIon-1)
                                          )
@@ -74,7 +74,7 @@ ISapriori.default.3D <- function( aprioriParam , nIon , absCalib=FALSE , TiIsotr
     if(absCalib){
       aprioriStd[((nIon+1)*8+1):length(aprioriParam)] <- 1e-3 # fix all sites to the same ACF scale
     }else{
-      aprioriStd[((nIon+1)*8+1):length(aprioriParam)] <- 1e3   # allow scaling for other sites
+      aprioriStd[((nIon+1)*8+1):length(aprioriParam)] <- 1e-1   # allow slight scaling for other sites
     }
   }
   
