@@ -10,9 +10,9 @@ ISfit.1D.guisdap <- function( ddirs='.' , odir='.' , llhT=c(69.58,19.23,86.00) ,
     # INPUT:
     #   ddirs          a vector of data directory paths
     #   odir           Output directory
-    #   llhT           latitude, longitude, and height of the transmitter site
-    #   azelT          azimuth and elevation of the transmitter beam
-    #   llhR           latitude, longitude, and height of the receiver site
+    #   llhT           latitude, longitude, and height of the transmitter site  ( if NA, values will be read from data files)
+    #   azelT          azimuth and elevation of the transmitter beam            ( if NA, values will be read from data files)
+    #   llhR           latitude, longitude, and height of the receiver site     ( if NA, values will be read from data files)
     #   freq.Hz        transmitter carrier frequency
     #   rangeLimits.km analysis range-gate limits. If NA, the range-resolution of LPI will be used
     #   timeRes.s      time resolution (integration time)
@@ -93,10 +93,23 @@ ISfit.1D.guisdap <- function( ddirs='.' , odir='.' , llhT=c(69.58,19.23,86.00) ,
         lag <- unlist( lapply( dlist , function(x){ return( rep( x[["lag"]] , times=x[["nGates"]] ) ) } ) )
         ran <- unlist( lapply( dlist , function(x){ return( unlist( lapply( seq( ncol( x[["ACF"]] ) ) , function( i , n , x ){ return( x[ 1 : n[i] ] ) } , x=x[["range"]] , n=x[["nGates"]] ) ) ) } ) )
 
+        # average positions and pointing directions during the integration period (well.. hope the antennas won't move.. but let's average anyway..)
+        llhTf  <- colMeans(matrix( unlist( lapply( dlist , function(x){ return( x[["llhT"]] ) } ) )  , ncol=3 , byrow=TRUE ) )
+        llhRf  <- colMeans(matrix( unlist( lapply( dlist , function(x){ return( x[["llhR"]] ) } ) )  , ncol=3 , byrow=TRUE ) )
+        azelTf <- colMeans(matrix( unlist( lapply( dlist , function(x){ return( x[["azelT"]] ) } ) ) , ncol=2 , byrow=TRUE ) )
+
+        # select the values that will be actually used
+        llhTu <- llhT
+        llhRu <- llhR
+        azelTu <- azelT
+        if( any( is.na( llhT ) ) ) llhTu <- llhTf
+        if( any( is.na( llhR ) ) ) llhRu <- llhRf
+        if( any( is.na( azelT ) ) ) azelTu <- azelTf
 
         # a time vector converted from iperLimits
         t <- as.POSIXlt( iperLimits[k+1] , origin='1970-01-01' , tz='ut')
-        date <- as.numeric(c(substr(t,1,4),substr(t,6,7),substr(t,9,10),substr(t,12,13),substr(t,15,16),substr(t,18,19)))
+        date <- c(t$year+1900,t$mon,t$mday,t$hour,t$min,t$sec)
+#        date <- as.numeric(c(substr(t,1,4),substr(t,6,7),substr(t,9,10),substr(t,12,13),substr(t,15,16),substr(t,18,19)))
 
         # range-gate limits
         if( all( is.na( rangeLimits.km ) ) ){
@@ -128,11 +141,11 @@ ISfit.1D.guisdap <- function( ddirs='.' , odir='.' , llhT=c(69.58,19.23,86.00) ,
           r.gate         <- mean( range( ran.gate ) )
 
           # exact coordinates of the measurement volume
-          llhTarget      <- range2llh( azelT=azelT , llhR=llhR ,  llhT=llhT ,  r=r.gate * 1000 )
+          llhTarget      <- range2llh( azelT=azelTu , llhR=llhRu ,  llhT=llhTu ,  r=r.gate * 1000 )
           height[r]      <- llhTarget['h'] / 1000
           latitude[r]    <- llhTarget['lat']
           longitude[r]   <- llhTarget['lon']
-          range[r]       <- r.gate / 1000
+          range[r]       <- r.gate
           
 
           # parameters from iri model
@@ -172,7 +185,7 @@ ISfit.1D.guisdap <- function( ddirs='.' , odir='.' , llhT=c(69.58,19.23,86.00) ,
                         var             = var.gate,
                         nData           = length(acf.gate),
                         fSite           = freq.Hz,
-                        aSite           = scattVector.llhazelr( llhT , azelT , llhR , r.gate , freq.Hz )[["phi"]],
+                        aSite           = scattVector.llhazelr( llhTu , azelTu , llhRu , r.gate , freq.Hz )[["phi"]],
                         initParam       = parInit,
                         invAprioriCovar = apriori$invAprioriCovar,
                         aprioriTheory   = apriori$aprioriTheory,
@@ -204,7 +217,7 @@ ISfit.1D.guisdap <- function( ddirs='.' , odir='.' , llhT=c(69.58,19.23,86.00) ,
         std[is.na(std)] <- Inf
         
         # save the results to file
-        PP <- list(param=param,std=std,model=model,chisqr=chisqr,status=status,time_sec=time_sec,date=date,POSIXtime=POSIXtime,range=range,height=height,latitude=latitude,longitude=longitude)
+        PP <- list(param=param,std=std,model=model,chisqr=chisqr,status=status,time_sec=time_sec,date=date,POSIXtime=POSIXtime,range=range,height=height,latitude=latitude,longitude=longitude,azelT=azelTu,llhT=llhTu,llhR=llhRu)
         resFile <- file.path( odir , paste( sprintf( '%13.0f' , trunc( iperLimits[k+1]  * 1000 ) ) , "PP.Rdata" , sep=''))
         save( PP , PPI_param, file=resFile )
 
