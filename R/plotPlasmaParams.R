@@ -1,4 +1,4 @@
-plotPlasmaParams <- function(fpath,pdf=NULL,jpg=NULL,figNum=NULL,width=8.27,height=2.9225,paper='a4',Ne=T,Ti=T,Te=T,Vi=T,Ve=F,coll=F,pIon=c(F,F,F),NeLim=c(9,12),TiLim=c(0,2000),TeLim=c(0,2000),ViLim=c(-200,200),VeLim=c(-200,200),collLim=c(0,5),pIonLim=c(0,1),rLim=NULL,hLim=NULL,tLim=NULL,stdThreshold=.5,tickRes=NULL,plotModel=F,padModel=F,chisqrLim=10,NeMin=9,bg='white',fg='black',res=300,cex=1.0,col.regions=guisdap.colors){
+plotPlasmaParams <- function(fpath,pdf=NULL,jpg=NULL,figNum=NULL,width=8.27,height=2.9225,paper='a4',Ne=T,Ti=T,Te=T,Vi=T,Ve=F,coll=F,pIon=c(F,F,F),azel=T,NeLim=c(9,12),TiLim=c(0,2000),TeLim=c(0,2000),ViLim=c(-200,200),VeLim=c(-200,200),collLim=c(0,5),pIonLim=c(0,1),rLim=NULL,hLim=NULL,tLim=NULL,stdThreshold=.5,tickRes=NULL,plotModel=F,padModel=F,chisqrLim=10,NeMin=9,bg='white',fg='black',res=300,cex=1.0,col.regions=guisdap.colors){
 # 
 # read plasma parameters from file(s) and plot them
 # 
@@ -13,12 +13,16 @@ plotPlasmaParams <- function(fpath,pdf=NULL,jpg=NULL,figNum=NULL,width=8.27,heig
 
   # find the parameters the user wants to plot
   rInds <- rep(T,datas$nRange)
-  pInds <- c(Ne,Ti,Te,coll,Vi,Ve,pIon)
+  pInds <- c(Ne,Ti,Te,coll,Vi,Ve,pIon,azel)
   tInds <- rep(T,datas$n)
 
-  hLim2 <- range(datas$height,na.rm=T)
-  if(!is.null(hLim)){ rInds <- (datas$height >= hLim[1]) & (datas$height <= hLim[2]); hLim2 <- hLim}
-  if(!is.null(rLim)){ rInds <- rInds & ((datas$range >= rLim[1]) & (datas$range <= rLim[2])); hLim2 <- range(datas$height[rInds])}
+#  hLim2 <- range(datas$height,na.rm=T)
+#  if(!is.null(hLim)){ rInds <- (datas$height >= hLim[1]) & (datas$height <= hLim[2]); hLim2 <- hLim}
+#  if(!is.null(rLim)){ rInds <- rInds & ((datas$range >= rLim[1]) & (datas$range <= rLim[2])); hLim2 <- range(datas$height[rInds])}
+
+  rLim2 <- range(datas$range,na.rm=T)
+#  if(!is.null(hLim)){ rInds <- (datas$height >= hLim[1]) & (datas$height <= hLim[2]); rLim2 <- range( datas$range[rInds])}
+  if(!is.null(rLim)){ rInds <- rInds & ((datas$range >= rLim[1]) & (datas$range <= rLim[2])); rLim2 <- rLim}
 
   tLim2 <- range(datas$time_sec,na.rm=T)
   if(!is.null(tLim)){
@@ -93,16 +97,20 @@ plotPlasmaParams <- function(fpath,pdf=NULL,jpg=NULL,figNum=NULL,width=8.27,heig
     treold <- trellis.par.get()
     trenew <- treold
     trenew$bacground$col <- bg
-    trenew$layout.heights$strip=0
-    trenew$layout.heights$xlab=0
-    trenew$layout.heights$sub = 0
-    trenew$layout.heights$between=0
-    trenew$layout.heights$main=.1
-    trenew$layout.heights$top.padding=0
-    trenew$layout.heights$main.key.padding=0
-    trenew$layout.heights$bottom.padding=0
-    trenew$layout.heights$xlab.key.padding=0
-    trellis.par.set(list(background=trenew$background,layout.heights=trenew$layout.heights))
+    trenew$layout.heights$strip <- 0
+    trenew$layout.heights$xlab <- 0
+    trenew$layout.heights$sub <- 0
+    trenew$layout.heights$between <- 0
+    trenew$layout.heights$main <- .1
+    trenew$layout.heights$top.padding <- 0
+    trenew$layout.heights$main.key.padding <- 0
+    trenew$layout.heights$key.top <- 1
+    trenew$layout.heights$bottom.padding <- 0
+    trenew$layout.heights$xlab.key.padding <- 0
+    trenew$layout.widths$panel <- 5
+    trenew$layout.widths$right.padding <- 1
+    trenew$layout.heights$key.axis.padding<-1
+    trellis.par.set(list(background=trenew$background,layout.heights=trenew$layout.heights,layout.widths=trenew$layout.widths))
 
     # tick marks in the time axis
     ticks <- timeTicks(tLim2,tickRes)
@@ -113,10 +121,10 @@ plotPlasmaParams <- function(fpath,pdf=NULL,jpg=NULL,figNum=NULL,width=8.27,heig
     # electron density
     if(Ne) curFig <- addPPcolorPlot(
                                       d      = log10(datas$param[rInds,1,tInds]),  # the data
-                                      h      = datas$height[rInds],                # heights
+                                      h      = datas$range[rInds],                # heights
                                       t      = datas$time_sec[tInds],              # times
                                       xlim   = tLim2,                              # x-axis (time) limits
-                                      ylim   = hLim2,                              # y-axis (height) limits
+                                      ylim   = rLim2,                              # y-axis (height) limits
                                       zlim   = NeLim,                              # z-axis (colorcoded Ne) limits
                                       # title of the plot
                                       main   = list(expression(paste("Log","(N"[e]^{},") [m"[]^{-3},"]")),col=fg,cex=cex,vjust=1.2),
@@ -130,9 +138,9 @@ plotPlasmaParams <- function(fpath,pdf=NULL,jpg=NULL,figNum=NULL,width=8.27,heig
     # electron temperature (datas$param[,2,] is the ratio Te/Ti)
     if(Te) curFig <- addPPcolorPlot(
                                       d      = datas$param[rInds,2,tInds]*datas$param[rInds,3,tInds],
-                                      h      = datas$height[rInds],
+                                      h      = datas$range[rInds],
                                       xlim   = tLim2,
-                                      ylim   = hLim2,
+                                      ylim   = rLim2,
                                       t      = datas$time_sec[tInds],
                                       zlim   = TeLim,
                                       main   = list(expression(paste("T"[e]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
@@ -146,11 +154,11 @@ plotPlasmaParams <- function(fpath,pdf=NULL,jpg=NULL,figNum=NULL,width=8.27,heig
     # ion temperature
     if(Ti) curFig <- addPPcolorPlot(
                                       d      = datas$param[rInds,2,tInds],
-                                      h      = datas$height[rInds],
+                                      h      = datas$range[rInds],
                                       t      = datas$time_sec[tInds],
                                       zlim   = TiLim,
                                       xlim   =  tLim2,
-                                      ylim   = hLim2,
+                                      ylim   = rLim2,
                                       main   = list(expression(paste("T"[i]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
                                       cex    = cex,
                                       ticks  = ticks,
@@ -162,9 +170,9 @@ plotPlasmaParams <- function(fpath,pdf=NULL,jpg=NULL,figNum=NULL,width=8.27,heig
     # ion-neutral collision frequency
     if(coll) curFig <- addPPcolorPlot(
                                       d      = log10(datas$param[rInds,4,tInds]),
-                                      h      = datas$height[rInds],
+                                      h      = datas$range[rInds],
                                       xlim   = tLim2,
-                                      ylim   = hLim2,
+                                      ylim   = rLim2,
                                       t      = datas$time_sec[tInds],
                                       zlim   = collLim,
                                       main   = list(expression(paste("Log(",nu['in']^{},") [s"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
@@ -178,11 +186,11 @@ plotPlasmaParams <- function(fpath,pdf=NULL,jpg=NULL,figNum=NULL,width=8.27,heig
     # line-of-sight ion velocity
     if(Vi) curFig <- addPPcolorPlot(
                                       d      = datas$param[rInds,5,tInds],
-                                      h      = datas$height[rInds],
+                                      h      = datas$range[rInds],
                                       t      = datas$time_sec[tInds],
                                       zlim   = ViLim,
                                       xlim   = tLim2,
-                                      ylim   = hLim2,
+                                      ylim   = rLim2,
                                       main   = list(expression(paste("V"[i]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
                                       cex    = cex,
                                       ticks  = ticks,
@@ -194,11 +202,11 @@ plotPlasmaParams <- function(fpath,pdf=NULL,jpg=NULL,figNum=NULL,width=8.27,heig
     # line-of-sight electron velocity (datas$param[,6,] is the difference Ve-Vi)
     if(Ve) curFig <- addPPcolorPlot(
                                       d      = (datas$param[rInds,6,tInds]+datas$param[rInds,5,tInds]),
-                                      h      = datas$height[rInds],
+                                      h      = datas$range[rInds],
                                       t      = datas$time_sec[tInds],
                                       zlim   = VeLim,
                                       xlim   = tLim2,
-                                      ylim   = hLim2,
+                                      ylim   = rLim2,
                                       main   = list(expression(paste("V"[e]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
                                       cex    = cex,
                                       ticks  = ticks,
@@ -214,11 +222,11 @@ plotPlasmaParams <- function(fpath,pdf=NULL,jpg=NULL,figNum=NULL,width=8.27,heig
       # the remaining fraction is given for the ion mass 30.5u (NO+ and O2+)
       if(pIon[k]){
         curFig <- addPPcolorPlot(
-                                      d      = datas$param[rInds,(6+k),tInds],h=datas$height[rInds],
+                                      d      = datas$param[rInds,(6+k),tInds],h=datas$range[rInds],
                                       t      = datas$time_sec[tInds],
                                       zlim   = pIonLim,
                                       xlim   = tLim2,
-                                      ylim   = hLim2,
+                                      ylim   = rLim2,
                                       main   = list(sprintf("Fraction of ion mass %.1f u",datas$mi[k+1]),col=fg,cex=cex,vjust=1.2),
                                       cex    = cex,
                                       ticks  = ticks,
@@ -228,6 +236,28 @@ plotPlasmaParams <- function(fpath,pdf=NULL,jpg=NULL,figNum=NULL,width=8.27,heig
                                 )
       }
     }
+    
+    # azimuth and elevation
+    if(azel){
+          trenew$layout.widths$right.padding <- 10.5
+          trenew$layout.heights$key.axis.padding<--1
+          trellis.par.set(list(background=trenew$background,layout.heights=trenew$layout.heights,layout.widths=trenew$layout.widths))
+          curFig <- addAzElPlot(
+                                az     = datas$azelT[1,tInds]%%360,
+                                el     = datas$azelT[2,tInds],
+                                t      = datas$time_sec[tInds],
+                                xlim   = tLim2,
+                                cex    = cex,
+                                ticks  = ticks,
+                                nFig   = nFig,
+                                curFig = curFig
+                                )
+          trenew$layout.widths$right.padding <- 1
+          trenew$layout.heights$key.axis.padding<-1
+          trellis.par.set(list(background=trenew$background,layout.heights=trenew$layout.heights,layout.widths=trenew$layout.widths))
+        }
+
+
 
   # if only one result file was found, then plot the individual points
   }else{
@@ -268,9 +298,9 @@ plotPlasmaParams <- function(fpath,pdf=NULL,jpg=NULL,figNum=NULL,width=8.27,heig
                           d    = datas$param[rInds,1,tInds],                                               # the data
                           err  = 3*datas$std[rInds,1,tInds],                                               # 3-sigma errorbars
                           log  = T,                                                                        # logarithmic scale in x-axis
-                          h    = datas$height[rInds],                                                      # heigts
+                          h    = datas$range[rInds],                                                      # heigts
                           xlim = NeLim,                                                                    # limits of the x-axis
-                          ylim = hLim2,                                                                    # limits of the y-axis
+                          ylim = rLim2,                                                                    # limits of the y-axis
                           xlab = list(expression(paste("Log","(N"[e]^{},") [m"[]^{-3},"]")),col=fg,cex=cex)# x-axis label
                         )
 
@@ -280,9 +310,9 @@ plotPlasmaParams <- function(fpath,pdf=NULL,jpg=NULL,figNum=NULL,width=8.27,heig
                           err  = 3*(datas$param[rInds,2,tInds]*datas$std[rInds,3,tInds] + 
                                     datas$param[rInds,3,tInds]*datas$std[rInds,2,tInds]),
                           log  = F,
-                          h    = datas$height[rInds],
+                          h    = datas$range[rInds],
                           xlim = TeLim,
-                          ylim = hLim2,
+                          ylim = rLim2,
                           xlab = list(expression(paste("T"[e]^{}," [K]")),col=fg,cex=cex)
                         )
 
@@ -290,9 +320,9 @@ plotPlasmaParams <- function(fpath,pdf=NULL,jpg=NULL,figNum=NULL,width=8.27,heig
                           d    = datas$param[rInds,2,tInds],
                           err  = 3*datas$std[rInds,2,tInds],
                           log  = F,
-                          h    = datas$height[rInds],
+                          h    = datas$range[rInds],
                           xlim = TiLim,
-                          ylim = hLim2,
+                          ylim = rLim2,
                           xlab = list(expression(paste("T"[i]^{}," [K]")),col=fg,cex=cex)
                         )
 
@@ -300,9 +330,9 @@ plotPlasmaParams <- function(fpath,pdf=NULL,jpg=NULL,figNum=NULL,width=8.27,heig
                           d    = datas$param[rInds,4,tInds],
                           err  = 3*datas$std[rInds,4,tInds],
                           log  = T,
-                          h    = datas$height[rInds],
+                          h    = datas$range[rInds],
                           xlim = collLim,
-                          ylim = hLim2,
+                          ylim = rLim2,
                           xlab = list(expression(paste("Log(",nu['in']^{},") [s"[]^{-1},"]")),col=fg,cex=cex)
                           )
 
@@ -310,9 +340,9 @@ plotPlasmaParams <- function(fpath,pdf=NULL,jpg=NULL,figNum=NULL,width=8.27,heig
                           d    = datas$param[rInds,5,tInds],
                           err  = 3*datas$std[rInds,5,tInds],
                           log  = F,
-                          h    = datas$height[rInds],
+                          h    = datas$range[rInds],
                           xlim = ViLim,
-                          ylim = hLim2,
+                          ylim = rLim2,
                           xlab = list(expression(paste("V"[i]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex)
                         )
 
@@ -320,9 +350,9 @@ plotPlasmaParams <- function(fpath,pdf=NULL,jpg=NULL,figNum=NULL,width=8.27,heig
                           d    = (datas$param[rInds,6,tInds]+datas$param[rInds,5,tInds]),
                           err  = 3*(datas$std[rInds,6,tInds]+datas$std[rInds,5,tInds]),
                           log  = F,
-                          h    = datas$height[rInds],
+                          h    = datas$range[rInds],
                           xlim = VeLim,
-                          ylim = hLim2,
+                          ylim = rLim2,
                           xlab = list(expression(paste("V"[e]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex)
                         )
 
@@ -332,9 +362,9 @@ plotPlasmaParams <- function(fpath,pdf=NULL,jpg=NULL,figNum=NULL,width=8.27,heig
                           d    = datas$param[rInds,(6+k),tInds],
                           err  = 3*datas$std[rInds,(5+k),tInds],
                           log  = F,
-                          h    = datas$height[rInds],
+                          h    = datas$range[rInds],
                           xlim = pIonLim,
-                          ylim = hLim2,
+                          ylim = rLim2,
                           xlab =list(sprintf("Fractional abundance of ion mass %.1f u",datas$mi[k+1]),col=fg,cex=cex)
                         )
       }

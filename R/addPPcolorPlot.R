@@ -27,11 +27,11 @@ addPPcolorPlot <- function(d,h,t,xlim=range(t),ylim=range(h),zlim,main,ticks,cex
       at          = seq(zlim[1],zlim[2],length.out=100),
       scales      = list(x=list(at=ticks$tick,labels=ticks$string),cex=cex),
       xlab        = list(xlab,cex=cex),
-      ylab        = list("Height [km]",cex=cex),
+      ylab        = list("Range [km]",cex=cex),
       xlim        = xlim,
       ylim        = ylim,
       main        = main,
-      colorkey    = list(labels=list(cex=cex))
+      colorkey    = list(labels=list(cex=cex),width=2)
     ),
 
     split=c(1,curFig,1,nFig),

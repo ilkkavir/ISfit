@@ -44,12 +44,15 @@ readPPIdir <- function(dpath,recursive=F){
   std       <- array(NA,dim=c(nRange,nPar,nFile))
   model     <- array(NA,dim=c(nRange,nPar,nFile))
   range     <- PP$range
-  height    <- PP$height
+  height    <- array(NA,dim=c(nRange,nFile))
   status    <- array(NA,dim=c(nRange,nFile))
   chisqr    <- array(NA,dim=c(nRange,nFile))
   time_sec  <- vector(length=nFile,mode='numeric')
   date      <- vector(length=nFile,mode='list')
   POSIXtime <- vector(length=nFile,mode='list')
+  llhT      <- PP$llhT
+  llhR      <- PP$llhR
+  azelT     <- matrix(NA,nrow=2,ncol=nFile)
 
   # read the data from files
   for (k in seq(nFile)){
@@ -61,12 +64,14 @@ readPPIdir <- function(dpath,recursive=F){
     status[,k]   <- PP$status
     time_sec[k]  <- PP$time_sec
     date[[k]]    <- PP$date
-    POSIXtime    <- PP$POSIXtime 
+    POSIXtime    <- PP$POSIXtime
+    height[,k]   <- PP$height
+    if(!all(is.null(PP$azelT))) azelT[,k]    <- PP$azelT
   }
 
 
   return(list(param=param,std=std,model=model,chisqr=chisqr,status=status,range=range,height=height,time_sec=time_sec,date=date,POSIXtime=POSIXtime,
-              n=nFile,nPar=nPar,nRange=nRange,mi=mi))
+              llhT=llhT,llhR=llhR,azelT=azelT,n=nFile,nPar=nPar,nRange=nRange,mi=mi))
 
 } # readPPIdir
 
