@@ -147,7 +147,6 @@ ISfit.1D.guisdap <- function( ddirs='.' , odir='.' , llhT=c(69.58,19.23,86.00) ,
           longitude[r]   <- llhTarget['lon']
           range[r]       <- r.gate
           
-
           # parameters from iri model
           ptmp           <- iriParams( time=date ,latitude=llhTarget[1],longitude=llhTarget[2],heights=llhTarget[3]/1000 )
 
@@ -217,7 +216,7 @@ ISfit.1D.guisdap <- function( ddirs='.' , odir='.' , llhT=c(69.58,19.23,86.00) ,
         std[is.na(std)] <- Inf
         
         # save the results to file
-        PP <- list(param=param,std=std,model=model,chisqr=chisqr,status=status,time_sec=time_sec,date=date,POSIXtime=POSIXtime,range=range,height=height,latitude=latitude,longitude=longitude,azelT=azelTu,llhT=llhTu,llhR=llhRu)
+        PP <- list(param=param,std=std,model=model,chisqr=chisqr,status=status,time_sec=time_sec,date=date,POSIXtime=POSIXtime,range=range,height=height,latitude=latitude,longitude=longitude,azelT=azelTu,llhT=llhTu,llhR=llhRu,acfScale=acfScale)
         resFile <- file.path( odir , paste( sprintf( '%13.0f' , trunc( iperLimits[k+1]  * 1000 ) ) , "PP.Rdata" , sep=''))
         save( PP , PPI_param, file=resFile )
 
