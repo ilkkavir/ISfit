@@ -29,7 +29,7 @@ ISdirectTheory.guisdap <- function( param , scaleFun , nData , mIon , fSite , aS
 
 
   # spectra at each site
-  sSite          <<- ISspectrum.guisdap(p=sparam,pm0=mIon,fradar=fSite,scattAngle=aSite,freq=xSite)
+  sSite          <- ISspectrum.guisdap(p=sparam,pm0=mIon,fradar=fSite,scattAngle=aSite,freq=xSite)
 
   # ACFs
   dirtheData     <- sSite%*%fAmb
