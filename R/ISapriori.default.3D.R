@@ -149,9 +149,9 @@ ISapriori.default.3D <- function( aprioriParam , nIon , absCalib=FALSE , TiIsotr
     }
   }
 
-  aprioriTheory <<- aprioriTheory
-  aprioriStd    <<- aprioriStd
-  aprioriMeas   <<- aprioriMeas
+  aprioriTheory <- aprioriTheory
+  aprioriStd    <- aprioriStd
+  aprioriMeas   <- aprioriMeas
   
   return(list(aprioriTheory=aprioriTheory,invAprioriCovar=diag(1/aprioriStd**2),aprioriMeas=aprioriMeas))
   

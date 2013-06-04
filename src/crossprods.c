@@ -29,7 +29,7 @@ SEXP crossprods( SEXP nData , SEXP fAmb , SEXP nFreq , SEXP iSite , SEXP sSite ,
     // walk through frequency points
     for( l = 0 ; l < nf ; ++l ){
 
-      //            frequency ambiguity * spectrum           * scaling for this site
+      // frequency ambiguity * spectrum * scaling for this site
       dData[k].r += ambig[ k*nf + l ].r * ss[ is[k]*nf + l ] * cs[is[k]];
       dData[k].i += ambig[ k*nf + l ].i * ss[ is[k]*nf + l ] * cs[is[k]];
     }

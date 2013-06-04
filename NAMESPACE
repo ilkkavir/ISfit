@@ -1,5 +1,6 @@
 export(
        ISapriori.default.1D,
+       ISapriori.default.2D,
        ISapriori.default.3D,
        ISapriori.default.guisdap,
        ISaprioricovar.default.1D,
@@ -16,6 +17,7 @@ export(
        simuACF,
        testchisqr.guisdap,
        testfit.1D,
+       testfit.2D,
        testfit.3D,
        testfit.guisdap,
        ISmeas.simu,

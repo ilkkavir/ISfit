@@ -44,7 +44,7 @@ testfit.1D <- function(h=200,fradar=933e6,plotTest=F,diffLimit=1e-2,absLimit=5,n
 
   # simulated ACF
   ndata          <- nacf*nlag
-  freq           <- seq(-1000,1000)*100
+  freq           <- seq(-10000,10000)*10
   lags           <- seq(nlag)*10e-6
   simudata       <- rep(simuACF(ele=ele,ion=ion,fradar=fradar,freq=freq,lags=lags),nacf) + (rnorm(ndata) + 1i*rnorm(ndata))*1e-20/sqrt(2)
   plot(Re(simuACF(ele=ele,ion=ion,fradar=fradar,freq=freq,lags=lags)))
@@ -76,8 +76,8 @@ testfit.1D <- function(h=200,fradar=933e6,plotTest=F,diffLimit=1e-2,absLimit=5,n
   # apriori information
   apriori        <- ISapriori.default.1D( initParam , nIon )
 
-  initParam[1] <- 10
-  initParam[9] <- 2
+  initParam[1] <- max(abs(simudata),na.rm=TRUE)*1e18
+#  initParam[9] <- 2
   initParam[2] <- 3
 
   print(system.time(fitpar         <- ISparamfit( acf=simudata,

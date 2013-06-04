@@ -40,6 +40,11 @@ ISparamfit.guisdap <- function( acf , var , lags , fSite , aSite ,  initParam , 
 
   # create a frequency axis
   freq <- seq(-100000,100000,by=1000)*fSite/1e9
+  fmax <- 1/min(diff(unique(sort(lags))))
+  fstep <- min(1/max(lags)/2,fSite/1e6)
+  if(is.infinite(fmax)) fmax <- fSite/1e4
+  if(is.infinite(fstep)) fstep <- fSite/1e6
+  freq <- seq(-fmax,fmax,by=fstep)
 
   # frequency ambiguity functions
   nf <- length(freq)

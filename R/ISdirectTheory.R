@@ -1,7 +1,6 @@
 ISdirectTheory <- function( param , scaleFun , nData , nIon , nSite , iSite , fSite , aSite , kSite , xSite , B , fAmb , ... ){
 #
-# Direct theory function for one-dimensional plasma paramter fits. Contains the option for several sites, because
-# that allows multi-frequency studies with co-located radars (e.g. EISCAT UHF and VHF systems)
+# Direct theory function for plasma paramter fits.
 #
 # INPUT:
 #  param        a vector of plasma parameters and ACF scales:
@@ -41,19 +40,19 @@ ISdirectTheory <- function( param , scaleFun , nData , nIon , nSite , iSite , fS
 
   # spectra at each site
   nf             <- sapply( xSite , length )
-  sSite          <<- matrix(0,nrow=max(nf),ncol=nSite)
+  sSite          <- matrix(0,nrow=max(nf),ncol=nSite)
   for(k in seq(nSite)){
-    sSite[1:nf[k],k]     <<- ISspectrum.3D( ele=parlist$ele , ion=parlist$ion , Bdir=B , kdir=kSite[[k]] , fradar=fSite[[k]] ,
+    sSite[1:nf[k],k]     <- ISspectrum.3D( ele=parlist$ele , ion=parlist$ion , Bdir=B , kdir=kSite[[k]] , fradar=fSite[[k]] ,
                                      scattAngle=aSite[[k]] , freq=xSite[[k]] )
   }
 
   # ACFs
   return( .Call( "crossprods" ,
                 as.integer( nData ),
-                c(fAmb),
+                fAmb,
                 as.integer( max(nf) ),
                 as.integer( iSite - 1),
-                c(sSite),
+                sSite,
                 parlist$cSite
                 )
          )

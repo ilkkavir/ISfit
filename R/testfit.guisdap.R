@@ -95,7 +95,7 @@ testfit.guisdap <- function(refPoint  = KIR,
   # generate the simulated ACF data and other
   #
   nData    <- length(lags) * nacf
-  freq     <- seq(-100000,100000,by=1000)*fradar/1e9
+  freq     <- seq(-100000,100000,by=100)*fradar/1e9
   ele <- c(par[1],par[2]*par[3],par[2]*par[3],par[4]*.35714,par[5],0,0)
   ion <-  list(
                             c(mIon[1],(1-sum(par[6:7]))*par[1],par[2],par[2],par[4],par[5],0,0),

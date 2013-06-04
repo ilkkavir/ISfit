@@ -59,10 +59,17 @@ ISparamfit <- function( acf , var , lags , iSite , fSite , aSite , kSite , B , i
 
   # create frequency axes for all sites
   freq <- list()
-  for(k in seq(ns)) freq[[k]] <- seq(-100000,100000,by=1000)*fSite[k]/1e9
+  for(k in seq(ns)){# freq[[k]] <- seq(-100000,100000,by=1000)*fSite[k]/1e9
+      fmax <- 1/min(diff(unique(sort(lags[which(iSite==k)]))))
+      fstep <- min(1/max(lags[which(iSite==k)])/2,fSite[k]/1e6)
+      if(is.infinite(fmax)) fmax <- fSite[k]/1e4
+      if(is.infinite(fstep)) fstep <- fSite[k]/1e6
+      freq[[k]] <- seq(-fmax,fmax,by=fstep)
+  }
 
   # frequency ambiguity functions
-  nf <- length(freq[[1]])
+#  nf <- length(freq[[1]])
+  nf <- max(sapply(freq,length))
   nl <- length(lags)
   fAmb <- matrix(nrow=nf,ncol=nl)
   for(k in seq(nl)) fAmb[,k] <- frequencyAmbiguity( lags[k] , freq[[iSite[k]]] )
