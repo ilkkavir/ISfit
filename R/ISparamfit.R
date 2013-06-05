@@ -12,30 +12,27 @@ ISparamfit <- function( acf , var , lags , iSite , fSite , aSite , kSite , B , i
 #  fSite          transmitter frequencies for all receiver sites
 #  aSite          angle between incident and scattered wave vector for each receiver site, in degrees
 #  kSite          a list of scattering wave vectors at each site
-#  B              magnetic field direction
-#  initParam      start values for the fitting routine
-#                   c( Ne , Te_par , Te_perp , nu_en , ve_x , ve_y , ve_z ,
-#                 m1 , N1 , T1_par , T1_perp , nu_1n , v1_x , v1_y , v1_z ,
-#                 m2 , N2 , T2_par , ...
-#                 ...
-#                 mnIon , ...                                   , vnIon_z ,
-#                 s_1 , s_2 , ... , s_Nsite)
-#                 s_1 ... s_Nsite are acf scaling factor for different sites
-#  aprioriTheory  theory matrix for the linear apriori theory
-#  aprioriMeas    the imaginary apriori "measurements"
-#  invAprioriCovar  inverse of the  covariance matrix of the apriori "measurements"
+#  B              magnetic field direction at target position
 #  nIon           number of ion masses
-#  paramLimits    2 x length(initParam) matrix of smallest (paramLimits[1,]) and largest (paramLimits[2,]) parameter values
 #  fitFun         function used for the leas-squares optimisation
-#  scaleFun       the function used for scaling step sizes in Levenberg-Marquardt iteration.
-#  direcTheory    direct theory function for the fitting routine
+#
+#  initParam      initial values for the fitting routine, the actual format
+#                 depends on requirements of directTheory
+#  aprioriTheory  theory matrix for the linear apriori theory, must match with directTheory
+#  aprioriMeas    the imaginary apriori "measurements", must match with directTheory
+#  invAprioriCovar  inverse of the  covariance matrix of the apriori "measurements"
+#  paramLimits    2 x length(initParam) matrix of smallest (paramLimits[1,]) and
+#                 largest (paramLimits[2,]) parameter values. Must match with directTheory
+#  scaleFun       the function used for scaling step sizes in Levenberg-Marquardt iteration. Must
+#                 match with directTheory
+#  directTheory   direct theory function for the fitting routine
 #  ...            additional input needed by scaleFun
 #
 # OUTPUT:
 #  
+#   Output from fitFun, contents vary depending on fitFun and directTheory
 #
-#
-# I. Virtanen 2012
+# I. Virtanen 2012, 2013
 #
 
   # number of data points
@@ -59,7 +56,7 @@ ISparamfit <- function( acf , var , lags , iSite , fSite , aSite , kSite , B , i
 
   # create frequency axes for all sites
   freq <- list()
-  for(k in seq(ns)){# freq[[k]] <- seq(-100000,100000,by=1000)*fSite[k]/1e9
+  for(k in seq(ns)){
       fmax <- 1/min(diff(unique(sort(lags[which(iSite==k)]))))
       fstep <- min(1/max(lags[which(iSite==k)])/2,fSite[k]/1e6)
       if(is.infinite(fmax)) fmax <- fSite[k]/1e4
@@ -68,20 +65,16 @@ ISparamfit <- function( acf , var , lags , iSite , fSite , aSite , kSite , B , i
   }
 
   # frequency ambiguity functions
-#  nf <- length(freq[[1]])
   nf <- max(sapply(freq,length))
   nl <- length(lags)
   fAmb <- matrix(nrow=nf,ncol=nl)
   for(k in seq(nl)) fAmb[,k] <- frequencyAmbiguity( lags[k] , freq[[iSite[k]]] )
 
   # the actual fitting
-  nlsParam <- fitFun( measData=acf , measVar=var , initParam=initParam ,
-                      aprioriTheory=aprioriTheory , aprioriMeas=aprioriMeas , invAprioriCovar=invAprioriCovar ,
-                      paramLimits=paramLimits , fAmb=fAmb ,
-                      scaleFun=scaleFun , nIon=nIon , nSite=ns , iSite=iSite , fSite=fSite , aSite=aSite ,
-                      kSite=kSite , B=B , xSite=freq , directTheory=directTheory , ... )
+  nlsParam <- fitFun( measData=acf , measVar=var , initParam=initParam , aprioriTheory=aprioriTheory , aprioriMeas=aprioriMeas , invAprioriCovar=invAprioriCovar , paramLimits=paramLimits , fAmb=fAmb , scaleFun=scaleFun , nIon=nIon , nSite=ns , iSite=iSite , fSite=fSite , aSite=aSite , kSite=kSite , B=B , xSite=freq , directTheory=directTheory , ... )
 
   return(nlsParam)
 
   
 } # ISparamfit
+

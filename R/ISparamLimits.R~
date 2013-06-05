@@ -1,4 +1,4 @@
-ISparamLimits.default <- function(nIon,nSite){
+ISparamLimits.general <- function(nIon,nSite){
 #
 # Default lower and upper limits for parameters, in physical units
 #
@@ -45,4 +45,4 @@ ISparamLimits.default <- function(nIon,nSite){
 
   return(paramLimits)
 g  
-} # ISparamLimits.default
+} # ISparamLimits.general

@@ -89,7 +89,7 @@ testfit.guisdap <- function(refPoint  = KIR,
   limitParam[2,] <- scaleParams(parLimits[2,] , parScales , inverse=F)
   
   # apriori information
-  apriori        <- ISapriori.default.guisdap( initParam , nIon )
+  apriori        <- ISapriori.guisdap( initParam , nIon )
 
   #
   # generate the simulated ACF data and other

@@ -1,4 +1,4 @@
-ISparamScales.default <- function(param,nIon){
+ISparamScales.general <- function(param,nIon){
 #
 #
 #
@@ -35,4 +35,4 @@ ISparamScales.default <- function(param,nIon){
 
   return(parScales)
   
-} # ISparamScales.default
+} # ISparamScales.general

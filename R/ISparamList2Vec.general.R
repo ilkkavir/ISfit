@@ -1,4 +1,4 @@
-ISparamList2Vec <- function(ele,ion,cSite){
+ISparamList2Vec.general <- function(ele,ion,cSite){
 #
 # Converts the plasma parameters given as vector "ele", list "ion", and vector siteScales, into a parameter vector
 # used in ISparamfit
@@ -14,6 +14,6 @@ ISparamList2Vec <- function(ele,ion,cSite){
 # I. Virtanen 2012
 #
 
-  return(c( ele[1] , ion[[1]][3:4] , ele[2:3] , ion[[1]][5], ion[[1]][6:8] , sapply(ion,FUN=function(x){x[2]}) , cSite ))
+  return( c( ele , unlist(ion) , cSite ) )
   
-} 
+}

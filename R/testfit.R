@@ -1,7 +1,13 @@
-testfit.2D <- function(refPoint  = KIR,
+testfit <- function(
+    dimension=3,
+    general=FALSE,
+                       refPoint  = KIR,
                        locTrans  = list(c(0,0)),
                        locRec    = list( c(    0 ,    0 ),
-                                         c(  100 ,    0 )
+                                         c(  100 ,    0 ),
+                                         c( -100 ,    0 ),
+                                         c(    0 ,  100 ),
+                                         c(    0 , -100 )
                          ),
                        locTarg   = c(0,0,200),
                        locxy     = T,
@@ -38,7 +44,7 @@ testfit.2D <- function(refPoint  = KIR,
                        heights   = seq(1000)
                        ){
 #
-# Test the 2D plasma parameter fit with simulated ACF data
+# Test the 3D plasma parameter fit with simulated ACF data
 #
 # INPUT:
 #   refPoint   c(lat,lon) reference point, from which the distance x and y are measured.
@@ -176,48 +182,79 @@ testfit.2D <- function(refPoint  = KIR,
 
   
   nIon           <- length(ion)
+  mIon <- sapply(ion,FUN=function(x){x[1]})
 
 
   # parameters in the form used by ISparamfit
-  par            <- ISparamList2Vec(ele,ion,rep(1,nComb))
-
-  # initial (and apriori) parameter values
-  # set initial velocity to zero
-#  initParam                         <- par
-#  eleinit <- ele*(1+.1*rnorm(7))
-#  ioninit <- list( ion[[1]]*(1+c(0,.1*rnorm(7))) , ion[[2]]*(1+c(0,.1*rnorm(7))) , ion[[3]]*(1+c(0,.1*rnorm(7))))
-  eleinit <- ele
-  ioninit <- ion
-  initParam <- ISparamList2Vec(eleinit,ioninit,rep(1,nComb))
-  initParam[seq(5,(8*nIon+7),by=8)] <- 0
-  initParam[seq(6,(8*nIon+7),by=8)] <- 0
-  initParam[seq(7,(8*nIon+7),by=8)] <- 0
-  # initially isotropic temperatures and Te=Ti
-  initParam[c(10,11)]                     <- initParam[10]
-  for(k in seq(0,nIon)) initParam[c(10,11)+((k-1)*8)] <- initParam[c(10,11)]
+  if(general){
+      par            <- ISparamList2Vec.general(ele,ion,rep(1,nComb))
+      eleinit <- ele
+      ioninit <- ion
+      initParam <- ISparamList2Vec.general(eleinit,ioninit,rep(1,nComb))
+      initParam[seq(5,(8*nIon+7),by=8)] <- 0
+      initParam[seq(6,(8*nIon+7),by=8)] <- 0
+      initParam[seq(7,(8*nIon+7),by=8)] <- 0
+      # initially isotropic temperatures and Te=Ti
+      initParam[c(10,11)]                     <- initParam[10]
+      for(k in seq(0,nIon)) initParam[c(10,11)+((k-1)*8)] <- initParam[c(10,11)]
   
+      # parameter scaling factors
+      parScales      <- ISparamScales.general(initParam,nIon)
 
-  # parameter scaling factors
-  parScales      <- ISparamScales.default(initParam,nIon)
+      # scale the initial parameter values
+      initParam      <- scaleParams( initParam , parScales , inverse=F)
 
-  # scale the initial parameter values
-  initParam      <- scaleParams( initParam , parScales , inverse=F)
+      # parameter value limits
+      parLimits      <- ISparamLimits.general(nIon,nComb)
 
-  # parameter value limits
-  parLimits      <- ISparamLimits.default(nIon,nComb)
-
-  # scale the parameter limits
-  limitParam     <- parLimits
-  limitParam[1,] <- scaleParams(parLimits[1,] , parScales , inverse=F)
-  limitParam[2,] <- scaleParams(parLimits[2,] , parScales , inverse=F)
+      # scale the parameter limits
+      limitParam     <- parLimits
+      limitParam[1,] <- scaleParams(parLimits[1,] , parScales , inverse=F)
+      limitParam[2,] <- scaleParams(parLimits[2,] , parScales , inverse=F)
   
-  # apriori information
-  apriori        <- ISapriori.default.2D( initParam , nIon , absCalib , TiIsotropic )
+      # apriori information
+      if(dimension<=1) apriori <- ISapriori.1D.general( initParam , nIon , absCalib , TiIsotropic )
+      if(dimension==2) apriori <- ISapriori.2D.general( initParam , nIon , absCalib , TiIsotropic )
+      if(dimension>=3) apriori <- ISapriori.3D.general( initParam , nIon , absCalib , TiIsotropic )
 
+      directTheory <- ISdirectTheory.general
+
+  }else{
+
+      par            <- ISparamList2Vec(ele,ion,rep(1,nComb))
+      eleinit <- ele
+      ioninit <- ion
+      initParam <- ISparamList2Vec(eleinit,ioninit,rep(1,nComb))
+      initParam[7:9] <- 0
+
+      # initially isotropic temperatures and Te=Ti
+      initParam[3:5] <- initParam[2]
+  
+      # parameter scaling factors
+      parScales      <- ISparamScales(initParam,nIon)
+
+      # scale the initial parameter values
+      initParam      <- scaleParams( initParam , parScales , inverse=F)
+
+      # parameter value limits
+      parLimits      <- ISparamLimits(nIon,nComb)
+
+      # scale the parameter limits
+      limitParam     <- parLimits
+      limitParam[1,] <- scaleParams(parLimits[1,] , parScales , inverse=F)
+      limitParam[2,] <- scaleParams(parLimits[2,] , parScales , inverse=F)
+  
+      # apriori information
+      if(dimension<=1) apriori <- ISapriori.1D( initParam , nIon , absCalib , TiIsotropic )
+      if(dimension==2) apriori <- ISapriori.2D( initParam , nIon , absCalib , TiIsotropic )
+      if(dimension>=3) apriori <- ISapriori.3D( initParam , nIon , absCalib , TiIsotropic )
+
+      directTheory <- ISdirectTheory
+  }
 
   # magnetic field direction
-  Btmp           <- igrf(date=time[1:3],lat=latlonTarg[['lat']],lon=latlonTarg[['lon']],height=locTarg[3],isv=0,itype=1)
-  B              <- c(Btmp$x,-Btmp$y,-Btmp$z) # the model has y-axis to east and z-axis downwards
+  Btmp <- igrf(date=time[1:3],lat=latlonTarg[['lat']],lon=latlonTarg[['lon']],height=locTarg[3],isv=0,itype=1)
+  B <- c(Btmp$x,-Btmp$y,-Btmp$z) # the model has y-axis to east and z-axis downwards
 
 
   # time-lags
@@ -226,11 +263,7 @@ testfit.2D <- function(refPoint  = KIR,
 
 
   # simulated ACF data
-  simudata <- ISmeas.simu( refPoint=refPoint , locTrans=locTrans , locRec=locRec , locTarg=locTarg , locxy=locxy , fwhmTrans=fwhmTrans ,
-                          fwhmRec=fwhmRec , fwhmRange=fwhmRange , resNS=resNS , resEW=resEW , resH=resH , Pt=Pt , Tnoise=Tnoise , fradar=fradar ,
-                          phArrTrans=phArrTrans , phArrRec=phArrRec , ele=ele , ion=ion , freq=seq(-100000,100000,by=1000)*fradar/1e9 ,
-                          lags=lags , integrationTime=integrationTime , dutyCycle=dutyCycle , time=time)
-
+  simudata <- ISmeas.simu( refPoint=refPoint , locTrans=locTrans , locRec=locRec , locTarg=locTarg , locxy=locxy , fwhmTrans=fwhmTrans , fwhmRec=fwhmRec , fwhmRange=fwhmRange , resNS=resNS , resEW=resEW , resH=resH , Pt=Pt , Tnoise=Tnoise , fradar=fradar , phArrTrans=phArrTrans , phArrRec=phArrRec , ele=ele , ion=ion , freq=seq(-100000,100000,by=1000)*fradar/1e9 , lags=lags , integrationTime=integrationTime , dutyCycle=dutyCycle , time=time)
 
   # wave vectors, scattering angles, and site indices
   nData <- nlags * nComb
@@ -244,27 +277,28 @@ testfit.2D <- function(refPoint  = KIR,
                     fitpar   <- ISparamfit(
                                            acf             = acf,
                                            var             = var,
-                                           nData           = nData,
+                                           lags            = lags,
                                            iSite           = isite,
                                            fSite           = fSite,
                                            aSite           = aSite,
+                                           kSite           = kSite,
+                                           B               = B,
                                            initParam       = initParam,
-                                           invAprioriCovar = apriori$invAprioriCovar,
                                            aprioriTheory   = apriori$aprioriTheory,
                                            aprioriMeas     = apriori$aprioriMeas,
+                                           invAprioriCovar = apriori$invAprioriCovar,
                                            nIon            = 3,
                                            paramLimits     = limitParam,
-                                           directTheory    = ISdirectTheory,
+                                           directTheory    = directTheory,
+                                           nData           = nData,
                                            absLimit        = absLimit,
                                            diffLimit       = diffLimit,
                                            scaleFun        = scaleParams,
                                            scale           = parScales,
-                                           lags            = lags,
                                            plotTest        = plotTest,
-                                           B               = B,
-                                           kSite           = kSite,
                                            maxLambda       = maxLambda,
-                                           maxIter         = maxIter
+                                           maxIter         = maxIter,
+                        mIon=mIon
                                            )
                     )
         )
@@ -280,4 +314,4 @@ testfit.2D <- function(refPoint  = KIR,
   }
   fitpar$parScales <- parScales
   invisible(fitpar)
-} # testfit.2D
+} 

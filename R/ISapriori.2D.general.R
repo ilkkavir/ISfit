@@ -1,6 +1,6 @@
-ISapriori.default.1D <- function( aprioriParam , nIon , ... ){
+ISapriori.2D.general <- function( aprioriParam , nIon , absCalib=FALSE , TiIsotropic=FALSE, ... ){
 #
-# default apriori theory matrix, "measurements", and covariance matrix for 1D IS parameter fits
+# default apriori theory matrix, "measurements", and covariance matrix for 2D IS parameter fits
 #
 # INPUT:
 #  aprioriParam    apriori parameter values
@@ -12,7 +12,7 @@ ISapriori.default.1D <- function( aprioriParam , nIon , ... ){
 #  aprioriMeas        apriori "measurements"
 #  invAprioriCovar    inverse of apriori covariance matrix
 #
-#  I. Virtanen 2012
+#  I. Virtanen 2013
 #
   # length of the parameter vector
   nPar                         <- length(aprioriParam)
@@ -67,7 +67,14 @@ ISapriori.default.1D <- function( aprioriParam , nIon , ... ){
                                          )
   }
   aprioriStd[(nIon+1)*8]         <- 1e-3                  # the first site is a reference, do not scale
-  if(nPar>(nIon+1)*8) aprioriStd[((nIon+1)*8+1):length(aprioriParam)] <- .1 # allow scaling for other sites
+
+  if(nPar>(nIon+1)*8){
+    if(absCalib){
+      aprioriStd[((nIon+1)*8+1):length(aprioriParam)] <- 1e-3 # fix all sites to the same ACF scale
+    }else{
+      aprioriStd[((nIon+1)*8+1):length(aprioriParam)] <- 1e-1   # allow slight scaling for other sites
+    }
+  }
 
 
   
@@ -80,20 +87,24 @@ ISapriori.default.1D <- function( aprioriParam , nIon , ... ){
   aprioriStd[curRow]             <- 1e-3
   curRow                         <- curRow + 1
 
-  # isotropic electron velocity (this is 1D fit!)
+  # two of the three velocity components are bound together
   aprioriTheory[curRow,c(5,6)]   <- c(1,-1)
   aprioriMeas[curRow]            <- 0
   aprioriStd[curRow]             <- 1e-3
   curRow                         <- curRow + 1
-  aprioriTheory[curRow,c(5,7)]   <- c(1,-1)
-  aprioriMeas[curRow]            <- 0
-  aprioriStd[curRow]             <- 1e-3
-  curRow                         <- curRow + 1
+#  aprioriTheory[curRow,c(5,7)]   <- c(1,-1)
+#  aprioriMeas[curRow]            <- 0
+#  aprioriStd[curRow]             <- 1e-3
+#  curRow                         <- curRow + 1
   
-  # assume isotropic ion temperature
+  # ion temperature anisotropy
   aprioriTheory[curRow,c(10,11)] <- c(1,-1)
   aprioriMeas[curRow]            <- 0
-  aprioriStd[curRow]             <- 1e-3
+  if(TiIsotropic){
+    aprioriStd[curRow]             <- 1e-3
+  }else{
+    aprioriStd[curRow]             <- .5
+  }
   curRow                         <- curRow + 1
 
   # sum of ion abundances must be unity
@@ -116,19 +127,26 @@ ISapriori.default.1D <- function( aprioriParam , nIon , ... ){
     }
   }
 
-  # assume that all velocity components have equal amplitude
-  # this is not true, but allows proper estimation of beam-aligned velocity component
+  # bind two of the three velocity components together
   aprioriTheory[curRow,c(13,14)] <- c(1,-1)
   aprioriMeas[curRow]            <- 0
   aprioriStd[curRow]             <- 1e-3
   curRow                         <- curRow + 1
-  aprioriTheory[curRow,c(13,15)] <- c(1,-1)
-  aprioriMeas[curRow]            <- 0
-  aprioriStd[curRow]             <- 1e-3
-  curRow                         <- curRow + 1
+#  aprioriTheory[curRow,c(13,15)] <- c(1,-1)
+#  aprioriMeas[curRow]            <- 0
+#  aprioriStd[curRow]             <- 1e-3
+#  curRow                         <- curRow + 1
 
   # electrons and ions have the same velocity
   aprioriTheory[curRow,c(5,13)]  <- c(1,-1)
+  aprioriMeas[curRow]            <- 0
+  aprioriStd[curRow]             <- 1e-3
+  curRow                         <- curRow + 1
+  aprioriTheory[curRow,c(6,14)]  <- c(1,-1)
+  aprioriMeas[curRow]            <- 0
+  aprioriStd[curRow]             <- 1e-3
+  curRow                         <- curRow + 1
+  aprioriTheory[curRow,c(7,15)]  <- c(1,-1)
   aprioriMeas[curRow]            <- 0
   aprioriStd[curRow]             <- 1e-3
   curRow                         <- curRow + 1
@@ -156,4 +174,4 @@ ISapriori.default.1D <- function( aprioriParam , nIon , ... ){
   aprioriMeas   <- aprioriMeas
   return(list(aprioriTheory=aprioriTheory,invAprioriCovar=diag(1/aprioriStd**2),aprioriMeas=aprioriMeas))
   
-} # ISapriori.default.1D
+} # ISapriori.2D.general

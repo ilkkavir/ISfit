@@ -1,10 +1,7 @@
-testfit.3D <- function(refPoint  = KIR,
+testfit.2D.general <- function(refPoint  = KIR,
                        locTrans  = list(c(0,0)),
                        locRec    = list( c(    0 ,    0 ),
-                                         c(  100 ,    0 ),
-                                         c( -100 ,    0 ),
-                                         c(    0 ,  100 ),
-                                         c(    0 , -100 )
+                                         c(  100 ,    0 )
                          ),
                        locTarg   = c(0,0,200),
                        locxy     = T,
@@ -41,7 +38,7 @@ testfit.3D <- function(refPoint  = KIR,
                        heights   = seq(1000)
                        ){
 #
-# Test the 3D plasma parameter fit with simulated ACF data
+# Test the 2D plasma parameter fit with simulated ACF data
 #
 # INPUT:
 #   refPoint   c(lat,lon) reference point, from which the distance x and y are measured.
@@ -215,7 +212,7 @@ testfit.3D <- function(refPoint  = KIR,
   limitParam[2,] <- scaleParams(parLimits[2,] , parScales , inverse=F)
   
   # apriori information
-  apriori        <- ISapriori.default.3D( initParam , nIon , absCalib , TiIsotropic )
+  apriori        <- ISapriori.default.2D( initParam , nIon , absCalib , TiIsotropic )
 
 
   # magnetic field direction
@@ -283,4 +280,4 @@ testfit.3D <- function(refPoint  = KIR,
   }
   fitpar$parScales <- parScales
   invisible(fitpar)
-} # testfit.3D
+} # testfit.2D.general

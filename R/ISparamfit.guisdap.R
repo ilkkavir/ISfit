@@ -39,7 +39,6 @@ ISparamfit.guisdap <- function( acf , var , lags , fSite , aSite ,  initParam , 
   if(length(lags) < nData) lags <- rep(lags,length.out=nData)
 
   # create a frequency axis
-  freq <- seq(-100000,100000,by=1000)*fSite/1e9
   fmax <- 1/min(diff(unique(sort(lags))))
   fstep <- min(1/max(lags)/2,fSite/1e6)
   if(is.infinite(fmax)) fmax <- fSite/1e4
@@ -53,11 +52,7 @@ ISparamfit.guisdap <- function( acf , var , lags , fSite , aSite ,  initParam , 
   for(k in seq(nl)) fAmb[,k] <- frequencyAmbiguity( lags[k] , freq )
 
   # the actual fitting
-  nlsParam <- fitFun( measData=acf , measVar=var , initParam=initParam ,
-                      aprioriTheory=aprioriTheory , aprioriMeas=aprioriMeas , invAprioriCovar=invAprioriCovar ,
-                      paramLimits=paramLimits , fAmb=fAmb , directTheory=directTheory ,
-                      scaleFun=scaleFun , mIon=mIon , fSite=fSite , aSite=aSite ,
-                      xSite=freq , ... )
+  nlsParam <- fitFun( measData=acf , measVar=var , initParam=initParam , aprioriTheory=aprioriTheory , aprioriMeas=aprioriMeas , invAprioriCovar=invAprioriCovar , paramLimits=paramLimits , fAmb=fAmb , directTheory=directTheory , scaleFun=scaleFun , mIon=mIon , fSite=fSite , aSite=aSite , xSite=freq , ... )
 
   return(nlsParam)
 
