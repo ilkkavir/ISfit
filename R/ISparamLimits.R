@@ -28,7 +28,7 @@ ISparamLimits <- function(nIon,nSite){
 
   # electron temperatures
   paramLimits[1,4:5] <- 10
-  paramLimits[2,4:5] <- 5e4
+  paramLimits[2,4:5] <- 1e4
 
   # collision frequency
   paramLimits[2,6] <- 1e20 # is this correct?

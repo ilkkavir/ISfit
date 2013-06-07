@@ -1,15 +1,18 @@
-testfit.3D.beata <- function(
-                             dataDirs  = list( TRO='/Volumes/R1V2/EISCAT_3D_tests/3D_paramfit/beata_cp1_2.0u_FI@uhf/20101207_00/',
-                                               KIR='/Volumes/R1V2/EISCAT_3D_tests/3D_paramfit/beata_cp1_1.0r_FI@kir/20101207_00/',
-                                               SOD='/Volumes/R1V2/EISCAT_3D_tests/3D_paramfit/beata_cp1_1.0r_FI@sod/20101207_00/'),
+testfit.3D.beata <- function(dataFile = NULL,
+                             dataDirs  = list( TRO='/media/raid/EISCATdata/2010/beata_cp1_2.0u_FI@uhf/20101207_00/',
+                                               KIR='/media/raid/EISCATdata/2010/beata_cp1_1.0r_FI@kir/20101207_00/',
+                                               SOD='/media/raid/EISCATdata/2010/beata_cp1_1.0r_FI@sod/20101207_00/'),
                              absCalib  = FALSE,
                              TiIsotropic=FALSE,
                              integrationTime = 60,
                              plotTest  = F,
+                             plotFit   = T,
                              absLimit  = 5,
                              diffLimit = 1e-2,
                              maxLambda = 1e30,
-                             maxIter   = 100
+                             maxIter   = 100,
+                             aprioriFunction=ISapriori.3D,
+                             sites=c('TRO','KIR','SOD')
                        ){
 #
 # Test the 3D plasma parameter fit with tristatic EISCAT beata data
@@ -30,21 +33,31 @@ testfit.3D.beata <- function(
 #
 # I. Virtanen 2012  
 #
+  # Convert sites to lower-case one-character form
+  sites <- substr(tolower(sites),1,1)
+  tro <- any(sites=='t')
+  kir <- any(sites=='k')
+  sod <- any(sites=='s')
+
 
   # load the GUISDAPIO package, not included in DESCRIPTION file on purpose
-  require(GUISDAPIO)
+  if(is.null(dataFile)){
+      require(GUISDAPIO)
 
 
-  # read GUISDAP initialisations
-  init.T <- readGUISDAPinit(expname='beata',site='T')
-  init.R <- readGUISDAPinit(expname='beata',site='R')
+      # read GUISDAP initialisations
+      init.T <- readGUISDAPinit(expname='beata',site='T')
+      init.R <- readGUISDAPinit(expname='beata',site='R')
 
 
-  # read the data from files
-  data.T <- readLagProfiles.GUISDAP( dfiles=dataDirs$T , init.T ) 
-  data.K <- readLagProfiles.GUISDAP( dfiles=dataDirs$K , init.R ) 
-  data.S <- readLagProfiles.GUISDAP( dfiles=dataDirs$S , init.R ) 
+      # read the data from files
+      data.T <- readLagProfiles.GUISDAP( dfiles=dataDirs$T , init.T ) 
+      data.K <- readLagProfiles.GUISDAP( dfiles=dataDirs$K , init.R ) 
+      data.S <- readLagProfiles.GUISDAP( dfiles=dataDirs$S , init.R ) 
 
+  }else{
+      load(dataFile)
+  }
 
   # assume that data is continuous in all directories
   # THIS WILL NEED TO BE REPLACED WITH SOMETHING BETTER!!!
@@ -83,10 +96,16 @@ testfit.3D.beata <- function(
     intersect.TS <- beamIntersect.location( TRO , SOD , azel.T , azel.S )
 
     # average of the two intersections calculated above
-    intersect.xyz <- ( intersect.TK$intersect + intersect.TS$intersect ) / 2
+    if(azel.K[2]<0){
+        intersect.xyz <- intersect.TS$intersect
+    }else if(azel.S[2]<0){
+        intersect.xyz <- intersect.TK$intersect
+    }else{
+        intersect.xyz <- ( intersect.TK$intersect + intersect.TS$intersect ) / 2
+    }
 
     # latitude, longitude, and height of the intersection points
-    intersect.latlon <- cartesianToSpherical( intersect.xyz , degrees=TRUE , r0=ISgeometry:::EarthRadius() )
+print(    intersect.latlon <- cartesianToSpherical( intersect.xyz , degrees=TRUE , r0=ISgeometry:::EarthRadius() ))
 
     # scattering wave vectors and scattering angles
     kTT <- ISgeometry:::rotateHorizontal.vector.cartesian( ISgeometry:::scatterPlaneNormal.cartesian(intersect.TK$pdir1$site,intersect.TK$pdir1$site,intersect.xyz),
@@ -101,7 +120,7 @@ testfit.3D.beata <- function(
     aTT <- 180
     aTK <- ISgeometry:::vectorAngle.cartesian( (intersect.xyz-intersect.TK$pdir1$site) , (intersect.TK$pdir2$site-intersect.xyz),degrees=TRUE)
     aTS <- ISgeometry:::vectorAngle.cartesian( (intersect.xyz-intersect.TS$pdir1$site) , (intersect.TS$pdir2$site-intersect.xyz),degrees=TRUE)
-    
+
     # magnetic field direction
     Btmp           <- igrf(date=data.T$parbl[1:3,1],lat=intersect.latlon[1],lon=intersect.latlon[2],height=intersect.latlon[3],isv=0,itype=1)
     B              <- c(Btmp$x,-Btmp$y,-Btmp$z) # the model has y-axis to east and z-axis downwards
@@ -150,24 +169,24 @@ testfit.3D.beata <- function(
     for(k in seq(length(lagT))){
       indT <- which(lagTT==lagT[k])
       ndT  <- length(c(dTT[indT,]))
-      acfT[k] <- mean(dTT[indT,]) / gainIntT / txpow
-      varT[k] <- ( var(c(Re(dTT[indT,]))) + var(c(Im(dTT[indT,])) ) )  / ndT / gainIntT**2 / txpow**2
+      acfT[k] <- mean(dTT[indT,],na.rm=TRUE) / gainIntT / txpow
+      varT[k] <- ( var(c(Re(dTT[indT,])),na.rm=TRUE) + var(c(Im(dTT[indT,])),na.rm=TRUE ) )  / ndT / gainIntT**2 / txpow**2
     }
     acfK <- rep(0+0i,length(lagK))
     varK <- rep(0,length(lagK))
     for(k in seq(length(lagK))){
       indK <- which(lagTK==lagK[k])
       ndK  <- length(c(dTK[indK,]))
-      acfK[k]   <- mean(dTK[indK,]) / gainIntK / txpow
-      varK[k] <- ( var(c(Re(dTK[indK,]))) + var(c(Im(dTK[indK,])))) / ndK / gainIntK**2 / txpow**2
+      acfK[k]   <- mean(dTK[indK,],na.rm=TRUE) / gainIntK / txpow
+      varK[k] <- ( var(c(Re(dTK[indK,])),na.rm=TRUE) + var(c(Im(dTK[indK,])),na.rm=TRUE)) / ndK / gainIntK**2 / txpow**2
     }
     acfS <- rep(0+0i,length(lagS))
     varS <- rep(0,length(lagS))
     for(k in seq(length(lagS))){
       indS <- which(lagTS==lagS[k])
       ndS  <- length(c(dTS[indS,]))
-      acfS[k]   <- mean(dTS[indS,]) / gainIntS / txpow
-      varS[k] <- ( var(c(Re(dTS[indS,]))) + var(c(Im(dTS[indS,]))) ) / ndS / gainIntS**2 / txpow**2
+      acfS[k]   <- mean(dTS[indS,],na.rm=TRUE) / gainIntS / txpow
+      varS[k] <- ( var(c(Re(dTS[indS,])),na.rm=TRUE) + var(c(Im(dTS[indS,])),na.rm=TRUE) ) / ndS / gainIntS**2 / txpow**2
     }
 
     
@@ -188,23 +207,30 @@ testfit.3D.beata <- function(
                             c(16.0,ptmp['O+',1]/ele[1],ptmp[c('Ti','Ti'),1],ioncoll,c(0,0,0)),
                             c(1.0,ptmp['H+',1]/ele[1],ptmp[c('Ti','Ti'),1],ioncoll,c(0,0,0))
                             )
-    # number of ions
+     # number of ions
     nIon           <- length(ion)
+    # ion masses
+    mIon <- sapply(ion,FUN=function(x){x[1]})
     # parameters in the form used by ISparamfit
     initParam <- ISparamList2Vec(ele,ion,rep(1,3))
     # parameter scaling factors
-    parScales      <- ISparamScales.default(initParam,nIon)
+    parScales      <- ISparamScales(initParam,nIon)
     # scale the initial parameter values
     initParam      <- scaleParams( initParam , parScales , inverse=F)
     # parameter value limits
-    parLimits      <- ISparamLimits.default(nIon,3)
+    parLimits      <- ISparamLimits(nIon,3)
     # scale the parameter limits
     limitParam     <- parLimits
     limitParam[1,] <- scaleParams(parLimits[1,] , parScales , inverse=F)
     limitParam[2,] <- scaleParams(parLimits[2,] , parScales , inverse=F)
     # apriori information
-    apriori        <- ISapriori.default.3D( initParam , nIon , absCalib , TiIsotropic )
+    apriori        <- aprioriFunction( initParam , nIon , absCalib , TiIsotropic )
 
+    # cut off sites if they should not be used, stupid but works...
+    if(!tro) acfT<-acfT[]*NA
+    if(!kir) acfK<-acfK[]*NA
+    if(!sod) acfS<-acfS[]*NA
+    
     # wave vectors, scattering angles, and site indices
     nData <- length(acfT) + length(acfK) + length(acfS)
     isite <- c(rep(1,length(acfT)),rep(2,length(acfK)),rep(3,length(acfS)))
@@ -214,55 +240,60 @@ testfit.3D.beata <- function(
     fSite <- rep(933e6,3)
     aSite <- c(aTT,aTK,aTS)
     kSite <- list(kTT,kTK,kTS)
-if(txpow>0){  
-  print(
-        system.time(
-                    fitpar   <- ISparamfit(
-                                           acf             = acf,
-                                           var             = var,
-                                           nData           = nData,
-                                           iSite           = isite,
-                                           fSite           = fSite,
-                                           aSite           = aSite,
-                                           initParam       = initParam,
-                                           invAprioriCovar = apriori$invAprioriCovar,
-                                           aprioriTheory   = apriori$aprioriTheory,
-                                           aprioriMeas     = apriori$aprioriMeas,
-                                           nIon            = 3,
-                                           paramLimits     = limitParam,
-                                           directTheory    = ISdirectTheory,
-                                           absLimit        = absLimit,
-                                           diffLimit       = diffLimit,
-                                           scaleFun        = scaleParams,
-                                           scale           = parScales,
-                                           lags            = lags,
-                                           plotTest        = plotTest,
-                                           B               = B,
-                                           kSite           = kSite,
-                                           maxLambda       = maxLambda,
-                                           maxIter         = maxIter
-                                           )
+    inds <- which(is.na(acf)|is.na(var))
+    acf[inds] <- 0+0i
+    var[inds] <- Inf
+    if(txpow>0){  
+        print(
+            system.time(
+                fitpar   <- ISparamfit(
+                    acf             = acf,
+                    var             = var,
+                    nData           = nData,
+                    iSite           = isite,
+                    fSite           = fSite,
+                    aSite           = aSite,
+                    initParam       = initParam,
+                    invAprioriCovar = apriori$invAprioriCovar,
+                    aprioriTheory   = apriori$aprioriTheory,
+                    aprioriMeas     = apriori$aprioriMeas,
+                    nIon            = 3,
+                    paramLimits     = limitParam,
+                    directTheory    = ISdirectTheory,
+                    absLimit        = absLimit,
+                    diffLimit       = diffLimit,
+                    scaleFun        = scaleParams,
+                    scale           = parScales,
+                    lags            = lags,
+                    plotTest        = plotTest,
+                    plotFit         = plotFit,
+                    B               = B,
+                    kSite           = kSite,
+                    maxLambda       = maxLambda,
+                    maxIter         = maxIter,
+                    mIon=mIon
                     )
-        )
-
-
-
-
-  parfit         <- scaleParams(fitpar$param,scale=parScales,inverse=T)
-  fitstd         <- scaleParams(sqrt(diag(fitpar$covar)),scale=parScales,inverse=T)
-  initParam <- scaleParams(initParam,scale=parScales,inverse=TRUE)
-
-  for (k in seq(length(initParam))){
-    cat(sprintf("%25.10f %25.10f %25.10f \n",initParam[k],parfit[k],fitstd[k]))
-  }
-
-
-    save(fitpar,parfit,fitstd,kTT,kTK,kTS,B,intersect.latlon,intersect.xyz,acf,var,file=paste('beatatest',as.integer(data.T$parbl[11,max(columns.T)]),'.Rdata',sep=''))
-}
+                )
+            )
+        
+        
+        
+        
+        parfit         <- scaleParams(fitpar$param,scale=parScales,inverse=T)
+        fitstd         <- scaleParams(sqrt(diag(fitpar$covar)),scale=parScales,inverse=T)
+        initParam <- scaleParams(initParam,scale=parScales,inverse=TRUE)
+        
+        for (k in seq(length(initParam))){
+            cat(sprintf("%25.10f %25.10f %25.10f \n",initParam[k],parfit[k],fitstd[k]))
+        }
+        
+        
+        save(fitpar,parfit,fitstd,kTT,kTK,kTS,B,intersect.latlon,intersect.xyz,acf,var,file=paste('beatatest',as.integer(data.T$parbl[11,max(columns.T)]),'.Rdata',sep=''))
+    }
     iper <- iper + 1
   }
-
-
+  
+  
 } # testfit.3D.beata
 
 
@@ -329,4 +360,16 @@ cartesianToSpherical <- function( xyz , degrees=TRUE , r0=0){
 
   return(res)
   
+}
+
+readTestRes <- function(ddir='.'){
+    f <- dir(ddir,pattern='beata',full.names=T)
+    nf <- length(f)
+    dmat <- emat <- matrix(ncol=15,nrow=nf)
+    for(k in seq(nf)){
+        load(f[k])
+        dmat[k,] <- parfit
+        emat[k,] <- fitstd
+    }
+    return(list(dmat=dmat,emat=emat))
 }

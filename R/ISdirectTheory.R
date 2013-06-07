@@ -6,7 +6,6 @@ ISdirectTheory <- function( param , scaleFun , nData , mIon , nSite , iSite , fS
 # INPUT:
 #  param        a vector of plasma parameters
 #                 c( Ne , Ti , Te/Ti , nu_en , v , pm1 , pm2 , ... )
-
 #   scaleFun    A function that is used for scaling the possibly normalised plasma parameters to physical units
 #   nData       Number of data points that will be generated
 #   mIon        Ion masses
