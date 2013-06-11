@@ -23,8 +23,8 @@ ISparamScales <- function(param,nIon){
   # set ion abundance and acf scale steps to unity
   parScales[seq(10,length(parScales))] <- 1
 
-  # set ion velocity steps to 100
-  parScales[7:9] <- 100
+  # set ion velocity steps to 1000
+  parScales[7:9] <- 1000
 
   return(parScales)
   

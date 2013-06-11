@@ -14,6 +14,8 @@ ISparamList2Vec <- function(ele,ion,cSite){
 # I. Virtanen 2012
 #
 
-  return(c( ele[1] , ion[[1]][3:4] , ele[2:3] , ion[[1]][5], ion[[1]][6:8] , sapply(ion,FUN=function(x){x[2]}) , cSite ))
+  parvec <- c( ele[1] , ion[[1]][3:4] , ele[2:3] , ion[[1]][5], ion[[1]][6:8] , sapply(ion,FUN=function(x){x[2]}) , cSite )
+  names(parvec) <- c('Ne','Tipar','Tiperp','Tepar','Teperp','coll','Vx','Vy','Vz',paste('ion',seq(length(ion)),sep=''),paste('site',seq(length(cSite))))
+  return(parvec)
   
 } 

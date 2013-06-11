@@ -12,7 +12,9 @@ testfit.3D.beata <- function(dataFile = NULL,
                              maxLambda = 1e30,
                              maxIter   = 100,
                              aprioriFunction=ISapriori.3D,
-                             sites=c('TRO','KIR','SOD')
+                             sites=c('TRO','KIR','SOD'),
+                             fitFun=leastSquare.lvmrq,
+                             ...
                        ){
 #
 # Test the 3D plasma parameter fit with tristatic EISCAT beata data
@@ -103,9 +105,9 @@ testfit.3D.beata <- function(dataFile = NULL,
     }else{
         intersect.xyz <- ( intersect.TK$intersect + intersect.TS$intersect ) / 2
     }
-
+    
     # latitude, longitude, and height of the intersection points
-print(    intersect.latlon <- cartesianToSpherical( intersect.xyz , degrees=TRUE , r0=ISgeometry:::EarthRadius() ))
+    intersect.latlon <- cartesianToSpherical( intersect.xyz , degrees=TRUE , r0=ISgeometry:::EarthRadius() )
 
     # scattering wave vectors and scattering angles
     kTT <- ISgeometry:::rotateHorizontal.vector.cartesian( ISgeometry:::scatterPlaneNormal.cartesian(intersect.TK$pdir1$site,intersect.TK$pdir1$site,intersect.xyz),
@@ -123,7 +125,8 @@ print(    intersect.latlon <- cartesianToSpherical( intersect.xyz , degrees=TRUE
 
     # magnetic field direction
     Btmp           <- igrf(date=data.T$parbl[1:3,1],lat=intersect.latlon[1],lon=intersect.latlon[2],height=intersect.latlon[3],isv=0,itype=1)
-    B              <- c(Btmp$x,-Btmp$y,-Btmp$z) # the model has y-axis to east and z-axis downwards
+    B              <- c(Btmp$x,-Btmp$y,-Btmp$z) # the model has y-axis to east and z-axis downwards, we have x towards north,
+                                                # y towards west and z upwards
 
 
     # the "gain integral" assuming Gaussian beam-shapes + the factor from wave length + the factor from polarisation
@@ -271,7 +274,9 @@ print(    intersect.latlon <- cartesianToSpherical( intersect.xyz , degrees=TRUE
                     kSite           = kSite,
                     maxLambda       = maxLambda,
                     maxIter         = maxIter,
-                    mIon=mIon
+                    mIon=mIon,
+                    fitFun=fitFun,
+                    ...
                     )
                 )
             )
@@ -279,16 +284,18 @@ print(    intersect.latlon <- cartesianToSpherical( intersect.xyz , degrees=TRUE
         
         
         
-        parfit         <- scaleParams(fitpar$param,scale=parScales,inverse=T)
-        fitstd         <- scaleParams(sqrt(diag(fitpar$covar)),scale=parScales,inverse=T)
-        initParam <- scaleParams(initParam,scale=parScales,inverse=TRUE)
+#        parfit         <- scaleParams(fitpar$param,scale=parScales,inverse=T)
+#        fitstd         <- scaleParams(sqrt(diag(fitpar$covar)),scale=parScales,inverse=T)
+#        initParam <- scaleParams(initParam,scale=parScales,inverse=TRUE)
         
-        for (k in seq(length(initParam))){
-            cat(sprintf("%25.10f %25.10f %25.10f \n",initParam[k],parfit[k],fitstd[k]))
-        }
+#        for (k in seq(length(initParam))){
+#            cat(sprintf("%25.10f %25.10f %25.10f \n",initParam[k],parfit[k],fitstd[k]))
+#        }
         
         
-        save(fitpar,parfit,fitstd,kTT,kTK,kTS,B,intersect.latlon,intersect.xyz,acf,var,file=paste('beatatest',as.integer(data.T$parbl[11,max(columns.T)]),'.Rdata',sep=''))
+#        save(fitpar,parfit,fitstd,kTT,kTK,kTS,B,intersect.latlon,intersect.xyz,acf,var,file=paste('beatatest',as.integer(data.T$parbl[11,max(columns.T)]),'.Rdata',sep=''))
+        print(fname <- paste('beatatest',as.integer(data.T$parbl[11,max(columns.T)]),'.Rdata',sep=''))
+        save(fitpar,initParam,apriori,limitParam,parScales,kTT,kTK,kTS,B,intersect.latlon,intersect.xyz,acf,var,file=fname)
     }
     iper <- iper + 1
   }

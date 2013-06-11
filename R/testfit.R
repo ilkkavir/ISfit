@@ -41,7 +41,9 @@ testfit <- function(
                        maxIter   = 100,
 
                        time      = c(2009,7,1,11,0,0),
-                       heights   = seq(1000)
+                       heights   = seq(1000),
+    fitFun=leastSquare.lvmrq,
+    ...
                        ){
 #
 # Test the 3D plasma parameter fit with simulated ACF data
@@ -254,7 +256,8 @@ testfit <- function(
 
   # magnetic field direction
   Btmp <- igrf(date=time[1:3],lat=latlonTarg[['lat']],lon=latlonTarg[['lon']],height=locTarg[3],isv=0,itype=1)
-  B <- c(Btmp$x,-Btmp$y,-Btmp$z) # the model has y-axis to east and z-axis downwards
+  B <- c(Btmp$x,-Btmp$y,-Btmp$z) # the model has y-axis to east and z-axis downwards, we have x towards north,
+                                 # y towards west and z upwards
 
 
   # time-lags
@@ -298,7 +301,9 @@ testfit <- function(
                                            plotTest        = plotTest,
                                            maxLambda       = maxLambda,
                                            maxIter         = maxIter,
-                        mIon=mIon
+                        mIon=mIon,
+                        fitFun=fitFun,
+                        ...
                                            )
                     )
         )
@@ -306,12 +311,12 @@ testfit <- function(
 
 
 
-  parfit         <- scaleParams(fitpar$param,scale=parScales,inverse=T)
-  fitstd         <- scaleParams(sqrt(diag(fitpar$covar)),scale=parScales,inverse=T)
+#  parfit         <- scaleParams(fitpar$param,scale=parScales,inverse=T)
+#  fitstd         <- scaleParams(sqrt(diag(fitpar$covar)),scale=parScales,inverse=T)
 
-  for (k in seq(length(par))){
-    cat(sprintf("%25.10f %25.10f %25.10f %25.10f \n",par[k],parfit[k],fitstd[k],parfit[k]/par[k]))
-  }
-  fitpar$parScales <- parScales
+#  for (k in seq(length(par))){
+#    cat(sprintf("%25.10f %25.10f %25.10f %25.10f \n",par[k],parfit[k],fitstd[k],parfit[k]/par[k]))
+#  }
+#  fitpar$parScales <- parScales
   invisible(fitpar)
 } 

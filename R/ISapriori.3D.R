@@ -1,6 +1,6 @@
 ISapriori.3D <- function( aprioriParam ,  nIon , absCalib=FALSE , TiIsotropic=FALSE , ... ){
 #
-# default apriori theory matrix, "measurements", and covariance matrix for 2D IS parameter fits
+# default apriori theory matrix, "measurements", and covariance matrix for 3D IS parameter fits
 #
 # INPUT:
 #  aprioriParam    apriori parameter values
@@ -35,14 +35,14 @@ ISapriori.3D <- function( aprioriParam ,  nIon , absCalib=FALSE , TiIsotropic=FA
   aprioriMeas[1:nPar]          <- aprioriParam
   
   aprioriStd[1]                <- 1e5                # electron density
-  aprioriStd[2]                <- .1                  # paralell ion temperature
-  aprioriStd[3]                <- 10                 # perpendicular ion temperature
-  aprioriStd[4]                <- .1                  # parallel electron temperature
-  aprioriStd[5]                <- 10                 # perpendicular electron temperature
+  aprioriStd[2]                <- .1                 # paralell ion temperature
+  aprioriStd[3]                <- 1                  # perpendicular ion temperature
+  aprioriStd[4]                <- .1                 # parallel electron temperature
+  aprioriStd[5]                <- 1                  # perpendicular electron temperature
   aprioriStd[6]                <- 1e-3               # ion-neutral collision frequency
-  aprioriStd[7]                <- 1e2                # ion velocity, x-component
-  aprioriStd[8]                <- 1e2                # ion velocity, y-component
-  aprioriStd[9]                <- 1e2                # ion velocity, z-component
+  aprioriStd[7]                <- 1                  # ion velocity, x-component
+  aprioriStd[8]                <- 1                  # ion velocity, y-component
+  aprioriStd[9]                <- 1                  # ion velocity, z-component
   aprioriStd[10:(9+nIon)]      <- 1e-3               # ion abundances
 
   aprioriStd[nIon+10]           <- 1e-3                  # the first site is a reference, do not scale
@@ -80,9 +80,6 @@ ISapriori.3D <- function( aprioriParam ,  nIon , absCalib=FALSE , TiIsotropic=FA
   curRow <- curRow+1
 
 
-  aprioriTheory <- aprioriTheory
-  aprioriStd    <- aprioriStd
-  aprioriMeas   <- aprioriMeas
   return(list(aprioriTheory=aprioriTheory,invAprioriCovar=diag(1/aprioriStd**2),aprioriMeas=aprioriMeas))
   
 }
