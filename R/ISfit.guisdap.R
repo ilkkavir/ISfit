@@ -163,7 +163,8 @@ ISfit.guisdap <- function( ddirs='.' , odir='.' , llhT=c(69.58,19.23,86.00) , az
           # parameter scaling factors
           parScales      <- parInit
           parScales[3]   <- 1
-          parScales[5:7] <- 1
+          parScales[5]   <- 1000 
+          parScales[6:7] <- 1
 
           # scale the initial parameter values
           parInit        <- scaleParams( parInit , parScales , inverse=F)
@@ -228,4 +229,4 @@ ISfit.guisdap <- function( ddirs='.' , odir='.' , llhT=c(69.58,19.23,86.00) , az
     }
 
 
-  } # ISfit.guisdap
+  }

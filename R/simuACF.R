@@ -29,6 +29,7 @@ simuACF <- function(ele=c(1e11,300,300,0,0,0,0),ion=list(c(30.5,.7e11,300,300,0,
 
   # IS spectrum
   s <- ISspectrum.3D(ele=ele,ion=ion,kdir=kdir,fradar=fradar,scattAngle=scattAngle,freq=freq,Bdir=Bdir)
+  
   # The ACF via frequency ambiguity functions
   nl <- length(lags)
   acf <- vector(mode='complex',length=nl)
@@ -37,4 +38,4 @@ simuACF <- function(ele=c(1e11,300,300,0,0,0,0),ion=list(c(30.5,.7e11,300,300,0,
 
   return(acf)
   
-} # simuACF
+}

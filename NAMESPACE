@@ -1,10 +1,6 @@
 export(
-    ISapriori.1D,
-    ISapriori.2D,
-    ISapriori.3D,
-    ISapriori.1D.general,
-    ISapriori.2D.general,
-    ISapriori.3D.general,
+    ISapriori,
+    ISapriori.general,
     ISapriori.guisdap,
     ISdirectTheory,
     ISdirectTheory.general,
@@ -23,10 +19,11 @@ export(
     scaleParams,
     simuACF,
     testfit,
+    testfit.guisdap,
+    testfit.beata,
     ISmeas.simu,
     calibrate.eiscat.dynasonde,
-    ISparamfit,
-    testfit.guisdap
+    ISparamfit
     )
 
 useDynLib(ISfit)

@@ -4,7 +4,7 @@ ISmcmc <- function( measData , measVar , initParam , aprioriTheory , aprioriMeas
 
         init2 <- initres$param
         names(init2) <- names(initParam)
-print('mcmc')
+
         res <- modMCMC( f=SS , p=init2 , measData=measData , measVar=measVar , directTheory=directTheory , aprioriTheory=aprioriTheory , aprioriMeas=aprioriMeas , invAprioriCovar=invAprioriCovar , lower=paramLimits[1,] , upper=paramLimits[2,] , jump=initres$covar ,  ... )
 
         return(list(iter=initres,mcmc=res))

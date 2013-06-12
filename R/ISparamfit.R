@@ -76,5 +76,5 @@ ISparamfit <- function( acf , var , lags , iSite , fSite , aSite , kSite , B , i
   return(nlsParam)
 
   
-} # ISparamfit
+}
 

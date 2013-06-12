@@ -57,4 +57,4 @@ ISparamfit.guisdap <- function( acf , var , lags , fSite , aSite ,  initParam , 
   return(nlsParam)
 
   
-} # ISparamfit.guisdap
+}

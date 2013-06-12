@@ -1,11 +1,10 @@
-ISfit.1D <- function( ddirs='.' , odir='.' , llhT=c(69.58,19.23,86.00) , azelT=c(0,90) , llhR=c(69.58,19.23,86.00) , freq.Hz=224e6 , rangeLimits.km=NA , timeRes.s=60 , beginTime=c(1970,1,1,0,0,0) , endTime=c(2100,1,1,0,0,0) , absLimit=5 , diffLimit=1e-2 , maxLambda=1e30 , maxIter=100 , plotTest=FALSE , acfScale=1e-13)
+ISfit <- function( ddirs='.' , odir='.' , llhT=c(69.58,19.23,86.00) , azelT=c(0,90) , llhR=c(69.58,19.23,86.00) , freq.Hz=224e6 , rangeLimits.km=NA , timeRes.s=60 , beginTime=c(1970,1,1,0,0,0) , endTime=c(2100,1,1,0,0,0) , absLimit=5 , diffLimit=1e-2 , maxLambda=1e30 , maxIter=100 , plotTest=FALSE , acfScale=1e-13)
   {
       #
       #
       # This function will be converted into ISfit.LPI that can handle all kinds
       # of fits with LPI input files.
       #
-      # A similar function is then needed for EISCAT data (using GUISDAPIO package)
       #
       #
       #
@@ -238,4 +237,4 @@ ISfit.1D <- function( ddirs='.' , odir='.' , llhT=c(69.58,19.23,86.00) , azelT=c
     }
 
 
-  } # ISfit.1D
+  }

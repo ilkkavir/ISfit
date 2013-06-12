@@ -47,4 +47,4 @@ ISdirectTheory <- function( param , scaleFun , nData , mIon , nSite , iSite , fS
                 )
          )
   
-} # ISdirectTheory
+}

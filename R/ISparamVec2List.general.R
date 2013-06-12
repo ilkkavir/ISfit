@@ -30,4 +30,4 @@ ISparamVec2List.general <- function(param,nIon){
 
   return(list(ele=ele,ion=ion,cSite=cSite))
   
-} # ISparamVec2List.general
+}

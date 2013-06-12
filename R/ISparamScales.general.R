@@ -20,19 +20,17 @@ ISparamScales.general <- function(param,nIon){
   # make sure that the collision frequency steps are non-zero
   parScales[seq(4,length(parScales),by=8)] <- pmax(parScales[seq(4,length(parScales),by=8)],10)
 
-#  # ion density steps should match with electron density steps
-#  parScales[seq(9,length(parScales),by=8)] <- parScales[1]
   # ion abundance step is unity
   parScales[seq(9,length(parScales),by=8)] <- 1
 
-  # set ion velocity steps to 100
-  parScales[seq(5,length(parScales),by=8)] <- 100
-  parScales[seq(6,length(parScales),by=8)] <- 100
-  parScales[seq(7,length(parScales),by=8)] <- 100
+  # set ion velocity steps to 1000 (m/s)
+  parScales[seq(5,length(parScales),by=8)] <- 1000
+  parScales[seq(6,length(parScales),by=8)] <- 1000
+  parScales[seq(7,length(parScales),by=8)] <- 1000
 
   # set the acf scale step sizes to unity
   parScales[seq((8*(nIon+1)),length(parScales))] <- 1
 
   return(parScales)
   
-} # ISparamScales.general
+}

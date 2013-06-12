@@ -1,6 +1,6 @@
-ISapriori.2D <- function( aprioriParam ,  nIon , absCalib=FALSE , TiIsotropic=FALSE , ... ){
+ISapriori <- function( aprioriParam ,  nIon , absCalib=FALSE , TiIsotropic=FALSE , ... ){
 #
-# default apriori theory matrix, "measurements", and covariance matrix for 2D IS parameter fits
+# default apriori theory matrix, "measurements", and covariance matrix for 3D IS parameter fits
 #
 # INPUT:
 #  aprioriParam    apriori parameter values
@@ -17,7 +17,7 @@ ISapriori.2D <- function( aprioriParam ,  nIon , absCalib=FALSE , TiIsotropic=FA
   nPar                         <- length(aprioriParam)
 
   # number of imaginary apriori "measurements"
-  nApriori                     <- ( nPar + 4 )
+  nApriori                     <- ( nPar + 3 )
   
   # apriori theory matrix
   aprioriTheory                <- matrix( 0 , nrow=nApriori , ncol=nPar )
@@ -35,15 +35,24 @@ ISapriori.2D <- function( aprioriParam ,  nIon , absCalib=FALSE , TiIsotropic=FA
   aprioriMeas[1:nPar]          <- aprioriParam
   
   aprioriStd[1]                <- 1e5                # electron density
-  aprioriStd[2]                <- 1                  # ion temperature
-  aprioriStd[3]                <- 1                  # temperature ratio
-  aprioriStd[4]                <- 1e-3               # ion-neutral collision frequency
-  aprioriStd[5]                <- 1e4                # ion velocity, x-component
-  aprioriStd[6]                <- 1e4                # ion velocity, y-component
-  aprioriStd[7]                <- 1e4                # ion velocity, z-component
-  aprioriStd[8:(7+nIon)]       <- 1e-3               # ion abundances
-  aprioriStd[(8:nIon):nPar]    <- 1e-3               # fix the ACF scaling (there should be only one site)
+  aprioriStd[2]                <- .1                 # paralell ion temperature
+  aprioriStd[3]                <- 1                  # perpendicular ion temperature
+  aprioriStd[4]                <- .1                 # parallel electron temperature
+  aprioriStd[5]                <- 1                  # perpendicular electron temperature
+  aprioriStd[6]                <- 1e-3               # ion-neutral collision frequency
+  aprioriStd[7]                <- 1                  # ion velocity, x-component
+  aprioriStd[8]                <- 1                  # ion velocity, y-component
+  aprioriStd[9]                <- 1                  # ion velocity, z-component
+  aprioriStd[10:(9+nIon)]      <- 1e-3               # ion abundances
 
+  aprioriStd[nIon+10]           <- 1e-3                  # the first site is a reference, do not scale
+  if(nPar>(nIon+10)){
+    if(absCalib){
+      aprioriStd[(nIon+11):length(aprioriParam)] <- 1e-3 # fix all sites to the same ACF scale
+    }else{
+      aprioriStd[(nIon+11):length(aprioriParam)] <- .1   # allow scaling for other sites
+    }
+  }
 
   # force certain parameter differences close to zero
   curRow                         <- nPar + 1
@@ -54,26 +63,23 @@ ISapriori.2D <- function( aprioriParam ,  nIon , absCalib=FALSE , TiIsotropic=FA
   aprioriStd[curRow]             <- 1e-3
   curRow                         <- curRow + 1
   
-  # two of the three velocity components are bound together
-  aprioriTheory[curRow,c(7,8)]   <- c(1,-1)
-  aprioriMeas[curRow]            <- 0
-  aprioriStd[curRow]             <- 1e-3
-  curRow                         <- curRow + 1
-
   # ion temperature anisotropy
   aprioriTheory[curRow,c(2,3)]   <- c(1,-1)
   aprioriMeas[curRow]            <- 0
   if(TiIsotropic){
     aprioriStd[curRow]             <- 1e-3
   }else{
-    aprioriStd[curRow]             <- .5
+    aprioriStd[curRow]             <- .1
   }
   curRow                         <- curRow + 1
 
+  # Sum of ion abundances must be unity
+  aprioriTheory[curRow,10:(nIon+9)] <- 1
+  aprioriMeas[curRow] <- 1
+  aprioriStd[curRow] <- 1e-3
+  curRow <- curRow+1
 
-  aprioriTheory <- aprioriTheory
-  aprioriStd    <- aprioriStd
-  aprioriMeas   <- aprioriMeas
+
   return(list(aprioriTheory=aprioriTheory,invAprioriCovar=diag(1/aprioriStd**2),aprioriMeas=aprioriMeas))
   
-} # ISapriori.1D
+}

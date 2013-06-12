@@ -36,4 +36,4 @@ ISdirectTheory.guisdap <- function( param , scaleFun , nData , mIon , fSite , aS
 
   return(dirtheData)
   
-} # ISdirectTheory
+}

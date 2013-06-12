@@ -44,5 +44,5 @@ ISparamLimits.general <- function(nIon,nSite){
   paramLimits[2,seq((8*(nIon+1)),nPar)] <- 100
 
   return(paramLimits)
-g  
-} # ISparamLimits.general
+
+}
