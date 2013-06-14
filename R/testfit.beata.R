@@ -35,6 +35,12 @@ testfit.beata <- function(dataFile = NULL,
 #
 # I. Virtanen 2012  
 #
+
+  rsites <- radarSites()
+  TRO <- rsites$TRO
+  KIR <- rsites$KIR
+  SOD <- rsites$SOD
+  
   # Convert sites to lower-case one-character form
   sites <- substr(tolower(sites),1,1)
   tro <- any(sites=='t')
@@ -93,50 +99,46 @@ testfit.beata <- function(dataFile = NULL,
     azel.K   <- data.K$parbl[c(10,9),max(columns.K)]
     azel.S   <- data.S$parbl[c(10,9),max(columns.S)]
 
-    # calculate the beam intersection location and distances from each site to the intersection
-    intersect.TK <- beamIntersect.location( TRO , KIR , azel.T , azel.K )
-    intersect.TS <- beamIntersect.location( TRO , SOD , azel.T , azel.S )
+    interTT <- beamIntersection( llhT=TRO , llhR=TRO , azelT=azel.T , azelR=azel.T , fwhmT=.6 , fwhmR=.6 , phArrT=FALSE , phArrR=FALSE , freq.Hz=927e6  )
+    interTK <- beamIntersection( llhT=TRO , llhR=KIR , azelT=azel.T , azelR=azel.K , fwhmT=.6 , fwhmR=.6 , phArrT=FALSE , phArrR=FALSE , freq.Hz=927e6  )
+    interTS <- beamIntersection( llhT=TRO , llhR=SOD , azelT=azel.T , azelR=azel.S , fwhmT=.6 , fwhmR=.6 , phArrT=FALSE , phArrR=FALSE , freq.Hz=927e6  )
 
-    # average of the two intersections calculated above
-    if(azel.K[2]<0){
-        intersect.xyz <- intersect.TS$intersect
-    }else if(azel.S[2]<0){
-        intersect.xyz <- intersect.TK$intersect
-    }else{
-        intersect.xyz <- ( intersect.TK$intersect + intersect.TS$intersect ) / 2
-    }
-    
-    # latitude, longitude, and height of the intersection points
-    intersect.latlon <- cartesianToSpherical( intersect.xyz , degrees=TRUE , r0=ISgeometry:::EarthRadius() )
-
-    # scattering wave vectors and scattering angles
-    kTT <- ISgeometry:::rotateHorizontal.vector.cartesian( ISgeometry:::scatterPlaneNormal.cartesian(intersect.TK$pdir1$site,intersect.TK$pdir1$site,intersect.xyz),
-                                                           intersect.xyz
-                                                          )
-    kTK <- ISgeometry:::rotateHorizontal.vector.cartesian( ISgeometry:::scatterPlaneNormal.cartesian(intersect.TK$pdir1$site,intersect.TK$pdir2$site,intersect.xyz),
-                                                           intersect.xyz
-                                                          )
-    kTS <- ISgeometry:::rotateHorizontal.vector.cartesian( ISgeometry:::scatterPlaneNormal.cartesian(intersect.TS$pdir1$site,intersect.TS$pdir2$site,intersect.xyz),
-                                                           intersect.xyz
-                                                          )
-    aTT <- 180
-    aTK <- ISgeometry:::vectorAngle.cartesian( (intersect.xyz-intersect.TK$pdir1$site) , (intersect.TK$pdir2$site-intersect.xyz),degrees=TRUE)
-    aTS <- ISgeometry:::vectorAngle.cartesian( (intersect.xyz-intersect.TS$pdir1$site) , (intersect.TS$pdir2$site-intersect.xyz),degrees=TRUE)
+#    # calculate the beam intersection location and distances from each site to the intersection
+#    intersect.TK <- beamIntersect.location( TRO , KIR , azel.T , azel.K )
+#    intersect.TS <- beamIntersect.location( TRO , SOD , azel.T , azel.S )
+#
+#    # average of the two intersections calculated above, or either one
+#    # if the other is obviously incorrect
+#    if(azel.K[2]<0){
+#        intersect.xyz <- intersect.TS$intersect
+#    }else if(azel.S[2]<0){
+#        intersect.xyz <- intersect.TK$intersect
+#    }else{
+#        intersect.xyz <- ( intersect.TK$intersect + intersect.TS$intersect ) / 2
+#    }
+#    
+#    # latitude, longitude, and height of the intersection points
+#    intersect.latlon <- xyz2LatLonH( intersect.xyz )
+#
+#    # scattering wave vectors and scattering angles
+#    kTT <- scattVector.xyz(intersect.TK$pdir1$site,intersect.TK$pdir1$site,intersect.xyz)
+#    kTK <- scattVector.xyz(intersect.TK$pdir1$site,intersect.TK$pdir2$site,intersect.xyz)
+#    kTS <- scattVector.xyz(intersect.TK$pdir1$site,intersect.TS$pdir2$site,intersect.xyz)
 
     # magnetic field direction
-    Btmp           <- igrf(date=data.T$parbl[1:3,1],lat=intersect.latlon[1],lon=intersect.latlon[2],height=intersect.latlon[3],isv=0,itype=1)
-    B              <- c(Btmp$x,-Btmp$y,-Btmp$z) # the model has y-axis to east and z-axis downwards, we have x towards north,
-                                                # y towards west and z upwards
+    Btmp           <- igrf(date=data.T$parbl[1:3,1],lat=interTK[["intersect.llh"]][1],lon=interTK[["intersect.llh"]][2],height=interTK[["intersect.llh"]][3]/1000,isv=0,itype=1)
+    B              <- c(Btmp$y,Btmp$x,-Btmp$z) # the model has y-axis to east and z-axis downwards, we have x towards east,
+                                                # y towards north and z upwards
 
 
-    # the "gain integral" assuming Gaussian beam-shapes + the factor from wave length + the factor from polarisation
-    gainIntT <- ISgeometry:::bistaticResolutions.planar(refPoint=TRO,locTrans=TRO,locRec=TRO,locxy=FALSE,fwhmTrans=.6,fwhmRec=.6,fwhmRange=.001,x=0,y=0,height=intersect.latlon[3],phArrTrans=FALSE,phArrRec=FALSE)[["gainInt"]][1,1,1] * .32**2/4/pi * .5 * (1+cos(2*aTT*pi/180)**2)
-    gainIntK <- ISgeometry:::bistaticResolutions.planar(refPoint=TRO,locTrans=TRO,locRec=KIR,locxy=FALSE,fwhmTrans=.6,fwhmRec=.6,fwhmRange=.001,x=0,y=0,height=intersect.latlon[3],phArrTrans=FALSE,phArrRec=FALSE)[["gainInt"]][1,1,1] * .32**2/4/pi * .5 * (1+cos(2*aTK*pi/180)**2)
-    gainIntS <- ISgeometry:::bistaticResolutions.planar(refPoint=TRO,locTrans=TRO,locRec=SOD,locxy=FALSE,fwhmTrans=.6,fwhmRec=.6,fwhmRange=.001,x=0,y=0,height=intersect.latlon[3],phArrTrans=FALSE,phArrRec=FALSE)[["gainInt"]][1,1,1] * .32**2/4/pi * .5 * (1+cos(2*aTS*pi/180)**2)
+#    # the "gain integral" assuming Gaussian beam-shapes + the factor from wave length + the factor from polarisation
+#    gainIntT <- ISgeometry:::bistaticResolutions.planar(refPoint=TRO[1:2],locTrans=TRO[1:2],locRec=TRO[1:2],locxy=FALSE,fwhmTrans=.6,fwhmRec=.6,fwhmRange=.001,x=0,y=0,height=intersect.latlon[3]/1000,phArrTrans=FALSE,phArrRec=FALSE)[["gainInt"]][1,1,1] * .32**2/4/pi * .5 * (1+cos(2*kTT[["phi"]]*pi/180)**2)
+#    gainIntK <- ISgeometry:::bistaticResolutions.planar(refPoint=TRO[1:2],locTrans=TRO[1:2],locRec=KIR[1:2],locxy=FALSE,fwhmTrans=.6,fwhmRec=.6,fwhmRange=.001,x=0,y=0,height=intersect.latlon[3]/1000,phArrTrans=FALSE,phArrRec=FALSE)[["gainInt"]][1,1,1] * .32**2/4/pi * .5 * (1+cos(2*kTK[["phi"]]*pi/180)**2)
+#    gainIntS <- ISgeometry:::bistaticResolutions.planar(refPoint=TRO[1:2],locTrans=TRO[1:2],locRec=SOD[1:2],locxy=FALSE,fwhmTrans=.6,fwhmRec=.6,fwhmRange=.001,x=0,y=0,height=intersect.latlon[3]/1000,phArrTrans=FALSE,phArrRec=FALSE)[["gainInt"]][1,1,1] * .32**2/4/pi * .5 * (1+cos(2*kTS[["phi"]]*pi/180)**2)
 
     # find ranges to the beam intersection at Tromso,
     # SEEMS TO BE ALWAYS 1000 AT OTHER SITES, IS THIS TRUE!!!???!??!?
-    rTT <- intersect.TK$R[1]*2/.299792458
+    rTT <- interTK$range[1]*2/299.792458
     rTK <- 1000 #sum(intersect.TK$R)/.299792458
     rTS <- 1000 ##sum(intersect.TS$R)/.299792458
 
@@ -166,37 +168,41 @@ testfit.beata <- function(dataFile = NULL,
     # read transmitter power from Tromso data
     txpow <- mean(data.T$parbl[8,columns.T])
 
+    # this works, but the scaling is somewhat problematic
+    gainT <- gategain( interTT , rlims=c(-25,25)*150)/7500
+    gainK <- gategain( interTT , rlims=c(-25,25)*150)/7500
+    gainS <- gategain( interTT , rlims=c(-25,25)*150)/7500
     
     acfT <- rep(0+0i,length(lagT))
     varT <- rep(0,length(lagT))
     for(k in seq(length(lagT))){
       indT <- which(lagTT==lagT[k])
       ndT  <- length(c(dTT[indT,]))
-      acfT[k] <- mean(dTT[indT,],na.rm=TRUE) / gainIntT / txpow
-      varT[k] <- ( var(c(Re(dTT[indT,])),na.rm=TRUE) + var(c(Im(dTT[indT,])),na.rm=TRUE ) )  / ndT / gainIntT**2 / txpow**2
+      acfT[k] <- mean(dTT[indT,],na.rm=TRUE) / gainT / txpow
+      varT[k] <- ( var(c(Re(dTT[indT,])),na.rm=TRUE) + var(c(Im(dTT[indT,])),na.rm=TRUE ) )  / ndT / gainT**2 / txpow**2
     }
     acfK <- rep(0+0i,length(lagK))
     varK <- rep(0,length(lagK))
     for(k in seq(length(lagK))){
       indK <- which(lagTK==lagK[k])
       ndK  <- length(c(dTK[indK,]))
-      acfK[k]   <- mean(dTK[indK,],na.rm=TRUE) / gainIntK / txpow
-      varK[k] <- ( var(c(Re(dTK[indK,])),na.rm=TRUE) + var(c(Im(dTK[indK,])),na.rm=TRUE)) / ndK / gainIntK**2 / txpow**2
+      acfK[k]   <- mean(dTK[indK,],na.rm=TRUE) / gainK / txpow
+      varK[k] <- ( var(c(Re(dTK[indK,])),na.rm=TRUE) + var(c(Im(dTK[indK,])),na.rm=TRUE)) / ndK / gainK**2 / txpow**2
     }
     acfS <- rep(0+0i,length(lagS))
     varS <- rep(0,length(lagS))
     for(k in seq(length(lagS))){
       indS <- which(lagTS==lagS[k])
       ndS  <- length(c(dTS[indS,]))
-      acfS[k]   <- mean(dTS[indS,],na.rm=TRUE) / gainIntS / txpow
-      varS[k] <- ( var(c(Re(dTS[indS,])),na.rm=TRUE) + var(c(Im(dTS[indS,])),na.rm=TRUE) ) / ndS / gainIntS**2 / txpow**2
+      acfS[k]   <- mean(dTS[indS,],na.rm=TRUE) / gainS / txpow
+      varS[k] <- ( var(c(Re(dTS[indS,])),na.rm=TRUE) + var(c(Im(dTS[indS,])),na.rm=TRUE) ) / ndS / gainS**2 / txpow**2
     }
 
     
 
     # initial parameters from IRI model
     #  # parameters from iri model
-    ptmp           <- iriParams(time=data.T$parbl[1:6,max(columns.T)],latitude=intersect.latlon[1],longitude=intersect.latlon[2],heights=intersect.latlon[3])
+    ptmp           <- iriParams(time=data.T$parbl[1:6,max(columns.T)],latitude=interTK[["intersect.llh"]][1],longitude=interTK[["intersect.llh"]][2],heights=interTK[["intersect.llh"]][3]/1000)
     # an approximation for NO+-neutral colllision frequency (Schunk & Walker, Planet. Space Sci., 1971)
     # the densities in outfmsis are in cm^-3
     ioncoll        <- sum( ionNeutralCollisionFrequency(ptmp[,1])['NO+',] )
@@ -241,8 +247,8 @@ testfit.beata <- function(dataFile = NULL,
     var   <- c(varT,varK,varS)
     lags  <- c(lagT,lagK,lagS)*1e-6
     fSite <- rep(933e6,3)
-    aSite <- c(aTT,aTK,aTS)
-    kSite <- list(kTT,kTK,kTS)
+    aSite <- c(kTT[["phi"]],kTK[["phi"]],kTS[["phi"]])
+    kSite <- list(kTT[["k.ENU"]],kTK[["k.ENU"]],kTS[["k.ENU"]])
     inds <- which(is.na(acf)|is.na(var))
     acf[inds] <- 0+0i
     var[inds] <- Inf
@@ -309,27 +315,14 @@ pointingDirection.cartesian <- function( locAnt=TRO , azel=c(185.79,77.39) ){
 
   # conversion from azimuth-elevation beam pointing and lattitude-longitude site location to cartesian coordinates
 
-  # cartesian  coordinates of the site location
-  xyzS <- ISgeometry:::sphericalToCartesian( locAnt , degrees=TRUE )
+  # EFEC  coordinates of the site location
+  xyzS <- LatLonH2xyz( locAnt )
 
-  # pointing direction in a local cartesian system, where x-axis points towards north, y-axis towards west, and z-axis to local zenith
-  # azimuth multiplied by -1, because the function originally written for latitute-longitude conversions uses eastern longitudes, but the
-  # EISCAT azimuths are positive clockwise
-  xyzBloc <- ISgeometry:::sphericalToCartesian( c(azel[2],-azel[1],1) , degrees=TRUE)
-
-  # find the axes of the local system
-  #  y-axis is perpendicular to both the site position vector and c(0,0,1)
-  ydir <- ISgeometry:::normalUnitVector.cartesian(xyzS,c(0,0,1))
-  # x-axis is perpendicular to the x-axis and the position vector
-  xdir <- ISgeometry:::normalUnitVector.cartesian(ydir,xyzS)
-  # z-axis is parallel with the position vector
-  zdir <- xyzS / sqrt(sum(xyzS**2))
-
-  # conversion of the beam pointing to the cartesian system with origin at the centre of Earth, x-axis pointing towards equator at zero meridian, etc.
-  xyzB <- xyzBloc[1] * xdir + xyzBloc[2] * ydir + xyzBloc[3] * zdir
-
+  # pointing direction in EFEC coordinates
+  xyzBeam <- ENU2EFEC.latlon( azel2ENU( azel ) , latlon=locAnt[1:2])
+  
   # return the site location and the beam pointing in cartesian coordinates
-  return(list(site=xyzS,beam=xyzB))
+  return(list(site=xyzS,beam=xyzBeam))
 
 } # pointingDirection.cartesian
 
@@ -353,21 +346,6 @@ beamIntersect.location <- function( site1 , site2 , azel1 , azel2 )
 
   }
 
-cartesianToSpherical <- function( xyz , degrees=TRUE , r0=0){
-
-  r <- sqrt(sum(xyz**2)) - r0
-
-  az <- atan2(x=xyz[1],y=xyz[2])
-  el <- atan2(x=sqrt(sum(xyz[1:2]**2)),y=xyz[3])
-
-  res <- c(el,az,r)
-  
-  if(degrees) res[1:2] <- res[1:2]*180/pi
-
-
-  return(res)
-  
-}
 
 readTestRes <- function(ddir='.'){
     f <- dir(ddir,pattern='beata',full.names=T)
