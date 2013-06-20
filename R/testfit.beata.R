@@ -130,7 +130,6 @@ testfit.beata <- function(dataFile = NULL,
     B              <- c(Btmp$y,Btmp$x,-Btmp$z) # the model has y-axis to east and z-axis downwards, we have x towards east,
                                                 # y towards north and z upwards
 
-
 #    # the "gain integral" assuming Gaussian beam-shapes + the factor from wave length + the factor from polarisation
 #    gainIntT <- ISgeometry:::bistaticResolutions.planar(refPoint=TRO[1:2],locTrans=TRO[1:2],locRec=TRO[1:2],locxy=FALSE,fwhmTrans=.6,fwhmRec=.6,fwhmRange=.001,x=0,y=0,height=intersect.latlon[3]/1000,phArrTrans=FALSE,phArrRec=FALSE)[["gainInt"]][1,1,1] * .32**2/4/pi * .5 * (1+cos(2*kTT[["phi"]]*pi/180)**2)
 #    gainIntK <- ISgeometry:::bistaticResolutions.planar(refPoint=TRO[1:2],locTrans=TRO[1:2],locRec=KIR[1:2],locxy=FALSE,fwhmTrans=.6,fwhmRec=.6,fwhmRange=.001,x=0,y=0,height=intersect.latlon[3]/1000,phArrTrans=FALSE,phArrRec=FALSE)[["gainInt"]][1,1,1] * .32**2/4/pi * .5 * (1+cos(2*kTK[["phi"]]*pi/180)**2)
@@ -169,9 +168,9 @@ testfit.beata <- function(dataFile = NULL,
     txpow <- mean(data.T$parbl[8,columns.T])
 
     # this works, but the scaling is somewhat problematic
-    gainT <- gategain( interTT , rlims=c(-25,25)*150)/7500
-    gainK <- gategain( interTT , rlims=c(-25,25)*150)/7500
-    gainS <- gategain( interTT , rlims=c(-25,25)*150)/7500
+    gainT <- gategain( interTT , rlims=c(-25,25)*150+interTK[["range"]]["T"])
+    gainK <- gategain( interTK , rlims=c(-25,25)*150+interTK[["range"]]["R"])
+    gainS <- gategain( interTS , rlims=c(-25,25)*150+interTS[["range"]]["R"])
     
     acfT <- rep(0+0i,length(lagT))
     varT <- rep(0,length(lagT))
@@ -353,8 +352,8 @@ readTestRes <- function(ddir='.'){
     dmat <- emat <- matrix(ncol=15,nrow=nf)
     for(k in seq(nf)){
         load(f[k])
-        dmat[k,] <- parfit
-        emat[k,] <- fitstd
+        dmat[k,] <- fitpar$param * parScales
+        emat[k,] <- sqrt(diag(fitpar$covar)) * parScales
     }
     return(list(dmat=dmat,emat=emat))
 }
