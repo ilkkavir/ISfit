@@ -4,8 +4,8 @@ ISparamVec2List <- function(param,mIon){
 # 
 # INPUT:
 #  param        a vector of plasma parameters and ACF scales:
-#                 c( Ne , Ti_par , Ti_perp , Te_par/Ti_par , Te_perp/Ti_perp,
-#                    nu_in , vi_x , vi_y , vi_z , p_m2 , p_m3 , ... p_nIon ,
+#                 c( Ne , Ti_par , Ti_perp , Te_par , Te_perp,
+#                    nu_in , vi_x , vi_y , vi_z , p_m1 , p_m2 , p_m3 , ... p_nIon ,
 #                    s_1 , s_2 , ... , s_Nsite)
 #  mIon         Ion masses
 #

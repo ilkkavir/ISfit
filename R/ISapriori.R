@@ -35,9 +35,9 @@ ISapriori <- function( aprioriParam ,  nIon , absCalib=FALSE , TiIsotropic=FALSE
   aprioriMeas[1:nPar]          <- aprioriParam
   
   aprioriStd[1]                <- 1e5                # electron density
-  aprioriStd[2]                <- .1                 # paralell ion temperature
+  aprioriStd[2]                <- 1                 # parallel ion temperature
   aprioriStd[3]                <- 1                  # perpendicular ion temperature
-  aprioriStd[4]                <- .1                 # parallel electron temperature
+  aprioriStd[4]                <- 1                 # parallel electron temperature
   aprioriStd[5]                <- 1                  # perpendicular electron temperature
   aprioriStd[6]                <- 1e-3               # ion-neutral collision frequency
   aprioriStd[7]                <- 1                  # ion velocity, x-component
