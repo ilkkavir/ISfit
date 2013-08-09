@@ -27,7 +27,7 @@ addPPcolorPlot <- function(d,h,t,xlim=range(t),ylim=range(h),zlim,main,ticks,cex
       at          = seq(zlim[1],zlim[2],length.out=100),
       scales      = list(x=list(at=ticks$tick,labels=ticks$string),cex=cex),
       xlab        = list(xlab,cex=cex),
-      ylab        = list("Range [km]",cex=cex),
+      ylab        = list("Height [km]",cex=cex),
       xlim        = xlim,
       ylim        = ylim,
       main        = main,
