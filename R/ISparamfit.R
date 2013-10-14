@@ -61,6 +61,8 @@ ISparamfit <- function( acf , var , lags , iSite , fSite , aSite , kSite , B , i
       fstep <- min(1/max(lags[which(iSite==k)])/4,fSite[k]/1e6)
       if(is.infinite(fmax)) fmax <- fSite[k]/1e4
       if(is.infinite(fstep)) fstep <- fSite[k]/1e6
+      if(fmax<1e3) fmax <- fSite[k]/1e4
+      if(fstep>=fmax) fstep <- fmax / 100
       freq[[k]] <- seq(-fmax,fmax,by=fstep)
   }
 

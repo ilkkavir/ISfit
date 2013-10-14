@@ -194,7 +194,8 @@ ISfit <- function( ddirs='.' , odir='.' , llhT=NA , azelT=NA , llhR=NA , azelR=N
             range[r]       <- r.gate
 
             # azelR is an emergency fix!!!...
-            intersect[[r]] <- beamIntersection( llhT=llhTu , llhR=llhRu , azelT=azelTu , azelR=c(313.95,52+r*2) , fwhmT=1 , fwhmR=2 , phArrT=FALSE , phArrR=TRUE , freq.Hz=freqTu  )
+#            intersect[[r]] <- beamIntersection( llhT=llhTu , llhR=llhRu , azelT=azelTu , azelR=c(313.95,52+r*2) , fwhmT=1 , fwhmR=2 , phArrT=FALSE , phArrR=TRUE , freq.Hz=freqTu  )
+            intersect[[r]] <- beamIntersection( llhT=llhTu , llhR=llhRu , azelT=azelTu , azelR=azelRu , fwhmT=1 , fwhmR=1 , phArrT=FALSE , phArrR=FALSE , freq.Hz=freqTu  )
 
             
 print(            (rlims[r:(r+1)]*1000 - intersect[[r]][["range"]]["R"]) * sin( intersect[[r]][["phi"]]*pi/360)/1000)
