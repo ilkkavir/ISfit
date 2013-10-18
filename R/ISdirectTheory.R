@@ -33,7 +33,7 @@ ISdirectTheory <- function( param , scaleFun , nData , mIon , nSite , iSite , fS
   nf <- sapply( xSite , length )
   sSite <- matrix( 0 , nrow=max(nf) , ncol=nSite )
   for(k in seq(nSite)){
-      sSite[1:nf[k],k] <- ISspectrum.3D( ele=parlist[["ele"]] , ion=parlist[["ion"]] , Bdir=B , kdir=kSite[[k]] , fradar=fSite[[k]] , scattAngle=aSite[[k]] , freq=xSite[[k]] )
+      if(nf[k]>0) sSite[1:nf[k],k] <- ISspectrum.3D( ele=parlist[["ele"]] , ion=parlist[["ion"]] , Bdir=B , kdir=kSite[[k]] , fradar=fSite[[k]] , scattAngle=aSite[[k]] , freq=xSite[[k]] )
   }
 
   # ACFs

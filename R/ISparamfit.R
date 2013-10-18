@@ -48,7 +48,7 @@ ISparamfit <- function( acf , var , lags , iSite , fSite , aSite , kSite , B , i
   if(length(iSite) < nData) iSite <- rep(iSite,length.out=nData)
   
   # count the receiver sites
-  ns <- length(unique(iSite))
+  ns <- max(iSite)
 
   # repeat the carrier frequencies and scattering angles if necessary
   if(length(fSite) < ns) fSite <- rep(fSite,length.out=ns)
@@ -57,20 +57,22 @@ ISparamfit <- function( acf , var , lags , iSite , fSite , aSite , kSite , B , i
   # create frequency axes for all sites
   freq <- list()
   for(k in seq(ns)){
-      fmax <- 4/min(diff(unique(sort(lags[which(iSite==k)]))))
-      fstep <- min(1/max(lags[which(iSite==k)])/4,fSite[k]/1e6)
-      if(is.infinite(fmax)) fmax <- fSite[k]/1e4
-      if(is.infinite(fstep)) fstep <- fSite[k]/1e6
-      if(fmax<1e3) fmax <- fSite[k]/1e4
-      if(fstep>=fmax) fstep <- fmax / 100
-      freq[[k]] <- seq(-fmax,fmax,by=fstep)
+      if(any(iSite==k)){
+          fmax <- 4/min(diff(unique(sort(lags[which(iSite==k)]))))
+          fstep <- min(1/max(lags[which(iSite==k)])/4,fSite[k]/1e6)
+          if(is.infinite(fmax)) fmax <- fSite[k]/1e4
+          if(is.infinite(fstep)) fstep <- fSite[k]/1e6
+          if(fmax<1e3) fmax <- fSite[k]/1e4
+          if(fstep>=fmax) fstep <- fmax / 100
+          freq[[k]] <- seq(-fmax,fmax,by=fstep)
+      }
   }
 
   # frequency ambiguity functions
   nf <- max(sapply(freq,length))
   nl <- length(lags)
-  fAmb <- matrix(nrow=nf,ncol=nl)
-  for(k in seq(nl)) fAmb[,k] <- frequencyAmbiguity( lags[k] , freq[[iSite[k]]] )
+  fAmb <- matrix(0+0i,nrow=nf,ncol=nl)
+  for(k in seq(nl)) fAmb[1:length(freq[[iSite[k]]]),k] <- frequencyAmbiguity( lags[k] , freq[[iSite[k]]] )
 
   # the actual fitting
   nlsParam <- fitFun( measData=acf , measVar=var , initParam=initParam , aprioriTheory=aprioriTheory , aprioriMeas=aprioriMeas , invAprioriCovar=invAprioriCovar , paramLimits=paramLimits , fAmb=fAmb , scaleFun=scaleFun , nIon=nIon , nSite=ns , iSite=iSite , fSite=fSite , aSite=aSite , kSite=kSite , B=B , xSite=freq , directTheory=directTheory , ... )

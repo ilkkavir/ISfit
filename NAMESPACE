@@ -23,7 +23,9 @@ export(
     testfit.beata,
     ISmeas.simu,
     calibrate.eiscat.dynasonde,
-    ISparamfit
+    ISparamfit,
+    ISfit,
+    ISfit.3D
     )
 
 useDynLib(ISfit)
