@@ -1,4 +1,4 @@
-readPP <- function(dpath,recursive=F){
+readPP.3D <- function(dpath,recursive=F){
 # 
 #
 # read plasma parameters from files
@@ -35,8 +35,8 @@ readPP <- function(dpath,recursive=F){
   nPar   <- dim(PP$param)[2]
   mi     <- PPI_param$mi
   # number of receiver sites
-  nSites <- 1
-  
+  nSites <- dim(PP$sites)[1]
+
   # allocate the necessary arrays
   param     <- array(NA,dim=c(nHeight,nPar+nSites+3,nFile))
   std       <- array(NA,dim=c(nHeight,nPar+nSites+3,nFile))
@@ -81,8 +81,8 @@ readPP <- function(dpath,recursive=F){
       std[r,nPar+2,k] <- sqrt(c(1,2)%*%PP$covar[[r]][4:5,4:5]%*%c(1,2)/sum(c(1,2)**2))
       std[r,nPar+3,k] <- sqrt(PP$B[r,]%*%PP$covar[[r]][7:9,7:9]%*%PP$B[r,]/sum(PP$B[r,]**2))
       for( s in seq(nSites)){
-          param[r,nPar+s+3,k] <- PP$param[r,7:9]%*%PP$intersect[[r]]$k.ENU/sqrt(sum(PP$intersect[[r]]$k.ENU**2))
-          std[r,nPar+s+3,k] <- sqrt(PP$intersect[[r]]$k.ENU%*%PP$covar[[r]][7:9,7:9]%*%PP$intersect[[r]]$k.ENU/sum(PP$intersect[[r]]$k.ENU**2))
+          param[r,nPar+s+3,k] <- PP$param[r,7:9]%*%PP$intersect[[r]][[s]]$k.ENU/sqrt(sum(PP$intersect[[r]][[s]]$k.ENU**2))
+          std[r,nPar+s+3,k] <- sqrt(PP$intersect[[r]][[s]]$k.ENU%*%PP$covar[[r]][7:9,7:9]%*%PP$intersect[[r]][[s]]$k.ENU/sum(PP$intersect[[r]]$k.ENU**2))
       }
     }
   }
@@ -92,7 +92,7 @@ readPP <- function(dpath,recursive=F){
   dimnames(model) <- list(dimnames(PP[["param"]])[[1]],c(dimnames(PP[["param"]])[[2]],'Ti','Te','ViB',paste('ViR',seq(nSites),sep='')),paste(seq(nFile)))
   dimnames(covar) <- c(list(paste(seq(nHeight))),lapply(dimnames(PP[["covar"]][[1]]),FUN=function(x,nSites){c(x,'Ti','Te','ViB',paste('ViR',seq(nSites),sep=''))},nSites=nSites),list(paste(seq(nFile))))
 
-  return(list(param=param,std=std,model=model,chisqr=chisqr,status=status,height=height,time_sec=time_sec,date=date,POSIXtime=POSIXtime, llhT=llhT,llhR=llhR,azelT=azelT,n=nFile,nPar=nPar,nHeight=nHeight,mi=mi,covar=covar))
+  return(list(param=param,std=std,model=model,chisqr=chisqr,status=status,height=height,time_sec=time_sec,date=date,POSIXtime=POSIXtime,sites=PP$sites,n=nFile,nPar=nPar,nHeight=nHeight,mi=mi,covar=covar))
 
 } # readPP
 

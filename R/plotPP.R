@@ -1,4 +1,4 @@
-plotPP <- function(fpath,par=list(Ne=c(10,12),Ti=c(0,3000),Te=c(0,4000),ViR1=c(-200,200),azel=T),xlim=NULL,ylim=NULL,pdf=NULL,jpg=NULL,figNum=NULL,width=8.27,height=2.9225,paper='a4',tickRes=NULL,model=F,stdThreshold=.5,NeMin=1e9,chisqrLim=10,bg='white',fg='black',res=300,cex=1.0,col.regions=guisdap.colors,ytype='height'){
+plotPP <- function(fpath,par=list(Ne=c(10,12),Ti=c(0,3000),Te=c(0,4000),ViR1=c(-200,200),azel=T),xlim=NULL,ylim=NULL,pdf=NULL,jpg=NULL,figNum=NULL,width=8.27,height=2.9225,paper='a4',tickRes=NULL,model=F,stdThreshold=.5,NeMin=1e9,chisqrLim=10,bg='white',fg='black',res=300,cex=1.0,col.regions=guisdap.colors,ytype='height',multistatic=TRUE){
 # 
 # read plasma parameters from file(s) and plot them
 # 
@@ -8,8 +8,12 @@ plotPP <- function(fpath,par=list(Ne=c(10,12),Ti=c(0,3000),Te=c(0,4000),ViR1=c(-
   warning("this function has not yet been fully modified to work with the 3D parameter fit results")
   
   # read all data
-  datas <- readPP(fpath)
-
+  if(multistatic){
+      datas <- readPP.3D(fpath)
+  }else{
+      datas <- readPP(fpath)
+  }
+      
   # take a copy that will be returned
   datas2 <- datas
 
@@ -133,6 +137,25 @@ plotPP <- function(fpath,par=list(Ne=c(10,12),Ti=c(0,3000),Te=c(0,4000),ViR1=c(-
                    ViR8=list(expression(paste("V"[iR8]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
                    ViR9=list(expression(paste("V"[iR9]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
                    ViR10=list(expression(paste("V"[iR10]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                   ViR11=list(expression(paste("V"[iR11]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                   ViR12=list(expression(paste("V"[iR12]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                   ViR13=list(expression(paste("V"[iR13]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                   ViR14=list(expression(paste("V"[iR14]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                   ViR15=list(expression(paste("V"[iR15]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                   ViR16=list(expression(paste("V"[iR16]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                   ViR17=list(expression(paste("V"[iR17]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                   ViR18=list(expression(paste("V"[iR18]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                   ViR19=list(expression(paste("V"[iR19]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                   ViR20=list(expression(paste("V"[iR20]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                   ViR21=list(expression(paste("V"[iR21]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                   ViR22=list(expression(paste("V"[iR22]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                   ViR23=list(expression(paste("V"[iR23]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                   ViR24=list(expression(paste("V"[iR24]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                   ViR25=list(expression(paste("V"[iR25]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                   ViR26=list(expression(paste("V"[iR26]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                   ViR27=list(expression(paste("V"[iR27]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                   ViR28=list(expression(paste("V"[iR28]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                   ViR29=list(expression(paste("V"[iR29]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
                    Ion1=list(sprintf("Fraction of ion mass %.1f u",datas$mi[1]),col=fg,cex=cex,vjust=1.2),
                    Ion2=list(sprintf("Fraction of ion mass %.1f u",datas$mi[2]),col=fg,cex=cex,vjust=1.2),
                    Ion3=list(sprintf("Fraction of ion mass %.1f u",datas$mi[3]),col=fg,cex=cex,vjust=1.2),
@@ -146,8 +169,8 @@ plotPP <- function(fpath,par=list(Ne=c(10,12),Ti=c(0,3000),Te=c(0,4000),ViR1=c(-
         trenew$layout.heights$key.axis.padding<--1
         trellis.par.set(list(background=trenew$background,layout.heights=trenew$layout.heights,layout.widths=trenew$layout.widths))
         curFig <- addAzElPlot(
-          az     = datas$azelT[1,]%%360,
-          el     = datas$azelT[2,],
+          az     = datas$azelT[,1,]%%360,
+          el     = datas$azelT[,2,],
           t      = datas$time_sec,
           xlim   = tLim,
           cex    = cex,
