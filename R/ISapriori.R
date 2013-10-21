@@ -1,4 +1,4 @@
-ISapriori <- function( aprioriParam ,  nIon , absCalib=FALSE , TiIsotropic=FALSE , ... ){
+ISapriori <- function( aprioriParam ,  nIon , absCalib=FALSE , TiIsotropic=FALSE , refSite=1 , ... ){
 #
 # default apriori theory matrix, "measurements", and covariance matrix for 3D IS parameter fits
 #
@@ -45,14 +45,13 @@ ISapriori <- function( aprioriParam ,  nIon , absCalib=FALSE , TiIsotropic=FALSE
   aprioriStd[9]                <- 1                  # ion velocity, z-component
   aprioriStd[10:(9+nIon)]      <- 1e-3               # ion abundances
 
-  aprioriStd[nIon+10]           <- 1e-3                  # the first site is a reference, do not scale
-  if(nPar>(nIon+10)){
-    if(absCalib){
-      aprioriStd[(nIon+11):length(aprioriParam)] <- 1e-3 # fix all sites to the same ACF scale
-    }else{
-      aprioriStd[(nIon+11):length(aprioriParam)] <- .1   # allow scaling for other sites
-    }
+  if(absCalib){
+      aprioriStd[(nIon+10):length(aprioriParam)] <- 1e-3 # fix all sites to the same ACF scale
+  }else{
+      aprioriStd[(nIon+10):length(aprioriParam)] <- .1   # allow scaling for other sites
   }
+  
+  aprioriStd[nIon+9+refSite]     <- 1e-3                 # do not allow scaling at the reference site
 
   # force certain parameter differences close to zero
   curRow                         <- nPar + 1

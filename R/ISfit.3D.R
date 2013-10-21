@@ -123,7 +123,7 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
                   dlist[[n]] <- ACF
                   if(length(ACF[["nGates"]])!=length(ACF$lag.us)) dlist[[n]][["nGates"]] <- rep(length(ACF$range.km),length(ACF$lag.us))
               }
- 
+
               # read acf, variance, lag, range, pointing directions, and TX / RX location of each data point
               acf    <- unlist( lapply( dlist , function(x){ return( unlist( lapply( seq( ncol( x[["ACF"]] ) ) , function( i , n , x ){ return( x[ 1 : n[i] , i ] ) } , x=x[["ACF"]] , n=x[["nGates"]] ) ) ) } ) )
               var    <- unlist( lapply( dlist , function(x){ return( unlist( lapply( seq( ncol( x[["ACF"]] ) ) , function( i , n , x ){ return( x[ 1 : n[i] , i ] ) } , x=x[["var"]] , n=x[["nGates"]] ) ) ) } ) )
@@ -224,9 +224,6 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
               for( dind in seq(length(ran))){
                   llh[dind,] <- range2llh( r=ran[dind] , llhT=datasites[dind,3:5] , llhR=datasites[dind,8:10] , azelT=datasites[dind,6:7])
               }
-
-              
-              
               
               for( h in seq( nh ) ){
                   
@@ -337,7 +334,9 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
 
           
                       # initial plasma parameter values, there should not be negative ones, as ion velocity is set to zero
-                      parInit        <- pmax( c( ptmp['e-',1] , ptmp['Ti',1] , ptmp['Ti',1], ptmp['Te',1] , ptmp['Te',1] , ioncoll , 0 , 0 , 0 , ifelse( (sum(ptmp[c('O2+','NO+'),1])<0) , 0 , sum(ptmp[c('O2+','NO+'),1])/ptmp['e-',1]) , ifelse( (ptmp['O+',1]<0) , 0 , ptmp['O+',1]/ptmp['e-',1]) , ifelse( (ptmp['H+',1]<0) , 0 , ptmp['H+',1]/ptmp['e-',1] ) , rep(1,nsites) ) , 0 )
+#                      parInit        <- pmax( c( ptmp['e-',1] , ptmp['Ti',1] , ptmp['Ti',1], ptmp['Te',1] , ptmp['Te',1] , ioncoll , 0 , 0 , 0 , ifelse( (sum(ptmp[c('O2+','NO+'),1])<0) , 0 , sum(ptmp[c('O2+','NO+'),1])/ptmp['e-',1]) , ifelse( (ptmp['O+',1]<0) , 0 , ptmp['O+',1]/ptmp['e-',1]) , ifelse( (ptmp['H+',1]<0) , 0 , ptmp['H+',1]/ptmp['e-',1] ) , rep(1,nsites) ) , 0 )
+                      # switched to estimating the molecular ion abundance as 1 - O+ - H+. The above estimation has larger error at low altitudes where heavier ions actually exists
+                      parInit        <- pmax( c( ptmp['e-',1] , ptmp['Ti',1] , ptmp['Ti',1], ptmp['Te',1] , ptmp['Te',1] , ioncoll , 0 , 0 , 0 , ifelse( (sum(ptmp[c('H+','O+'),1])/ptmp['e-',1]>=1) , 0 , 1-sum(ptmp[c('H+','O+'),1])/ptmp['e-',1]) , ifelse( (ptmp['O+',1]<0) , 0 , ptmp['O+',1]/ptmp['e-',1]) , ifelse( (ptmp['H+',1]<0) , 0 , ptmp['H+',1]/ptmp['e-',1] ) , rep(1,nsites) ) , 0 )
                       parInit[1]     <- max(parInit[1],1e6)
   
                       # parameter scaling factors
@@ -355,7 +354,7 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
                       limitParam[2,] <- scaleParams(parLimits[2,] , parScales , inverse=F)
                       
                       # apriori information
-                      apriori        <- ISapriori( initParam , 3 , absCalib , TiIsotropic )
+                      apriori        <- ISapriori( initParam , nIon=3 , absCalib=absCalib , TiIsotropic=TiIsotropic , refSite=refsite )
 
                       model[h,]      <- parInit
 
@@ -412,7 +411,7 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
               
               
               # save the results to file
-              PP <- list(param=param,std=std,model=model,chisqr=chisqr,status=status,time_sec=time_sec,date=date,POSIXtime=POSIXtime,height=height,latitude=latitude,longitude=longitude,sites=sites,intersect=intersect,covar=covar,B=B,heightLimits.km=hlims)
+              PP <- list(param=param,std=std,model=model,chisqr=chisqr,status=status,time_sec=time_sec,date=date,POSIXtime=POSIXtime,height=height,latitude=latitude,longitude=longitude,sites=sites,intersect=intersect,covar=covar,B=B,heightLimits.km=hlims/1000)
               resFile <- file.path( odir , paste( sprintf( '%13.0f' , trunc( iperLimits[k+1]  * 1000 ) ) , "PP.Rdata" , sep=''))
               save( PP , PPI_param, file=resFile )
               

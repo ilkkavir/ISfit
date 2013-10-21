@@ -14,26 +14,25 @@ acfscales <- function( sites , ranges , caltable )
 
         nsites <- dim(caltable)[1]
         
-        diffs <- matrix( nrow=nsites , ncol=9)
+        diffs <- matrix( ncol=nsites , nrow=9)
 
         for( d in seq(ndata)){
 
             # TXfreq, TXlat, TXlon, TXaz, TXel, RXlat,RXlon,RXaz,RXel
             sd <- sites[ d , c(2:4,6:9,11:12) ]
 
-            for( s in seq(nsites)){
-                diffs[s,] <- caltable[s,c(7,1,2,5,6,8,9,12,13)] - sd
-            }
-            diffs[,4] <- diffs[,4]%%360
+            diffs[,] <-  apply( caltable , FUN=function(x,y){ x[c(7,1,2,5,6,8,9,12,13)] - y }, y=sd , MARGIN=1 )
+
+            diffs[4,] <- diffs[4,]%%360
             diffs <- abs(diffs)
             diffs[is.na(diffs)] <- 0
             # with 90 degree elevation the azimuth angle may be anything
-            if(sd[5]==90) diffs[4] <- 0
-            if(sd[9]==90) diffs[8] <- 0
+            if(sd[5]==90) diffs[4,] <- 0
+            if(sd[9]==90) diffs[8,] <- 0
             
             # pict the correct site from table, take the first one if there are several acceptable ones
             # this will be replaced with the closest on in future
-            site <- which(apply( diffs , FUN=function(x,y){all(x<y)} , MARGIN=1 , y=c( 1e7, .1, .1, .1, .1, .1, .1, .1, .1) ))[1]
+            site <- which(apply( diffs , FUN=function(x,y){all(x<y)} , MARGIN=2 , y=c( 1e7, .1, .1, .1, .1, .1, .1, .1, .1) ))[1]
 
             # if there is value for only one range, simply pick it
             if (caltable[site,15]==1){
