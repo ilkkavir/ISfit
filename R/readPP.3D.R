@@ -68,13 +68,13 @@ readPP.3D <- function(dpath,recursive=F){
         param     <- array(NA,dim=c(nHeight,nPark+2*nSitesk+3,nFile))
         std       <- array(NA,dim=c(nHeight,nPark+2*nSitesk+3,nFile))
         model     <- array(NA,dim=c(nHeight,nPark+2*nSitesk+3,nFile))
-        covar     <- array(NA,dim=c(nHeight,nPark+2*nSitesk+3,nPark+2*nSites+3,nFile))
+        covar     <- array(NA,dim=c(nHeight,nPark+2*nSitesk+3,nPark+2*nSitesk+3,nFile))
         sites     <- array(NA,dim=c(dim(PP$sites),nFile))
 
         param[,1:(nPar+2*nSites+3),] <- partmp
         std[,1:(nPar+2*nSites+3),] <- stdtmp
         model[,1:(nPar+2*nSites+3),] <- modeltmp
-        covar[,1:(nPar+2*nSites+3),1:(nPar+nSites+3),] <- covartmp
+        covar[,1:(nPar+2*nSites+3),1:(nPar+2*nSites+3),] <- covartmp
         sites[1:dim(sitestmp)[1],1:dim(sitestmp)[2],] <- sitestmp
 
 
@@ -120,10 +120,10 @@ readPP.3D <- function(dpath,recursive=F){
     }
   }
   
-  dimnames(param) <- list(dimnames(PP[["param"]])[[1]],c(dimnames(PP[["param"]])[[2]],'Ti','Te','ViB', paste('ViR',paste(rep(seq(nSites),each=2),c('','hor'),sep=''),sep='')),paste(seq(nFile)))
-  dimnames(std) <- list(dimnames(PP[["param"]])[[1]],c(dimnames(PP[["param"]])[[2]],'Ti','Te','ViB', paste('ViR',paste(rep(seq(nSites),each=2),c('','hor'),sep=''),sep='')),paste(seq(nFile)))
-  dimnames(model) <- list(dimnames(PP[["param"]])[[1]],c(dimnames(PP[["param"]])[[2]],'Ti','Te','ViB', paste('ViR',paste(rep(seq(nSites),each=2),c('','hor'),sep=''),sep='')),paste(seq(nFile)))
-  dimnames(covar) <- c(list(paste(seq(nHeight))),lapply(dimnames(PP[["covar"]][[1]]),FUN=function(x,nSites){c(x,'Ti','Te','ViB', paste('ViR',paste(rep(seq(nSites),each=2),c('','hor'),sep=''),sep=''))},nSites=nSites),list(paste(seq(nFile))))
+  dimnames(param) <- list(dimnames(PP[["param"]])[[1]],c(dimnames(PP[["param"]])[[2]][1:12],paste('Site',seq(nSites),sep=''),'Ti','Te','ViB', paste('ViR',paste(rep(seq(nSites),each=2),c('','hor'),sep=''),sep='')),paste(seq(nFile)))
+  dimnames(std) <- list(dimnames(PP[["param"]])[[1]],c(dimnames(PP[["param"]])[[2]][1:12],paste('Site',seq(nSites),sep=''),'Ti','Te','ViB', paste('ViR',paste(rep(seq(nSites),each=2),c('','hor'),sep=''),sep='')),paste(seq(nFile)))
+  dimnames(model) <- list(dimnames(PP[["param"]])[[1]],c(dimnames(PP[["param"]])[[2]][1:12],paste('Site',seq(nSites),sep=''),'Ti','Te','ViB', paste('ViR',paste(rep(seq(nSites),each=2),c('','hor'),sep=''),sep='')),paste(seq(nFile)))
+  dimnames(covar) <- c(list(paste(seq(nHeight))),lapply(dimnames(PP[["covar"]][[1]]),FUN=function(x,nSites){c(x[1:12],paste('Site',seq(nSites),sep=''),'Ti','Te','ViB', paste('ViR',paste(rep(seq(nSites),each=2),c('','hor'),sep=''),sep=''))},nSites=nSites),list(paste(seq(nFile))))
 
   return(list(param=param,std=std,model=model,chisqr=chisqr,status=status,height=height,time_sec=time_sec,date=date,POSIXtime=POSIXtime,sites=sites,n=nFile,nPar=nPar,nHeight=nHeight,mi=mi,covar=covar))
 
