@@ -49,10 +49,6 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
       #   Radar site identification uses 0.1 degree accuracy in latitude, longitude, azimuth, and elevation,
       #   and 10 MHz accuracy in frequency.
       #
-      #   Following functions will be made in near future:
-      #
-      #   Function 'calibrate.eiscat.dynasonde' can optionally scale all values in an existing calibration table
-      #   Function 'calibrateRemotes' scales remote site calibration constants according to estimates from an ISfit run
       #
       #   The calibration table is copied to odir 
       #
@@ -400,7 +396,7 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
               PPI_param <- list(mi = c( 30.5 , 16.0 , 1.0 ) )
               std[is.na(std)] <- Inf
               
-                                        # another bubble gum fix, will be replaced in final version...
+
               dimnames(param) <- list(paste('gate',seq(nh),sep=''),c('Ne','Tipar','Tiperp','Tepar','Teperp','Coll','Vix','Viy','Viz',paste('Ion',seq(3),sep=''),paste('Site',seq(nsites),sep='')))
               dimnames(std)   <- list(paste('gate',seq(nh),sep=''),c('Ne','Tipar','Tiperp','Tepar','Teperp','Coll','Vix','Viy','Viz',paste('Ion',seq(3),sep=''),paste('Site',seq(nsites),sep='')))
               dimnames(model)   <- list(paste('gate',seq(nh),sep=''),c('Ne','Tipar','Tiperp','Tepar','Teperp','Coll','Vix','Viy','Viz',paste('Ion',seq(3),sep=''),paste('Site',seq(nsites),sep='')))

@@ -35,14 +35,14 @@ ISapriori <- function( aprioriParam ,  nIon , absCalib=FALSE , TiIsotropic=FALSE
   aprioriMeas[1:nPar]          <- aprioriParam
   
   aprioriStd[1]                <- 1e5                # electron density
-  aprioriStd[2]                <- 1                 # parallel ion temperature
+  aprioriStd[2]                <- 1                  # parallel ion temperature
   aprioriStd[3]                <- 1                  # perpendicular ion temperature
-  aprioriStd[4]                <- 1                 # parallel electron temperature
+  aprioriStd[4]                <- 1                  # parallel electron temperature
   aprioriStd[5]                <- 1                  # perpendicular electron temperature
   aprioriStd[6]                <- 1e-3               # ion-neutral collision frequency
-  aprioriStd[7]                <- 1                  # ion velocity, x-component
-  aprioriStd[8]                <- 1                  # ion velocity, y-component
-  aprioriStd[9]                <- 1                  # ion velocity, z-component
+  aprioriStd[7]                <- 10                 # ion velocity, x-component
+  aprioriStd[8]                <- 10                 # ion velocity, y-component
+  aprioriStd[9]                <- 10                 # ion velocity, z-component
   aprioriStd[10:(9+nIon)]      <- 1e-3               # ion abundances
 
   if(absCalib){
@@ -68,7 +68,7 @@ ISapriori <- function( aprioriParam ,  nIon , absCalib=FALSE , TiIsotropic=FALSE
   if(TiIsotropic){
     aprioriStd[curRow]             <- 1e-3
   }else{
-    aprioriStd[curRow]             <- .1
+    aprioriStd[curRow]             <- 1
   }
   curRow                         <- curRow + 1
 
