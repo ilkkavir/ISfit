@@ -1,50 +1,49 @@
 testfit <- function(
-    dimension=3,
     general=FALSE,
-                       refPoint  = KIR,
-                       locTrans  = list(c(0,0)),
-                       locRec    = list( c(    0 ,    0 ),
-                                         c(  100 ,    0 ),
-                                         c( -100 ,    0 ),
-                                         c(    0 ,  100 ),
-                                         c(    0 , -100 )
-                         ),
-                       locTarg   = c(0,0,200),
-                       locxy     = T,
-
-                       fwhmTrans = c(1),
-                       fwhmRec   = c(1),
-                       fwhmRange = c(1),
-                       resNS,
-                       resEW,
-                       resH,
-                       Pt        = 1e6,
-                       Tnoise    = 200,
-                       fradar    = 235e6,
-                       phArrTrans= FALSE,
-                       phArrRec  = FALSE,
-                       absCalib  = FALSE,
-                       TiIsotropic=FALSE,
-
-                       TperpTpar = 1,
-                       vion      = c(0,0,0),
-                       vele      = vion,
-                       
-                       nlags     = 30,
-                       integrationTime = 10,
-                       dutyCycle = .1,
-
-                       plotTest  = F,
-                       absLimit  = 5,
-                       diffLimit = 1e-2,
-                       maxLambda = 1e30,
-                       maxIter   = 100,
-
-                       time      = c(2009,7,1,11,0,0),
-                       heights   = seq(1000),
+    refPoint  = KIR,
+    locTrans  = list(c(0,0)),
+    locRec    = list( c(    0 ,    0 ),
+        c(  100 ,    0 ),
+        c( -100 ,    0 ),
+        c(    0 ,  100 ),
+        c(    0 , -100 )
+        ),
+    locTarg   = c(0,0,200),
+    locxy     = T,
+    
+    fwhmTrans = c(1),
+    fwhmRec   = c(1),
+    fwhmRange = c(1),
+    resNS,
+    resEW,
+    resH,
+    Pt        = 1e6,
+    Tnoise    = 200,
+    fradar    = 235e6,
+    phArrTrans= FALSE,
+    phArrRec  = FALSE,
+    absCalib  = FALSE,
+    TiIsotropic=FALSE,
+    
+    TperpTpar = 1,
+    vion      = c(0,0,0),
+    vele      = vion,
+    
+    nlags     = 30,
+    integrationTime = 10,
+    dutyCycle = .1,
+    
+    plotTest  = F,
+    absLimit  = 5,
+    diffLimit = 1e-2,
+    maxLambda = 1e30,
+    maxIter   = 100,
+    
+    time      = c(2009,7,1,11,0,0),
+    heights   = seq(1000),
     fitFun=leastSquare.lvmrq,
     ...
-                       ){
+    ){
 #
 # Test the 3D plasma parameter fit with simulated ACF data
 #
@@ -215,10 +214,7 @@ testfit <- function(
       limitParam[2,] <- scaleParams(parLimits[2,] , parScales , inverse=F)
   
       # apriori information
-      if(dimension<=1) apriori <- ISapriori.1D.general( initParam , nIon , absCalib , TiIsotropic )
-      if(dimension==2) apriori <- ISapriori.2D.general( initParam , nIon , absCalib , TiIsotropic )
-      if(dimension>=3) apriori <- ISapriori.3D.general( initParam , nIon , absCalib , TiIsotropic )
-
+      apriori <- ISapriori.general( initParam , nIon , absCalib , TiIsotropic )
       directTheory <- ISdirectTheory.general
 
   }else{
@@ -247,9 +243,7 @@ testfit <- function(
       limitParam[2,] <- scaleParams(parLimits[2,] , parScales , inverse=F)
   
       # apriori information
-      if(dimension<=1) apriori <- ISapriori.1D( initParam , nIon , absCalib , TiIsotropic )
-      if(dimension==2) apriori <- ISapriori.2D( initParam , nIon , absCalib , TiIsotropic )
-      if(dimension>=3) apriori <- ISapriori.3D( initParam , nIon , absCalib , TiIsotropic )
+      apriori <- ISapriori( initParam , nIon , absCalib , TiIsotropic )
 
       directTheory <- ISdirectTheory
   }
@@ -276,47 +270,47 @@ testfit <- function(
   lags  <- rep(lags,nComb)
 
   print(
-        system.time(
-                    fitpar   <- ISparamfit(
-                                           acf             = acf,
-                                           var             = var,
-                                           lags            = lags,
-                                           iSite           = isite,
-                                           fSite           = fSite,
-                                           aSite           = aSite,
-                                           kSite           = kSite,
-                                           B               = B,
-                                           initParam       = initParam,
-                                           aprioriTheory   = apriori$aprioriTheory,
-                                           aprioriMeas     = apriori$aprioriMeas,
-                                           invAprioriCovar = apriori$invAprioriCovar,
-                                           nIon            = 3,
-                                           paramLimits     = limitParam,
-                                           directTheory    = directTheory,
-                                           nData           = nData,
-                                           absLimit        = absLimit,
-                                           diffLimit       = diffLimit,
-                                           scaleFun        = scaleParams,
-                                           scale           = parScales,
-                                           plotTest        = plotTest,
-                                           maxLambda       = maxLambda,
-                                           maxIter         = maxIter,
-                        mIon=mIon,
-                        fitFun=fitFun,
-                        ...
-                                           )
-                    )
-        )
+      system.time(
+          fitpar   <- ISparamfit(
+              acf             = acf,
+              var             = var,
+              lags            = lags,
+              iSite           = isite,
+              fSite           = fSite,
+              aSite           = aSite,
+              kSite           = kSite,
+              B               = B,
+              initParam       = initParam,
+              aprioriTheory   = apriori$aprioriTheory,
+              aprioriMeas     = apriori$aprioriMeas,
+              invAprioriCovar = apriori$invAprioriCovar,
+              nIon            = 3,
+              paramLimits     = limitParam,
+              directTheory    = directTheory,
+              nData           = nData,
+              absLimit        = absLimit,
+              diffLimit       = diffLimit,
+              scaleFun        = scaleParams,
+              scale           = parScales,
+              plotTest        = plotTest,
+              maxLambda       = maxLambda,
+              maxIter         = maxIter,
+              mIon=mIon,
+              fitFun=fitFun,
+              ...
+              )
+          )
+      )
+  
 
 
 
+  parfit         <- scaleParams(fitpar$param,scale=parScales,inverse=T)
+  fitstd         <- scaleParams(sqrt(diag(fitpar$covar)),scale=parScales,inverse=T)
 
-#  parfit         <- scaleParams(fitpar$param,scale=parScales,inverse=T)
-#  fitstd         <- scaleParams(sqrt(diag(fitpar$covar)),scale=parScales,inverse=T)
-
-#  for (k in seq(length(par))){
-#    cat(sprintf("%25.10f %25.10f %25.10f %25.10f \n",par[k],parfit[k],fitstd[k],parfit[k]/par[k]))
-#  }
-#  fitpar$parScales <- parScales
+  for (k in seq(length(par))){
+    cat(sprintf("%25.10f %25.10f %25.10f %25.10f \n",par[k],parfit[k],fitstd[k],parfit[k]/par[k]))
+  }
+  fitpar$parScales <- parScales
   invisible(fitpar)
 } 

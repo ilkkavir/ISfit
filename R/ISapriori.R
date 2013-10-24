@@ -68,7 +68,7 @@ ISapriori <- function( aprioriParam ,  nIon , absCalib=FALSE , TiIsotropic=FALSE
   if(TiIsotropic){
     aprioriStd[curRow]             <- 1e-3
   }else{
-    aprioriStd[curRow]             <- 1
+    aprioriStd[curRow]             <- .5
   }
   curRow                         <- curRow + 1
 

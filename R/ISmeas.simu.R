@@ -75,7 +75,7 @@ ISmeas.simu <- function(refPoint=KIR,locTrans=TRO,locRec=list(TRO,KIR,KIL),locTa
   snr <- rep(0,nComb)
   kscat <- rep(list(c(0,0,0),nComb))
   for(k in seq(nComb)){
-    snr[k] <- noiseLevel$noiseLevel.site[[k]]$noiseLevel$Pr / noiseLevel$noiseLevel.site[[k]]$noiseLevel$Pn
+    snr[k] <- noiseLevel$noiseLevel.site[[k]]$noiseLevel$Pr / ( noiseLevel$noiseLevel.site[[k]]$noiseLevel$Pn + noiseLevel$noiseLevel.site[[k]]$noiseLevel$Prn )
     kscat[[k]] <- noiseLevel$noiseLevel.site[[k]]$kscat[1,1,,]
   }
 
