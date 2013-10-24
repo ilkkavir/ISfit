@@ -38,9 +38,9 @@ readPP.3D <- function(dpath,recursive=F){
   nSites <- dim(PP$sites)[1]
 
   # allocate the necessary arrays
-  param     <- array(NA,dim=c(nHeight,nPar+2*nSites+4,nFile))
-  std       <- array(NA,dim=c(nHeight,nPar+2*nSites+4,nFile))
-  model     <- array(NA,dim=c(nHeight,nPar+2*nSites+4,nFile))
+  param     <- array(NA,dim=c(nHeight,nPar+3*nSites+4,nFile))
+  std       <- array(NA,dim=c(nHeight,nPar+3*nSites+4,nFile))
+  model     <- array(NA,dim=c(nHeight,nPar+3*nSites+4,nFile))
   height    <- array(NA,dim=c(nHeight,nFile))
   status    <- array(NA,dim=c(nHeight,nFile))
   chisqr    <- array(NA,dim=c(nHeight,nFile))
@@ -50,7 +50,7 @@ readPP.3D <- function(dpath,recursive=F){
   POSIXtime <- vector(length=nFile,mode='list')
   llhT      <- PP$llhT
   llhR      <- PP$llhR
-  covar     <- array(NA,dim=c(nHeight,nPar+2*nSites+4,nPar+2*nSites+4,nFile))
+  covar     <- array(NA,dim=c(nHeight,nPar+3*nSites+4,nPar+3*nSites+4,nFile))
 
   # read the data from files
   for (k in seq(nFile)){
@@ -65,17 +65,41 @@ readPP.3D <- function(dpath,recursive=F){
         covartmp <- covar
         sitestmp <- sites
 
-        param     <- array(NA,dim=c(nHeight,nPark+2*nSitesk+4,nFile))
-        std       <- array(NA,dim=c(nHeight,nPark+2*nSitesk+4,nFile))
-        model     <- array(NA,dim=c(nHeight,nPark+2*nSitesk+4,nFile))
-        covar     <- array(NA,dim=c(nHeight,nPark+2*nSitesk+4,nPark+2*nSitesk+4,nFile))
+        param     <- array(NA,dim=c(nHeight,nPark+3*nSitesk+4,nFile))
+        std       <- array(NA,dim=c(nHeight,nPark+3*nSitesk+4,nFile))
+        model     <- array(NA,dim=c(nHeight,nPark+3*nSitesk+4,nFile))
+        covar     <- array(NA,dim=c(nHeight,nPark+3*nSitesk+4,nPark+3*nSitesk+4,nFile))
         sites     <- array(NA,dim=c(dim(PP$sites),nFile))
 
-        param[,1:(nPar+2*nSites+4),] <- partmp
-        std[,1:(nPar+2*nSites+4),] <- stdtmp
-        model[,1:(nPar+2*nSites+4),] <- modeltmp
-        covar[,1:(nPar+2*nSites+4),1:(nPar+2*nSites+4),] <- covartmp
-        sites[1:dim(sitestmp)[1],1:dim(sitestmp)[2],] <- sitestmp
+        param[,1:nPar,] <- partmp[,1:nPar,]
+        param[,(nPark+1):(nPark+4),] <- partmp[,(nPar+1):(nPar+4),]
+        param[,(nPark+5):(nPark+4+nSites),] <- partmp[,(nPar+5):(nPar+4+nSites),]
+        param[,(nPark+nSitesk+5):(nPark+nSitesk+4+nSites),] <- partmp[,(nPar+nSites+5):(nPar+4+2*nSites),]
+        param[,(nPark+2*nSitesk+5):(nPark+2*nSitesk+4+nSites),] <- partmp[,(nPar+2*nSites+5):(nPar+4+3*nSites),]
+
+        std[,1:nPar,] <- stdtmp[,1:nPar,]
+        std[,(nPark+1):(nPark+4),] <- stdtmp[,(nPar+1):(nPar+4),]
+        std[,(nPark+5):(nPark+4+nSites),] <- stdtmp[,(nPar+5):(nPar+4+nSites),]
+        std[,(nPark+nSitesk+5):(nPark+nSitesk+4+nSites),] <- stdtmp[,(nPar+nSites+5):(nPar+4+2*nSites),]
+        std[,(nPark+2*nSitesk+5):(nPark+2*nSitesk+4+nSites),] <- stdtmp[,(nPar+2*nSites+5):(nPar+4+3*nSites),]
+
+        model[,1:nPar,] <- modeltmp[,1:nPar,]
+        model[,(nPark+1):(nPark+4),] <- modeltmp[,(nPar+1):(nPar+4),]
+        model[,(nPark+5):(nPark+4+nSites),] <- modeltmp[,(nPar+5):(nPar+4+nSites),]
+        model[,(nPark+nSitesk+5):(nPark+nSitesk+4+nSites),] <- modeltmp[,(nPar+nSites+5):(nPar+4+2*nSites),]
+        model[,(nPark+2*nSitesk+5):(nPark+2*nSitesk+4+nSites),] <- modeltmp[,(nPar+2*nSites+5):(nPar+4+3*nSites),]
+
+        covar[,1:nPar,1:nPar,] <- covartmp[,1:nPar,1:nPar,]
+        covar[,(nPark+1):(nPark+4),(nPark+1):(nPark+4),] <- covartmp[,(nPar+1):(nPar+4),(nPar+1):(nPar+4),]
+        covar[,(nPark+5):(nPark+4+nSites),(nPark+5):(nPark+4+nSites),] <- covartmp[,(nPar+5):(nPar+4+nSites),(nPar+5):(nPar+4+nSites),]
+        covar[,(nPark+nSitesk+5):(nPark+nSitesk+4+nSites),(nPark+nSitesk+5):(nPark+nSitesk+4+nSites),] <- covartmp[,(nPar+nSites+5):(nPar+4+2*nSites),(nPar+nSites+5):(nPar+4+2*nSites),]
+        covar[,(nPark+2*nSitesk+5):(nPark+2*nSitesk+4+nSites),(nPark+2*nSitesk+5):(nPark+2*nSitesk+4+nSites),] <- covartmp[,(nPar+2*nSites+5):(nPar+4+3*nSites),(nPar+2*nSites+5):(nPar+4+3*nSites),]
+
+#        param[,1:(nPar+3*nSites+4),] <- partmp
+#        std[,1:(nPar+3*nSites+4),] <- stdtmp
+#        model[,1:(nPar+3*nSites+4),] <- modeltmp
+#        covar[,1:(nPar+3*nSites+4),1:(nPar+3*nSites+4),] <- covartmp
+#        sites[1:dim(sitestmp)[1],1:dim(sitestmp)[2],] <- sitestmp
 
 
         nPar <- nPark
@@ -120,22 +144,27 @@ readPP.3D <- function(dpath,recursive=F){
                               )
       for( s in seq(nSitesk)){
 
-          # ion velocity seen at site k
+          # ion velocity seen at site s
           param[r,nPar+2*(s-1)+5,k] <- PP$param[r,7:9]%*%PP$intersect[[r]][[s]]$k.ENU/sqrt(sum(PP$intersect[[r]][[s]]$k.ENU**2))
           std[r,nPar+2*(s-1)+5,k] <- sqrt(PP$intersect[[r]][[s]]$k.ENU%*%PP$covar[[r]][7:9,7:9]%*%PP$intersect[[r]][[s]]$k.ENU/sum(PP$intersect[[r]][[s]]$k.ENU**2))
-          # horizontal ion velocity component seen at site k
+          # horizontal ion velocity component seen at site s
           khor <- c(PP$intersect[[r]][[s]]$k.ENU[c(1,2)],0)
           khor <- khor / sqrt(sum(khor**2))
           param[r,nPar+2*s+4,k] <- PP$param[r,7:9]%*%khor
           std[r,nPar+2*s+4,k] <- sqrt(khor%*%PP$covar[[r]][7:9,7:9]%*%khor)
+          # ion temperature at site k
+          phi <- radarPointings:::vectorAngle.cartesian(PP$intersect[[r]][[s]]$k.ENU,PP$B[r,],degrees=FALSE)
+          prvec <- c( cos(phi)**2 , sin(phi)**2 )
+          param[r,nPar+2*nSites+4+s,k] <- PP$param[r,2:3]%*%prvec
+          std[r,nPar+2*nSites+4+s,k] <- sqrt(prvec%*%PP$covar[[r]][2:3,2:3]%*%prvec)
       }
     }
   }
   
-  dimnames(param) <- list(dimnames(PP[["param"]])[[1]],c(dimnames(PP[["param"]])[[2]][1:12],paste('Site',seq(nSites),sep=''),'Ti','Te','ViB','Tiratio', paste('ViR',paste(rep(seq(nSites),each=2),c('','hor'),sep=''),sep='')),paste(seq(nFile)))
-  dimnames(std) <- list(dimnames(PP[["param"]])[[1]],c(dimnames(PP[["param"]])[[2]][1:12],paste('Site',seq(nSites),sep=''),'Ti','Te','ViB','Tiratio', paste('ViR',paste(rep(seq(nSites),each=2),c('','hor'),sep=''),sep='')),paste(seq(nFile)))
-  dimnames(model) <- list(dimnames(PP[["param"]])[[1]],c(dimnames(PP[["param"]])[[2]][1:12],paste('Site',seq(nSites),sep=''),'Ti','Te','ViB','Tiratio', paste('ViR',paste(rep(seq(nSites),each=2),c('','hor'),sep=''),sep='')),paste(seq(nFile)))
-  dimnames(covar) <- c(list(paste(seq(nHeight))),lapply(dimnames(PP[["covar"]][[1]]),FUN=function(x,nSites){c(x[1:12],paste('Site',seq(nSites),sep=''),'Ti','Te','ViB','Tiratio', paste('ViR',paste(rep(seq(nSites),each=2),c('','hor'),sep=''),sep=''))},nSites=nSites),list(paste(seq(nFile))))
+  dimnames(param) <- list(dimnames(PP[["param"]])[[1]],c(dimnames(PP[["param"]])[[2]][1:12],paste('Site',seq(nSites),sep=''),'Ti','Te','ViB','Tiratio', paste('ViR',paste(rep(seq(nSites),each=2),c('','hor'),sep=''),sep=''),paste('TiR',seq(nSites),sep='')),paste(seq(nFile)))
+  dimnames(std) <- list(dimnames(PP[["param"]])[[1]],c(dimnames(PP[["param"]])[[2]][1:12],paste('Site',seq(nSites),sep=''),'Ti','Te','ViB','Tiratio', paste('ViR',paste(rep(seq(nSites),each=2),c('','hor'),sep=''),sep=''),paste('TiR',seq(nSites),sep='')),paste(seq(nFile)))
+  dimnames(model) <- list(dimnames(PP[["param"]])[[1]],c(dimnames(PP[["param"]])[[2]][1:12],paste('Site',seq(nSites),sep=''),'Ti','Te','ViB','Tiratio', paste('ViR',paste(rep(seq(nSites),each=2),c('','hor'),sep=''),sep=''),paste('TiR',seq(nSites),sep='')),paste(seq(nFile)))
+  dimnames(covar) <- c(list(paste(seq(nHeight))),lapply(dimnames(PP[["covar"]][[1]]),FUN=function(x,nSites){c(x[1:12],paste('Site',seq(nSites),sep=''),'Ti','Te','ViB','Tiratio', paste('ViR',paste(rep(seq(nSites),each=2),c('','hor'),sep=''),sep=''),paste('TiR',seq(nSites),sep=''))},nSites=nSites),list(paste(seq(nFile))))
 
   return(list(param=param,std=std,model=model,chisqr=chisqr,status=status,height=height,time_sec=time_sec,date=date,POSIXtime=POSIXtime,sites=sites,n=nFile,nPar=nPar,nHeight=nHeight,mi=mi,covar=covar))
 
