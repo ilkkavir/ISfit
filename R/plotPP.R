@@ -103,6 +103,13 @@ plotPP.list <- function(data,par=list(Ne=c(10,12),Ti=c(0,3000),Te=c(0,4000),ViR1
             data$std[,,] <- 0
         }
 
+        # set  NA values to edges of data gaps
+        td <- diff(data[["time_sec"]])
+        tdmed <- median(td)
+        tdlarge <- which(td>3*tdmed)
+        data[["param"]][,,tdlarge] <- NA
+        data[["param"]][,,(tdlarge+1)] <- NA
+
         # number of figures panels
         nFig <- length(par)
 
