@@ -7,4 +7,3 @@ tsec <- function(sec){
   m <- (m-s)/60
   return(c(d,h,m,s))
 } # tsec
-

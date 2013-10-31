@@ -40,14 +40,14 @@
 ##
 
 
-plotPP <- function(data,par=list(Ne=c(10,12),Ti=c(0,3000),Te=c(0,4000),ViR1=c(-200,200)),xlim=NULL,ylim=NULL,pdf=NULL,jpg=NULL,figNum=NULL,width=8.27,height=2.9225,paper='a4',tickRes=NULL,model=F,stdThreshold=.5,NeMin=1e9,chisqrLim=10,bg='white',fg='black',res=300,cex=1.0,col.regions=guisdap.colors,ytype='height',multistatic=TRUE)
+plotPP <- function(data,par=list(Ne=c(10,12),Ti=c(0,3000),Te=c(0,4000),ViR1=c(-200,200)),xlim=NULL,ylim=NULL,pdf=NULL,jpg=NULL,figNum=NULL,width=8.27,height=2.9225,paper='a4',tickRes=NULL,model=F,stdThreshold=.5,NeMin=1e9,chisqrLim=10,bg='white',fg='black',res=300,cex=1.0,col.regions=guisdap.colors,ytype='height',multistatic=TRUE,trellis=FALSE)
     {
 
         UseMethod("plotPP")
 
     }
 
-plotPP.character <- function(data,par=list(Ne=c(10,12),Ti=c(0,3000),Te=c(0,4000),ViR1=c(-200,200),azel=T),xlim=NULL,ylim=NULL,pdf=NULL,jpg=NULL,figNum=NULL,width=8.27,height=2.9225,paper='a4',tickRes=NULL,model=F,stdThreshold=.5,NeMin=1e9,chisqrLim=10,bg='white',fg='black',res=300,cex=1.0,col.regions=guisdap.colors,ytype='height',multistatic=TRUE)
+plotPP.character <- function(data,par=list(Ne=c(10,12),Ti=c(0,3000),Te=c(0,4000),ViR1=c(-200,200),azel=T),xlim=NULL,ylim=NULL,pdf=NULL,jpg=NULL,figNum=NULL,width=8.27,height=2.9225,paper='a4',tickRes=NULL,model=F,stdThreshold=.5,NeMin=1e9,chisqrLim=10,bg='white',fg='black',res=300,cex=1.0,col.regions=guisdap.colors,ytype='height',multistatic=TRUE,trellis=FALSE)
     {
 
         # read all data
@@ -67,7 +67,7 @@ plotPP.character <- function(data,par=list(Ne=c(10,12),Ti=c(0,3000),Te=c(0,4000)
     }
     
 
-plotPP.list <- function(data,par=list(Ne=c(10,12),Ti=c(0,3000),Te=c(0,4000),ViR1=c(-200,200),azel=T),xlim=NULL,ylim=NULL,pdf=NULL,jpg=NULL,figNum=NULL,width=8.27,height=2.9225,paper='a4',tickRes=NULL,model=F,stdThreshold=.5,NeMin=1e9,chisqrLim=10,bg='white',fg='black',res=300,cex=1.0,col.regions=guisdap.colors,ytype='height',multistatic=TRUE)
+plotPP.list <- function(data,par=list(Ne=c(10,12),Ti=c(0,3000),Te=c(0,4000),ViR1=c(-200,200),azel=T),xlim=NULL,ylim=NULL,pdf=NULL,jpg=NULL,figNum=NULL,width=8.27,height=2.9225,paper='a4',tickRes=NULL,model=F,stdThreshold=.5,NeMin=1e9,chisqrLim=10,bg='white',fg='black',res=300,cex=1.0,col.regions=guisdap.colors,ytype='height',multistatic=TRUE,trellis=FALSE)
     {
         # take a copy that will be returned
         data2 <- data
@@ -113,6 +113,9 @@ plotPP.list <- function(data,par=list(Ne=c(10,12),Ti=c(0,3000),Te=c(0,4000),ViR1
             tLim <- (floor(data$time_sec[1] / 3600 / 24) * 24 + xlim) * 3600
         }
 
+        # data points within tLim
+        tInds <- which(data[["time_sec"]]>=tLim[1] & data[["time_sec"]]<=tLim[2])
+
         # height limits
         if(is.null(ylim)){
             hLim <- range(data[["height"]])
@@ -137,7 +140,9 @@ plotPP.list <- function(data,par=list(Ne=c(10,12),Ti=c(0,3000),Te=c(0,4000),ViR1
             jpeg(file=paste(jpg,'.jpg',sep=''),width=width,height=wHeight,units='in',res=res)
             cex = cex*res/72
         }
-  
+        layout(matrix(seq(2*length(par)),ncol=2,byrow=T),widths=rep(c(.9,.1),2*length(par)))
+        par(mar=c(2,3,1,1),mgp=c(1.5,.5,0))
+        
         treold <- trellis.par.get()
         trenew <- treold
         trenew$bacground$col <- bg
@@ -281,54 +286,66 @@ plotPP.list <- function(data,par=list(Ne=c(10,12),Ti=c(0,3000),Te=c(0,4000),ViR1
             # azimuth and elevation in 1D fits
             if(names(par[p])=="azel"){
                 if(par[[p]]){
-                    trenew$layout.widths$right.padding <- 10.5
-                    trenew$layout.heights$key.axis.padding<--1
-                    trellis.par.set(list(background=trenew$background,layout.heights=trenew$layout.heights,layout.widths=trenew$layout.widths))
-                    curFig <- addAzElPlot(
-                        az     = data$azelT[,1,]%%360,
-                        el     = data$azelT[,2,],
-                        t      = data$time_sec,
-                        xlim   = tLim,
-                        cex    = cex,
-                        ticks  = ticks,
-                        nFig   = nFig,
-                        curFig = curFig
-                        )
-                    trenew$layout.widths$right.padding <- 1
-                    trenew$layout.heights$key.axis.padding<-1
-                    trellis.par.set(list(background=trenew$background,layout.heights=trenew$layout.heights,layout.widths=trenew$layout.widths))
+                    if(trellis){
+                        trenew$layout.widths$right.padding <- 10.5
+                        trenew$layout.heights$key.axis.padding<--1
+                        trellis.par.set(list(background=trenew$background,layout.heights=trenew$layout.heights,layout.widths=trenew$layout.widths))
+                        curFig <- addAzElPlot(
+                            az     = data$azelT[,1,tInds]%%360,
+                            el     = data$azelT[,2,tInds],
+                            t      = data$time_sec[tInds],
+                            xlim   = tLim,
+                            cex    = cex,
+                            ticks  = ticks,
+                            nFig   = nFig,
+                            curFig = curFig
+                            )
+                        trenew$layout.widths$right.padding <- 1
+                        trenew$layout.heights$key.axis.padding<-1
+                        trellis.par.set(list(background=trenew$background,layout.heights=trenew$layout.heights,layout.widths=trenew$layout.widths))
+                    }else{
+                        plot(data$time_sec,data$azelT[,1,tInds]%%360,ylim=c(0,360),xlim=tLim,xaxt='n',xlab='',ylab='Degrees')
+                        points(data$time_sec,data$azelT[,2,tInds],col='red')
+                        axis(1,at=ticks$tick,labels=ticks$string)
+                        plot.new()
+                    }
                 }
             }else{
-                d <- data[["param"]][,names(par[p]),]
+                d <- data[["param"]][,names(par[p]),tInds]
                 if( xlog ){
                     d <- log10( d )
-                    d[data[["std"]][,names(par[p]),]>10**(par[[p]][3])] <- NA
+                    d[data[["std"]][,names(par[p]),tInds]>10**(par[[p]][3])] <- NA
                 }else{
-                    d[data[["std"]][,names(par[p]),]>par[[p]][3]] <- NA
-                }                
-                curFig <- addPPcolorPlot(
-                    d = d,
-                    h = data[["height"]],
-                    t = data[["time_sec"]],
-                    xlim = tLim,
-                    ylim = hLim,
-                    zlim = par[[p]][1:2],
-                    main = main,
-                    cex = cex,
-                    ticks = ticks,
-                    nFig = nFig,
-                    curFig = curFig,
-                    col.regions = col.regions
-                    )
+                    d[data[["std"]][,names(par[p]),tInds]>par[[p]][3]] <- NA
+                }
+                if(trellis){
+                    curFig <- addPPcolorPlot(
+                        d = d,
+                        h = data[["height"]][,tInds],
+                        t = data[["time_sec"]][tInds],
+                        xlim = tLim,
+                        ylim = hLim,
+                        zlim = par[[p]][1:2],
+                        main = main,
+                        cex = cex,
+                        ticks = ticks,
+                        nFig = nFig,
+                        curFig = curFig,
+                        col.regions = col.regions
+                        )
+                }else{
+                    image(data$time_sec[tInds],data$height[,tInds[1]],t(d),xlim=tLim,ylim=hLim,zlim=par[[p]][1:2],col=col.regions(1000),xaxt='n',ylab='Height [km]',xlab='')
+                    axis(1,at=ticks$tick,labels=ticks$string)
+                    image(c(0,1),seq(par[[p]][1],par[[p]][2],length.out=1000),t(matrix(rep(seq(par[[p]][1],par[[p]][2],length.out=1000),2),ncol=2)),col=col.regions(1000),ylab=main[[1]],xaxt='n',xlab='')
+                }
+                
             }
-            
         }
-  
         # if we did not plot on an x11 device, we must close the device properly
         if((sum(figList)==2)&is.null(figNum)) dev.off()
-
+        
         invisible(data2)
-
+        
     }
 
 
