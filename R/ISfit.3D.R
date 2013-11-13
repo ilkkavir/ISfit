@@ -272,7 +272,7 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
                           # the beam widths and antenna types are read from caltable and returned to this function in dscales
                           ss <- which( datasites[,1] == s)[1]
                           intersect[[h]][[s]] <- beamIntersection( llhT=sites[s,3:5] , llhR=sites[s,8:10] , azelT=sites[s,6:7] , azelR=sites[s,11:12] , fwhmT=dscales[ss,1] , fwhmR=dscales[ss,3] , phArrT=dscales[ss,2]>0 , phArrR=dscales[ss,4]>0 , freq.Hz=sites[s,2] )
-
+                          
                           # conversion from lat, lon, height to range in this gate
                           rs1 <- (llhTarget2azelrBeam(llhSite=sites[s,3:5],llhTarget=c(llhTarget[1:2],hlims[h]))['r'] +
                                   llhTarget2azelrBeam(llhSite=sites[s,8:10],llhTarget=c(llhTarget[1:2],hlims[h]))['r'] ) / 2

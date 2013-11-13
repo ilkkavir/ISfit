@@ -25,7 +25,9 @@ export(
     calibrate.eiscat.dynasonde,
     ISparamfit,
     ISfit,
-    ISfit.3D
+    ISfit.3D,
+    faradayRotation.KAIRA,
+    faradayDirectTheory
     )
 
 useDynLib(ISfit)

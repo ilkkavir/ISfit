@@ -1,0 +1,24 @@
+faradayDirectTheory <- function( ACF , lags ,thetar , phir , xi )
+    {
+        # direct theory function for faraday rotation estimation
+        #
+        # I. Virtanen 2013
+        #
+
+        # tabulate cosines, sines, and their squares as these will be needed repeatedly
+        sinX  <- sin(xi*pi/180)
+        cosX  <- cos(xi*pi/180)
+        sinX2 <- sinX**2
+        cosX2 <- cosX**2
+        sinT  <- sin(thetar)
+        cosT  <- cos(thetar)
+        sinT2 <- sinT**2
+        cosT2 <- cosT**2
+        sinP  <- sin(phir)
+        cosP  <- cos(phir)
+        sinP2 <- sinP**2
+        cosP2 <- cosP**2
+
+
+
+    }

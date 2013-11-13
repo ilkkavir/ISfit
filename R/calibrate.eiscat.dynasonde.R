@@ -1,12 +1,16 @@
-calibrate.eiscat.dynasonde <- function( dataDir , beginTime=c(1970,1,1,0,0,0) , endTime=c(2500,1,1,0,0,0) , region='F' , neMin=0 ){
+calibrate.eiscat.dynasonde <- function( dataDir , beginTime=c(1970,1,1,0,0,0) , endTime=c(2500,1,1,0,0,0) , region='F' , neMin=0 , multistatic=TRUE , timeplot=FALSE){
 # electron density calibration with the EISCAT dynasonde
 
 
   btime <- as.double(ISOdate( beginTime[1], beginTime[2], beginTime[3], beginTime[4], beginTime[5], beginTime[6])) + beginTime[6]%%1
   etime <- as.double(ISOdate( endTime[1], endTime[2], endTime[3], endTime[4], endTime[5], endTime[6])) + endTime[6]%%1
 
-  PP <- readPPIdir( dataDir )
-
+  if(multistatic){
+      PP <- readPP.3D( dataDir )
+  }else{
+      PP <- readPP( dataDir )
+  }
+      
   if(is.null(PP)) stop('No radar data')
   
   PPtimes <- range(PP$time_sec)
@@ -51,7 +55,15 @@ calibrate.eiscat.dynasonde <- function( dataDir , beginTime=c(1970,1,1,0,0,0) , 
 
   # the dynasonde data are measured with 120s temporal resolution, take 2 min of radar data around each dynasonde data point
   ndyna <- dim(dynamat)[1]
-  radarheight <- radarne <- radarvar<- matrix(ncol=ndyna,nrow=PP$nRange)
+
+  if(ndyna==0){
+      if(region=='F'){
+          stop("No F-region dynasonde data found")
+      }else{
+          stop("No E-region dynasonda data found")
+      }
+  }
+  radarheight <- radarne <- radarvar<- matrix(ncol=ndyna,nrow=dim(PP$height)[1])
 
   for(k in seq(ndyna)){
     radarinds <- which( ( PP$time_sec>= (dynamat[k,1]-59) ) & ( PP$time_sec<= dynamat[k,1]+59) )
@@ -95,6 +107,12 @@ calibrate.eiscat.dynasonde <- function( dataDir , beginTime=c(1970,1,1,0,0,0) , 
 
   necompar <- necompar[necompar[,2]>neMin,]
 
+  if(timeplot){
+      plot(necompar[,1],necompar[,2],ylim=c(0,max(necompar[,2:3],na.rm=TRUE,finite=TRUE)))
+      points(necompar[,1],necompar[,3],col='red')
+      dev.new()
+  }
+
   maxne <- max(necompar[,2:3])
 
   fitvar <- 1/sum(necompar[,2]**2/necompar[,4],na.rm=T)
@@ -112,7 +130,6 @@ calibrate.eiscat.dynasonde <- function( dataDir , beginTime=c(1970,1,1,0,0,0) , 
   lines(x,x*(fitres-2*sqrt(fitvar)),col='blue')
 
 
-  
   
   return(c(fitres,fitvar,chisqr))
   

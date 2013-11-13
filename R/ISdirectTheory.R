@@ -1,7 +1,6 @@
 ISdirectTheory <- function( param , scaleFun , nData , mIon , nSite , iSite , fSite , aSite , kSite ,  xSite ,  B , fAmb , ... ){
 #
-# Direct theory function for one-dimensional plasma paramter fits. Contains the option for several sites, because
-# that allows multi-frequency studies with co-located radars (e.g. EISCAT UHF and VHF systems)
+# Direct theory function for plasma paramter fits.
 #
 # INPUT:
 #  param        a vector of plasma parameters
