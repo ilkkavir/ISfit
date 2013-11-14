@@ -3,6 +3,16 @@ acfscales <- function( sites , ranges , caltable )
         #
         # interpolate calibration constants for measurements from given ranges at given sites using caltable
         #
+        #
+        # Columns of the scales matrix are:
+        #
+        #  1. fwhm of bore sight transmitter beam
+        #  2. logical, is the transmitter a phased-array?
+        #  3. fwhm of bore sight receiver beam
+        #  4. logical, is the receiver a phased-array?
+        #  5. logical, should the lagged products be complex-conjugated?
+        #  6. acf scaling factors
+        #
         # I. Virtanen 2013
         #
 
@@ -30,7 +40,7 @@ acfscales <- function( sites , ranges , caltable )
             if(sd[5]==90) diffs[4,] <- 0
             if(sd[9]==90) diffs[8,] <- 0
             
-            # pict the correct site from table, take the first one if there are several acceptable ones
+            # pic the correct site from table, take the first one if there are several acceptable ones
             # this will be replaced with the closest on in future
             site <- which(apply( diffs , FUN=function(x,y){all(x<y)} , MARGIN=2 , y=c( 1e7, .1, .1, .1, .1, .1, .1, .1, .1) ))[1]
 

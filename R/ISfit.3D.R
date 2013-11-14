@@ -224,10 +224,10 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
               for( h in seq( nh ) ){
                   
                   # Initial values, these will be immediately updated if any data is found
-                  height[h]      <- sum(hlims[h:(h+1)])/2
+                  height[h]      <- sum(hlims[h:(h+1)])/2000
                   latitude[h]    <- sites[refsite,3]
                   longitude[h]   <- sites[refsite,4]
-                  Btmp           <- igrf(date=date[1:3],lat=latitude[h],lon=longitude[h],height=height[h]/1000,isv=0,itype=1)
+                  Btmp           <- igrf(date=date[1:3],lat=latitude[h],lon=longitude[h],height=height[h],isv=0,itype=1)
                   B[h,]          <- c(Btmp$y,Btmp$x,-Btmp$z) # the model has y-axis to east and z-axis downwards, we have x towards east,
                   dimnames(covar[[h]])   <- list(c('Ne','Tipar','Tiperp','Tepar','Teperp','Coll','Vix','Viy','Viz',paste('Ion',seq(3),sep=''),paste('Site',seq(nsites),sep='')),c('Ne','Tipar','Tiperp','Tepar','Teperp','Coll','Vix','Viy','Viz',paste('Ion',seq(3),sep=''),paste('Site',seq(nsites),sep='')))
                   
@@ -274,45 +274,56 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
                           intersect[[h]][[s]] <- beamIntersection( llhT=sites[s,3:5] , llhR=sites[s,8:10] , azelT=sites[s,6:7] , azelR=sites[s,11:12] , fwhmT=dscales[ss,1] , fwhmR=dscales[ss,3] , phArrT=dscales[ss,2]>0 , phArrR=dscales[ss,4]>0 , freq.Hz=sites[s,2] )
                           
                           # conversion from lat, lon, height to range in this gate
-                          rs1 <- (llhTarget2azelrBeam(llhSite=sites[s,3:5],llhTarget=c(llhTarget[1:2],hlims[h]))['r'] +
-                                  llhTarget2azelrBeam(llhSite=sites[s,8:10],llhTarget=c(llhTarget[1:2],hlims[h]))['r'] ) / 2
-                          rs2 <- (llhTarget2azelrBeam(llhSite=sites[s,3:5],llhTarget=c(llhTarget[1:2],hlims[h+1]))['r'] +
-                                  llhTarget2azelrBeam(llhSite=sites[s,8:10],llhTarget=c(llhTarget[1:2],hlims[h+1]))['r'] ) / 2
+#                          rs1 <- (llhTarget2azelrBeam(llhSite=sites[s,3:5],llhTarget=c(llhTarget[1:2],hlims[h]))['r'] +
+#                                  llhTarget2azelrBeam(llhSite=sites[s,8:10],llhTarget=c(llhTarget[1:2],hlims[h]))['r'] ) / 2 
+#                          rs2 <- (llhTarget2azelrBeam(llhSite=sites[s,3:5],llhTarget=c(llhTarget[1:2],hlims[h+1]))['r'] +
+#                                  llhTarget2azelrBeam(llhSite=sites[s,8:10],llhTarget=c(llhTarget[1:2],hlims[h+1]))['r'] ) / 2
+                          rs1 <- height2range( llhT=sites[s,3:5] , azelT=sites[s,6:7] , llhR=sites[s,8:10] , h=hlims[h] )
+                          rs2 <- height2range( llhT=sites[s,3:5] , azelT=sites[s,6:7] , llhR=sites[s,8:10] , h=hlims[h+1] )
 
                           # gain integral
-                          gainR[s] <- gategain( intersect[[h]][[s]] , c(rs1,rs2))
+                          gainR[s] <- gategain( intersect[[h]][[s]] , c(rs1,rs2) , maxdev=3)
 
                           # scattering angle
                           aSite[s] <- intersect[[h]][[s]][["phi"]]
 
                           # scattering wave vector
                           kSite[[s]] <- intersect[[h]][[s]][["k.ENU"]]
+                          
+                          if(is.na(gainR[s])){
+                              lag.site[[s]] <- c()
+                              nlags.site[[s]] <- 0
+                              acf.site[[s]] <- c()
+                              var.site[[s]] <- c()
+                              ind.site[[s]] <- c()
+                          }else{
 
-                          # data points from this site
-                          data.site <- which(sites.gate[,1]==s)
+                              # data points from this site
+                              data.site <- which(sites.gate[,1]==s)
 
-                          # lags measured at this site
-                          lag.site[[s]] <- unique(lag.gate[data.site])
+                              # lags measured at this site
+                              lag.site[[s]] <- unique(lag.gate[data.site])
 
-                          nlags.site[s] <- length(lag.site[[s]])
+                              nlags.site[s] <- length(lag.site[[s]])
 
-                          # average data points from each lag value
-                          acf.site[[s]] <- rep(0+0i,nlags.site[s])
-                          var.site[[s]] <- rep(0,nlags.site[s])
-                          for( l in seq(nlags.site[s])){
-                              lagind <- which(lag.site[[s]][l]==lag.gate[data.site])
-                              for( lind in lagind ){
-                                  acf.site[[s]][l] <- acf.site[[s]][l] + acf.gate[data.site][lind]/var.gate[data.site][lind]
-                                  var.site[[s]][l] <- var.site[[s]][l] + 1/var.gate[data.site][lind]
+                              # average data points from each lag value
+                              acf.site[[s]] <- rep(0+0i,nlags.site[s])
+                              var.site[[s]] <- rep(0,nlags.site[s])
+                              for( l in seq(nlags.site[s])){
+                                  lagind <- which(lag.site[[s]][l]==lag.gate[data.site])
+                                  for( lind in lagind ){
+                                      acf.site[[s]][l] <- acf.site[[s]][l] + acf.gate[data.site][lind]/var.gate[data.site][lind]
+                                      var.site[[s]][l] <- var.site[[s]][l] + 1/var.gate[data.site][lind]
+                                  }
                               }
+                              var.site[[s]] <- 1/var.site[[s]]
+                              acf.site[[s]] <- acf.site[[s]] * var.site[[s]]
+                              
+                              acf.site[[s]] <- acf.site[[s]] / gainR[s]
+                              var.site[[s]] <- var.site[[s]] / gainR[s]**2
+                              
+                              ind.site[[s]] <- rep(s,nlags.site[s])
                           }
-                          var.site[[s]] <- 1/var.site[[s]]
-                          acf.site[[s]] <- acf.site[[s]] * var.site[[s]]
-
-                          acf.site[[s]] <- acf.site[[s]] / gainR[s]
-                          var.site[[s]] <- var.site[[s]] / gainR[s]**2
-
-                          ind.site[[s]] <- rep(s,nlags.site[s])
 
                       }
 
