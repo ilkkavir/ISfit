@@ -22,6 +22,20 @@ acfscales <- function( sites , ranges , caltable )
 
         scales <- matrix( NA , nrow=ndata , ncol=6 )
 
+        # a bubble gum fix to make tri-static EISCAT analysis faster..
+        if(is.null(caltable)){
+            # this will give way too wide beam for the VHF, should add an if somewhere to tune the scale...
+#            scales[,1] <- 299792458/sites[,2]/32*180/pi
+            scales[,1] <- 299792458/sites[,2]/ifelse(sites[,2]<250e6,60,32)*180/pi
+            scales[,2] <- FALSE
+            scales[,3] <- 299792458/sites[,2]/ifelse(sites[,2]<250e6,60,32)*180/pi
+#            scales[,3] <- 299792458/sites[,2]/32*180/pi
+            scales[,4] <- FALSE
+            scales[,5] <- FALSE
+            scales[,6] <- 1
+            return(scales)
+        }
+
         nsites <- dim(caltable)[1]
         
         diffs <- matrix( ncol=nsites , nrow=9)

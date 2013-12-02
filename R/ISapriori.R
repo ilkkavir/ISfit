@@ -1,4 +1,4 @@
-ISapriori <- function( aprioriParam ,  nIon , absCalib=FALSE , TiIsotropic=FALSE , refSite=1 , ... ){
+ISapriori <- function( aprioriParam ,  nIon , absCalib=FALSE , TiIsotropic=FALSE , TeIsotropic=FALSE, refSite=1 , ... ){
 #
 # default apriori theory matrix, "measurements", and covariance matrix for 3D IS parameter fits
 #
@@ -45,10 +45,17 @@ ISapriori <- function( aprioriParam ,  nIon , absCalib=FALSE , TiIsotropic=FALSE
   aprioriStd[9]                <- 10                 # ion velocity, z-component
   aprioriStd[10:(9+nIon)]      <- 1e-3               # ion abundances
 
+
+  # remove model information about perpendicular temperatures
+  aprioriTheory[3,] <- 0
+  aprioriTheory[5,] <- 0
+  
+
+  
   if(absCalib){
       aprioriStd[(nIon+10):length(aprioriParam)] <- 1e-3 # fix all sites to the same ACF scale
   }else{
-      aprioriStd[(nIon+10):length(aprioriParam)] <- .1   # allow scaling for other sites
+      aprioriStd[(nIon+10):length(aprioriParam)] <- 1   # allow scaling for other sites
   }
   
   aprioriStd[nIon+9+refSite]     <- 1e-3                 # do not allow scaling at the reference site
@@ -56,10 +63,15 @@ ISapriori <- function( aprioriParam ,  nIon , absCalib=FALSE , TiIsotropic=FALSE
   # force certain parameter differences close to zero
   curRow                         <- nPar + 1
   
-  # assume isotropic electron temperature
+  # electron temperature anisotropy
   aprioriTheory[curRow,c(4,5)]   <- c(1,-1)
   aprioriMeas[curRow]            <- 0
-  aprioriStd[curRow]             <- 1e-3
+#  aprioriStd[curRow]             <- 1e-3
+  if(TeIsotropic){
+    aprioriStd[curRow]             <- 1e-3
+  }else{
+    aprioriStd[curRow]             <- .1
+  }
   curRow                         <- curRow + 1
   
   # ion temperature anisotropy
@@ -68,7 +80,7 @@ ISapriori <- function( aprioriParam ,  nIon , absCalib=FALSE , TiIsotropic=FALSE
   if(TiIsotropic){
     aprioriStd[curRow]             <- 1e-3
   }else{
-    aprioriStd[curRow]             <- .5
+    aprioriStd[curRow]             <- .1
   }
   curRow                         <- curRow + 1
 

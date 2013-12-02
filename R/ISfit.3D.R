@@ -1,4 +1,4 @@
-ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 , beginTime=c(1970,1,1,0,0,0) , endTime=c(2100,1,1,0,0,0) , absLimit=5 , diffLimit=1e-2 , maxLambda=1e30 , maxIter=10 , plotTest=FALSE , plotFit=FALSE , caltable='caltable.Rdata' , absCalib=FALSE , TiIsotropic)
+ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 , beginTime=c(1970,1,1,0,0,0) , endTime=c(2100,1,1,0,0,0) , absLimit=5 , diffLimit=1e-2 , maxLambda=1e30 , maxIter=10 , plotTest=FALSE , plotFit=FALSE , caltable='caltable.Rdata' , absCalib=FALSE , TiIsotropic , TeIsotropic)
   { 
       
       # 3D incoherent scatter plasma parameter fit using LPI output files in ddirs
@@ -57,16 +57,21 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
       #
 
       # load the calibration table
-      load(caltable)
+      #
+      # the if is a part of a bubble gum fix to make tristatic UHF analysis faster...
+      #
+      if(!is.null(caltable)){
+          load(caltable)
+          # save a copy of the calibration table
+          fname <- paste('caltable_',format(Sys.time(),"%Y-%m-%d_%H:%M"),'.Rdata',sep='')
+          save( caltable , file=file.path(odir,fname))
+      }
+    
 
 
       # create the output directory
       dir.create( odir , recursive=TRUE , showWarnings=FALSE)
       
-      # save a copy of the calibration table
-      fname <- paste('caltable_',format(Sys.time(),"%Y-%m-%d_%H:%M"),'.Rdata',sep='')
-      save( caltable , file=file.path(odir,fname))
-    
       # list all data files
       dfiles <- c()
       for( dn in ddirs ) dfiles <- c( dfiles , dir( dn , full.names=T) )
@@ -102,19 +107,47 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
       # number of integration periods
       nIper <- length(iperLimits) - 1
 
+      # logical for permanent site selection
+      siteselprev <- 0
+
       # walk through all integration periods
       for( k in seq( nIper ) ){
 
-          fitPar <- list()
-      
           # look for data files from the current integration period
           iperFiles <- dfiles[ which( ( tstamps > iperLimits[k] ) & ( tstamps <= iperLimits[ k + 1 ] ) ) ]
 
           # load all data and collect it in a list
           nFiles <- length(iperFiles)
           if( nFiles > 0 ){
+              
               dlist <- vector( mode='list', length=nFiles)
+
               for( n in seq( nFiles ) ){
+
+
+
+                  # the whole PPIgraphics package should be included in ISfit,
+                  #
+                  # the simple load below should then be replaced with readACF for each directory
+                  # which would both provide nice pre-integration and solve the problems with
+                  # the weird antenna vibrations that cause problems in long integrations.
+                  #
+                  # no... the readACF function is in LPIgraphics, should merge LPIgraphics with LPI.gdf
+                  # and PPIgraphics with ISfit. Maybe even LPI.gdf with LPI.KAIRA??
+                  #
+                  #
+                  #
+                  #
+                  # then about acf scaling... we should have only one scaling for each 
+                  # (llhT,llhR,azelR), the remaining scaling will be done after the first 
+                  # analysis run. AND the acfscales function should operate on the sites-matrix 
+                  # which is way smaller than the data matrix..
+                  #
+
+
+
+
+                  
                   load( iperFiles[n] )
                   dlist[[n]] <- ACF
                   if(length(ACF[["nGates"]])!=length(ACF$lag.us)) dlist[[n]][["nGates"]] <- rep(length(ACF$range.km),length(ACF$lag.us))
@@ -143,7 +176,7 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
               datasites <- matrix( c( rep(0,length(freqTf)) , freqTf , latTf , lonTf , hTf , azTf , elTf , latRf , lonRf , hRf , azRf , elRf ) , ncol=12)
 
               # find unique combinations of llhT, llhR, azelT, azelR, and freqT. Each unique combination will be
-              # be considered as a "site" in the analysis
+              # considered as a "site" in the analysis
               sites <- unique(datasites)
         
               # number of sites
@@ -161,27 +194,52 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
               if( nsites==1 | absCalib ){ 
                   refsite <- 1
               }else{ # otherwise look for a monostatic site
+                  
                   refsite <- which( apply( sites[,3:7] == sites[,8:12] , FUN=all , MARGIN=1 ) )
+                  
+                  # if there are more than one candidate we will first check if the antenna was
+                  # just moving slightly during the integration
+                  if(length(refsite)>1){
+                      # largest variation in azimuth / elevation
+                      maxPointDiff <- max( apply( sites[refsite,c(6,7,11,12)] ,
+                                                 FUN=function(x){diff(range(x))} ,
+                                                 MARGIN=2) )
+                      # this should not be too common in well-designed experiments
+                      # simply proceed by picking the first candidate
+                      if(maxPointDiff < .1 ){
+                          refsite <- refsite[1]
+                      }
+
+                  }
                   # if there are none or several candidates we will need to ask the user
-                  # ask only at the first period, the same choice will be used in all remaining periods!
-                  if(k==1){
-                      if( length(refsite) != 1){
-                          if( length(refsite)==0){
-                              cat('Could not find a monostatic site,\n')
-                              cat('available sites are:\n')
-                              cat('Site    TXfreq     TXlat     TXlon  TXheight      TXaz     TXele     RXlat     RXlon  RXheight      RXaz     RXele\n')
-                              for(s in seq(nsites)){
-                                  cat(sprintf("[%2i]",s),sprintf(" %10.2f",sites[s,2:12]),sprintf("\n"))
-                              }
-                              refsite <- as.numeric(readline("Please select number of the reference site: "))
-                          }else{
+                  if( length(refsite) != 1){
+                      if( length(refsite)==0){
+                          cat('Could not find a monostatic site,\n')
+                          cat('available sites are:\n')
+                          cat('Site        TXfreq       TXlat       TXlon    TXheight        TXaz       TXele       RXlat       RXlon    RXheight        RXaz       RXele\n')
+                          for(s in seq(nsites)){
+                              cat(sprintf("[%2i]",s),sprintf(" %10.2f",sites[s,2:12]),sprintf("\n"))
+                          }
+                          refsite <- as.numeric(readline("Please select number of the reference site: "))
+                      }else{
+                          if(!siteselprev){
                               cat('Found several monostatic sites,\n')
                               cat('available sites are:\n')
-                              cat('Site    TXfreq     TXlat     TXlon  TXheight      TXaz     TXele     RXlat     RXlon  RXheight      RXaz     RXele\n')
+                              cat('Site        TXfreq       TXlat       TXlon    TXheight        TXaz       TXele       RXlat       RXlon    RXheight        RXaz       RXele\n')
                               for(s in refsite){
                                   cat(sprintf("[%2i]",s),sprintf(" %10.2f",sites[s,2:12]),sprintf("\n"))
                               }
                               refsite <- as.numeric(readline("Please select number of the reference site: "))
+                              siteselprev <- refsite
+                          }else{
+                              cat('Found several monostatic sites,\n')
+                              cat('available sites are:\n')
+                              cat('Site        TXfreq       TXlat       TXlon    TXheight        TXaz       TXele       RXlat       RXlon    RXheight        RXaz       RXele\n')
+                              for(s in refsite){
+                                  cat(sprintf("[%2i]",s),sprintf(" %10.2f",sites[s,2:12]),sprintf("\n"))
+                              }
+                              cat("Using previous selection (",siteselprev,")\n")
+                              refsite <- siteselprev
                           }
                       }
                   }
@@ -220,6 +278,9 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
               for( dind in seq(length(ran))){
                   llh[dind,] <- range2llh( r=ran[dind] , llhT=datasites[dind,3:5] , llhR=datasites[dind,8:10] , azelT=datasites[dind,6:7])
               }
+
+              # a list for site indices contributing at each height
+              contribSites <- list()
               
               for( h in seq( nh ) ){
                   
@@ -244,7 +305,7 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
             
                   # remove NA values
                   nainds         <- is.na(acf.gate) | is.na(var.gate)
-          
+
                   if(any(!nainds)){
                                             
                       acf.gate       <- acf.gate[ !nainds ]
@@ -254,7 +315,11 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
                       sites.gate     <- sites.gate[ !nainds , ]
                       
                      # coordinates of the measurement volume
-                      llhTarget      <- colMeans( llh.gate )
+                      if(is.matrix(llh.gate)){
+                          llhTarget      <- colMeans( llh.gate )
+                      }else{
+                          llhTarget <- llh.gate
+                      }
                       height[h]      <- llhTarget[3] / 1000
                       latitude[h]    <- llhTarget[1]
                       longitude[h]   <- llhTarget[2]
@@ -274,15 +339,11 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
                           intersect[[h]][[s]] <- beamIntersection( llhT=sites[s,3:5] , llhR=sites[s,8:10] , azelT=sites[s,6:7] , azelR=sites[s,11:12] , fwhmT=dscales[ss,1] , fwhmR=dscales[ss,3] , phArrT=dscales[ss,2]>0 , phArrR=dscales[ss,4]>0 , freq.Hz=sites[s,2] )
                           
                           # conversion from lat, lon, height to range in this gate
-#                          rs1 <- (llhTarget2azelrBeam(llhSite=sites[s,3:5],llhTarget=c(llhTarget[1:2],hlims[h]))['r'] +
-#                                  llhTarget2azelrBeam(llhSite=sites[s,8:10],llhTarget=c(llhTarget[1:2],hlims[h]))['r'] ) / 2 
-#                          rs2 <- (llhTarget2azelrBeam(llhSite=sites[s,3:5],llhTarget=c(llhTarget[1:2],hlims[h+1]))['r'] +
-#                                  llhTarget2azelrBeam(llhSite=sites[s,8:10],llhTarget=c(llhTarget[1:2],hlims[h+1]))['r'] ) / 2
                           rs1 <- height2range( llhT=sites[s,3:5] , azelT=sites[s,6:7] , llhR=sites[s,8:10] , h=hlims[h] )
                           rs2 <- height2range( llhT=sites[s,3:5] , azelT=sites[s,6:7] , llhR=sites[s,8:10] , h=hlims[h+1] )
 
                           # gain integral
-                          gainR[s] <- gategain( intersect[[h]][[s]] , c(rs1,rs2) , maxdev=3)
+                          gainR[s] <- gategain( intersect[[h]][[s]] , c(rs1,rs2) , maxdev=2)
 
                           # scattering angle
                           aSite[s] <- intersect[[h]][[s]][["phi"]]
@@ -327,78 +388,83 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
 
                       }
 
-                      # magnetic field direction
-                      Btmp           <- igrf(date=date[1:3],lat=latitude[h],lon=longitude[h],height=height[h],isv=0,itype=1)
-                      # the model has y-axis to east and z-axis downwards, we have x towards east and z upwards
-                      B[h,]          <- c(Btmp$y,Btmp$x,-Btmp$z) 
-                      
-                      # parameters from iri model
-                      ptmp           <- iriParams( time=date ,latitude=latitude[h],longitude=longitude[h],heights=height[h])
+                      if(sum(nlags.site)>0){                      
 
-                      # an approximation for NO+-neutral colllision frequency (Schunk & Walker, Planet. Space Sci., 1971)
-                      # the densities in outfmsis are in cm^-3
-                      ioncoll        <- sum( ionNeutralCollisionFrequency(ptmp[,1])['NO+',] )
+                          # magnetic field direction
+                          Btmp           <- igrf(date=date[1:3],lat=latitude[h],lon=longitude[h],height=height[h],isv=0,itype=1)
+                          # the model has y-axis to east and z-axis downwards, we have x towards east and z upwards
+                          B[h,]          <- c(Btmp$y,Btmp$x,-Btmp$z) 
+                      
+                          # parameters from iri model
+                          ptmp           <- iriParams( time=date ,latitude=latitude[h],longitude=longitude[h],heights=height[h])
+
+                          # an approximation for NO+-neutral colllision frequency (Schunk & Walker, Planet. Space Sci., 1971)
+                          # the densities in outfmsis are in cm^-3
+                          ioncoll        <- sum( ionNeutralCollisionFrequency(ptmp[,1])['NO+',] )
 
           
-                      # initial plasma parameter values, there should not be negative ones, as ion velocity is set to zero
-#                      parInit        <- pmax( c( ptmp['e-',1] , ptmp['Ti',1] , ptmp['Ti',1], ptmp['Te',1] , ptmp['Te',1] , ioncoll , 0 , 0 , 0 , ifelse( (sum(ptmp[c('O2+','NO+'),1])<0) , 0 , sum(ptmp[c('O2+','NO+'),1])/ptmp['e-',1]) , ifelse( (ptmp['O+',1]<0) , 0 , ptmp['O+',1]/ptmp['e-',1]) , ifelse( (ptmp['H+',1]<0) , 0 , ptmp['H+',1]/ptmp['e-',1] ) , rep(1,nsites) ) , 0 )
-                      # switched to estimating the molecular ion abundance as 1 - O+ - H+. The above estimation has larger error at low altitudes where heavier ions actually exists
-                      parInit        <- pmax( c( ptmp['e-',1] , ptmp['Ti',1] , ptmp['Ti',1], ptmp['Te',1] , ptmp['Te',1] , ioncoll , 0 , 0 , 0 , ifelse( (sum(ptmp[c('H+','O+'),1])/ptmp['e-',1]>=1) , 0 , 1-sum(ptmp[c('H+','O+'),1])/ptmp['e-',1]) , ifelse( (ptmp['O+',1]<0) , 0 , ptmp['O+',1]/ptmp['e-',1]) , ifelse( (ptmp['H+',1]<0) , 0 , ptmp['H+',1]/ptmp['e-',1] ) , rep(1,nsites) ) , 0 )
+                          # initial plasma parameter values, there should not be negative ones, as ion velocity is set to zero
+#                          parInit        <- pmax( c( ptmp['e-',1] , ptmp['Ti',1] , ptmp['Ti',1], ptmp['Te',1] , ptmp['Te',1] , ioncoll , 0 , 0 , 0 , ifelse( (sum(ptmp[c('O2+','NO+'),1])<0) , 0 , sum(ptmp[c('O2+','NO+'),1])/ptmp['e-',1]) , ifelse( (ptmp['O+',1]<0) , 0 , ptmp['O+',1]/ptmp['e-',1]) , ifelse( (ptmp['H+',1]<0) , 0 , ptmp['H+',1]/ptmp['e-',1] ) , rep(1,nsites) ) , 0 )
+                          # switched to estimating the molecular ion abundance as 1 - O+ - H+. The above estimation has larger error at low altitudes where heavier ions actually exists
+                          parInit        <- pmax( c( ptmp['e-',1] , ptmp['Ti',1] , ptmp['Ti',1], ptmp['Te',1] , ptmp['Te',1] , ioncoll , 0 , 0 , 0 , ifelse( (sum(ptmp[c('H+','O+'),1])/ptmp['e-',1]>=1) , 0 , 1-sum(ptmp[c('H+','O+'),1])/ptmp['e-',1]) , ifelse( (ptmp['O+',1]<0) , 0 , ptmp['O+',1]/ptmp['e-',1]) , ifelse( (ptmp['H+',1]<0) , 0 , ptmp['H+',1]/ptmp['e-',1] ) , rep(1,nsites) ) , 0 )
                       parInit[1]     <- max(parInit[1],1e6)
   
-                      # parameter scaling factors
-                      parScales      <- ISparamScales(parInit,3)
+                          # parameter scaling factors
+                          parScales      <- ISparamScales(parInit,3)
                           
-                      # scale the initial parameter values
-                      initParam      <- scaleParams( parInit , parScales , inverse=F)
+                          # scale the initial parameter values
+                          initParam      <- scaleParams( parInit , parScales , inverse=F)
                           
-                      # parameter value limits
-                      parLimits      <- ISparamLimits(3,nsites)
+                          # parameter value limits
+                          parLimits      <- ISparamLimits(3,nsites)
                           
-                      # scale the parameter limits
-                      limitParam     <- parLimits
-                      limitParam[1,] <- scaleParams(parLimits[1,] , parScales , inverse=F)
-                      limitParam[2,] <- scaleParams(parLimits[2,] , parScales , inverse=F)
+                          # scale the parameter limits
+                          limitParam     <- parLimits
+                          limitParam[1,] <- scaleParams(parLimits[1,] , parScales , inverse=F)
+                          limitParam[2,] <- scaleParams(parLimits[2,] , parScales , inverse=F)
                       
-                      # apriori information
-                      apriori        <- ISapriori( initParam , nIon=3 , absCalib=absCalib , TiIsotropic=TiIsotropic , refSite=refsite )
+                          # apriori information
+                          apriori        <- ISapriori( initParam , nIon=3 , absCalib=absCalib , TiIsotropic=TiIsotropic , TeIsotropic=TeIsotropic , refSite=refsite )
 
-                      model[h,]      <- parInit
+                          model[h,]      <- parInit
+                          
+                          fitpar   <- ISparamfit(
+                              acf             = unlist(acf.site),
+                              var             = unlist(var.site),
+                              lags            = unlist(lag.site),
+                              nData           = sum(nlags.site),
+                              fSite           = sites[,2],
+                              aSite           = aSite,
+                              kSite           = kSite,
+                              iSite           = unlist(ind.site),
+                              B               = B[h,],
+                              initParam       = initParam,
+                              invAprioriCovar = apriori$invAprioriCovar,
+                              aprioriTheory   = apriori$aprioriTheory,
+                              aprioriMeas     = apriori$aprioriMeas,
+                              mIon            = c(30.5,16,1),
+                              paramLimits     = limitParam,
+                              directTheory    = ISdirectTheory,
+                              absLimit        = absLimit,
+                              diffLimit       = diffLimit,
+                              scaleFun        = scaleParams,
+                              scale           = parScales,
+                              plotTest        = plotTest,
+                              plotFit         = plotFit,
+                              maxLambda       = maxLambda,
+                              maxIter         = maxIter
+                              )
 
-                      fitpar   <- ISparamfit(
-                          acf             = unlist(acf.site),
-                          var             = unlist(var.site),
-                          lags            = unlist(lag.site),
-                          nData           = sum(nlags.site),
-                          fSite           = sites[,2],
-                          aSite           = aSite,
-                          kSite           = kSite,
-                          iSite           = unlist(ind.site),
-                          B               = B[h,],
-                          initParam       = initParam,
-                          invAprioriCovar = apriori$invAprioriCovar,
-                          aprioriTheory   = apriori$aprioriTheory,
-                          aprioriMeas     = apriori$aprioriMeas,
-                          mIon            = c(30.5,16,1),
-                          paramLimits     = limitParam,
-                          directTheory    = ISdirectTheory,
-                          absLimit        = absLimit,
-                          diffLimit       = diffLimit,
-                          scaleFun        = scaleParams,
-                          scale           = parScales,
-                          plotTest        = plotTest,
-                          plotFit         = plotFit,
-                          maxLambda       = maxLambda,
-                          maxIter         = maxIter
-                          )
-                      
-                     # scale back to physical units
-                      param[h,] <- scaleParams( fitpar$param , scale=parScales , inverse=TRUE )
-                      covar[[h]] <- scaleCovar( fitpar$covar , scale=parScales , inverse=TRUE)
-                      std[h,]   <- sqrt(diag(covar[[h]]))
-                      chisqr[h] <- fitpar[["chisqr"]]
-                      status[h] <- fitpar[["fitStatus"]]
-                      dimnames(covar[[h]])   <- list(c('Ne','Tipar','Tiperp','Tepar','Teperp','Coll','Vix','Viy','Viz',paste('Ion',seq(3),sep=''),paste('Site',seq(nsites),sep='')),c('Ne','Tipar','Tiperp','Tepar','Teperp','Coll','Vix','Viy','Viz',paste('Ion',seq(3),sep=''),paste('Site',seq(nsites),sep='')))
+                          # scale back to physical units
+                          param[h,] <- scaleParams( fitpar$param , scale=parScales , inverse=TRUE )
+                          covar[[h]] <- scaleCovar( fitpar$covar , scale=parScales , inverse=TRUE)
+                          std[h,]   <- sqrt(diag(covar[[h]]))
+                          chisqr[h] <- fitpar[["chisqr"]]
+                          status[h] <- fitpar[["fitStatus"]]
+                          dimnames(covar[[h]])   <- list(c('Ne','Tipar','Tiperp','Tepar','Teperp','Coll','Vix','Viy','Viz',paste('Ion',seq(3),sep=''),paste('Site',seq(nsites),sep='')),c('Ne','Tipar','Tiperp','Tepar','Teperp','Coll','Vix','Viy','Viz',paste('Ion',seq(3),sep=''),paste('Site',seq(nsites),sep='')))
+                          
+                          contribSites[[h]] <- unique(unlist(ind.site))
+                      }
                   }
               }
               
@@ -418,7 +484,7 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
               
               
               # save the results to file
-              PP <- list(param=param,std=std,model=model,chisqr=chisqr,status=status,time_sec=time_sec,date=date,POSIXtime=POSIXtime,height=height,latitude=latitude,longitude=longitude,sites=sites,intersect=intersect,covar=covar,B=B,heightLimits.km=hlims/1000)
+              PP <- list(param=param,std=std,model=model,chisqr=chisqr,status=status,time_sec=time_sec,date=date,POSIXtime=POSIXtime,height=height,latitude=latitude,longitude=longitude,sites=sites,intersect=intersect,covar=covar,B=B,heightLimits.km=hlims/1000,contribSites=contribSites)
               resFile <- file.path( odir , paste( sprintf( '%13.0f' , trunc( iperLimits[k+1]  * 1000 ) ) , "PP.Rdata" , sep=''))
               save( PP , PPI_param, file=resFile )
               
