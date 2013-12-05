@@ -202,7 +202,7 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
                   hlims <- unique( heightLimits.km )*1000
               }
               nh <- length( hlims ) - 1
-              
+
               covar <- intersect <- list()
               for(h in seq(nh)) covar[[h]] <- matrix(ncol=12+nd,nrow=12+nd)
               
