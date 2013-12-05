@@ -33,7 +33,11 @@ readPP.3D <- function(dpath,recursive=F){
     nHeight <- length(PP$height)
     # number of plasma parameters
     nPar   <- dim(PP$param)[2]
-    mi     <- PPI_param$mi
+    # 
+    mIon   <- PP[["mIon"]]
+    if(is.null(mIon)){
+        if(exists(PPI_param)) mIon <- PPI_param$mi
+    }
     # number of receiver sites
     nSites <- dim(PP$sites)[1]
 
@@ -208,7 +212,7 @@ readPP.3D <- function(dpath,recursive=F){
     dimnames(model) <- list(dimnames(PP[["param"]])[[1]],c(dimnames(PP[["param"]])[[2]][1:12],paste('Site',seq(nSites),sep=''),'Ti','Te','ViB','Tiratio','Teratio','ViBx','ViBy', paste('ViR',paste(rep(seq(nSites),each=2),c('','hor'),sep=''),sep=''),paste('TiR',seq(nSites),sep=''),paste('TeR',seq(nSites),sep='')),paste(seq(nFile)))
     dimnames(covar) <- c(list(paste(seq(nHeight))),lapply(dimnames(PP[["covar"]][[1]]),FUN=function(x,nSites){c(x[1:12],paste('Site',seq(nSites),sep=''),'Ti','Te','ViB','Tiratio','Teratio','ViBx','ViBy', paste('ViR',paste(rep(seq(nSites),each=2),c('','hor'),sep=''),sep=''),paste('TiR',seq(nSites),sep=''),paste('TeR',seq(nSites),sep=''))},nSites=nSites),list(paste(seq(nFile))))
 
-    return(list(param=param,std=std,model=model,chisqr=chisqr,status=status,height=height,time_sec=time_sec,date=date,POSIXtime=POSIXtime,sites=sites,n=nFile,nPar=nPar,nHeight=nHeight,mi=mi,covar=covar))
+    return(list(param=param,std=std,model=model,chisqr=chisqr,status=status,height=height,time_sec=time_sec,date=date,POSIXtime=POSIXtime,sites=sites,n=nFile,nPar=nPar,nHeight=nHeight,mIon=mIon,covar=covar))
     
 } # readPP
 
