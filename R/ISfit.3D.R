@@ -209,7 +209,7 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
               model <- std <- param <- matrix(ncol=12+nd,nrow=nh)
               latitude <- longitude <- height <- status <- chisqr <- rep(-1,nh)
               B <- matrix(ncol=3,nrow=nh)
-              MCMC <- list()
+              MCMC <- vector(length=nh,mode='list')
 
               # convert all ranges to latitude, longitude, height
               llh <- matrix(nrow=length(ran),ncol=3)
