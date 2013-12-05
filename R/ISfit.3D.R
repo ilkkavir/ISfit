@@ -410,8 +410,8 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
                           dimnames(covar[[h]])   <- list(c('Ne','Tipar','Tiperp','Tepar','Teperp','Coll','Vix','Viy','Viz',paste('Ion',seq(3),sep=''),paste('Site',seq(nd),sep='')),c('Ne','Tipar','Tiperp','Tepar','Teperp','Coll','Vix','Viy','Viz',paste('Ion',seq(3),sep=''),paste('Site',seq(nd),sep='')))
                           
                           contribSites[[h]] <- unique(unlist(ind.site))
-                          MCMC[[h]] <- fitpar$MCMC
-                          if(!is.null(MCMC[[h]])){
+                          if(!is.null(fitpar$MCMC)){
+                            MCMC[[h]] <- fitpar$MCMC
                               for( sr in seq(dim(MCMC[[h]][["pars"]][1]))) MCMC[[h]][["pars"]][k,] <-  scaleParams( MCMC[[h]][["pars"]][k,] , parScales , inverse=T )
                               MCMC[[h]][["bestpar"]] <- scaleParams( MCMC[[h]][["bestpar"]] , parScales , inverse=T )
                               dimnames(MCMC[[h]][["pars"]]) <- list( NULL , c('Ne','Tipar','Tiperp','Tepar','Teperp','Coll','Vix','Viy','Viz',paste('Ion',seq(3),sep=''),paste('Site',seq(nd),sep='')) )
