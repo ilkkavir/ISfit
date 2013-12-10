@@ -163,7 +163,7 @@ plotPP.list <- function(data,par=list(Ne=c(10,12),Ti=c(0,3000),Te=c(0,4000),ViR1
         }
 
         if(length(tInds)==1){
-            layout( matrix(seq(length(par)) , nrow=2 ) )
+            layout( matrix(seq(ceiling(length(par)/2)*2) , nrow=2 ) )
             par(mar=c(3,3,3,1),mgp=c(1.5,.5,0))
             trellis <- FALSE
         }else{
@@ -187,11 +187,12 @@ plotPP.list <- function(data,par=list(Ne=c(10,12),Ti=c(0,3000),Te=c(0,4000),ViR1
             trenew$layout.widths$right.padding <- 1
             trenew$layout.heights$key.axis.padding<-1
             trellis.par.set(list(background=trenew$background,layout.heights=trenew$layout.heights,layout.widths=trenew$layout.widths))
+            
+            # tick marks in the time axis
+            ticks <- timeTicks(tLim,tickRes)
+
         }
   
-        # tick marks in the time axis
-        ticks <- timeTicks(tLim,tickRes)
-
         # actual plotting
         curFig <- 1
 
