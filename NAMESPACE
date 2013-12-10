@@ -27,7 +27,8 @@ export(
     ISfit,
     ISfit.3D,
     faradayRotation.KAIRA,
-    faradayDirectTheory
+    faradayDirectTheory,
+    staticAntennaTimes
     )
 
 useDynLib(ISfit)

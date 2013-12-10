@@ -1,0 +1,18 @@
+##
+## read
+##
+##
+##
+## I. Virtanen 2013
+##
+
+
+staticAntennaTimes <- function( ddir='.' , recursive=TRUE )
+    {
+        
+
+
+
+
+
+    }

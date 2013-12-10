@@ -52,21 +52,26 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
       bTime <- as.double(ISOdate(beginTime[1],beginTime[2], beginTime[3],beginTime[4], beginTime[5],beginTime[6])) + beginTime[6]%%1
       eTime <- as.double(ISOdate(endTime[1],endTime[2], endTime[3],endTime[4], endTime[5],endTime[6])) + endTime[6]%%1
 
-      # first integration period from which we actually have data
-      iperFirst <- max( 1, floor( ( min( sapply( tstamps , min ) ) - bTime ) / timeRes.s ) )
+      if(length(timeRes.s)==1){
+          # first integration period from which we actually have data
+          iperFirst <- max( 1, floor( ( min( sapply( tstamps , min ) ) - bTime ) / timeRes.s ) )
     
-      # last integration period
-      iperLast <- ceiling( ( min( max( sapply( tstamps , max ) ) , eTime ) - bTime ) / timeRes.s ) 
+          # last integration period
+          iperLast <- ceiling( ( min( max( sapply( tstamps , max ) ) , eTime ) - bTime ) / timeRes.s ) 
 
-      # stop if analysis end time is before its start time
-      if( iperLast < iperFirst ) stop()
+          # stop if analysis end time is before its start time
+          if( iperLast < iperFirst ) stop()
     
-      # integration period limits
-      iperLimits <- seq( iperFirst , iperLast ) * timeRes.s + bTime
+          # integration period limits
+          iperLimits <- seq( iperFirst , iperLast ) * timeRes.s + bTime
+
+      }else{
+          iperLimits <- timeRes.s
+      }
 
       # number of integration periods
       nIper <- length(iperLimits) - 1
-
+      
       # logical for permanent site selection
       siteselprev <- 0
 
@@ -240,7 +245,10 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
                   ran.gate       <- ran[ gateinds ]
                   llh.gate       <- llh[ gateinds , ]
                   sites.gate     <- sites[ sinds[gateinds] , ]
-            
+
+                  if(!is.matrix(llh.gate)) llh.gate <- matrix(llh.gate,nrow=1)
+                  if(!is.matrix(sites.gate)) sites.gate <- matrix(sites.gate,nrow=1)
+                  
                   # remove NA values
                   nainds         <- is.na(acf.gate) | is.na(var.gate)
 
@@ -252,12 +260,11 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
                       llh.gate       <- llh.gate[ !nainds , ]
                       sites.gate     <- sites.gate[ !nainds , ]
 
+                      if(!is.matrix(llh.gate)) llh.gate <- matrix(llh.gate,nrow=1)
+                      if(!is.matrix(sites.gate)) sites.gate <- matrix(sites.gate,nrow=1)
+
                      # coordinates of the measurement volume
-                      if(is.matrix(llh.gate)){
-                          llhTarget      <- colMeans( llh.gate )
-                      }else{
-                          llhTarget <- llh.gate
-                      }
+                      llhTarget      <- colMeans( llh.gate )
                       height[h]      <- llhTarget[3] / 1000
                       latitude[h]    <- llhTarget[1]
                       longitude[h]   <- llhTarget[2]
@@ -436,7 +443,7 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
               
               
               # save the results to file
-              PP <- list(param=param,std=std,model=model,chisqr=chisqr,status=status,time_sec=time_sec,date=date,POSIXtime=POSIXtime,height=height,latitude=latitude,longitude=longitude,sites=sites,intersect=intersect,covar=covar,B=B,heightLimits.km=hlims/1000,contribSites=contribSites,mIon=c(30.5,16.0,1.0),MCMC=MCMC)
+              PP <- list(param=param,std=std,model=model,chisqr=chisqr,status=status,time_sec=time_sec,date=date,POSIXtime=POSIXtime,height=height,latitude=latitude,longitude=longitude,sites=sites,intersect=intersect,covar=covar,B=B,heightLimits.km=hlims/1000,contribSites=contribSites,mIon=c(30.5,16.0,1.0),MCMC=MCMC,timeLimits.s=iperLimits[k:(k+1)])
               resFile <- file.path( odir , paste( sprintf( '%13.0f' , trunc( iperLimits[k+1]  * 1000 ) ) , "PP.Rdata" , sep=''))
               save( PP , file=resFile )
               
