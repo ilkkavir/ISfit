@@ -14,7 +14,7 @@ addPPcolorPlot <- function(d,h,t,xlim=range(t),ylim=range(h),zlim,main,ticks,cex
 
   # the x-axis label 'UT' is added only on the bottom panel
   xlab = ''
-  if(nFig==curFig) xlab = 'UT'
+  if(nFig==curFig) xlab = paste( 'UT (', substr(as.POSIXlt(t[1],origin='1970-01-01',tz='ut'),1,10) , ')')
 
   # a separate print command is needed with levelplot to actually print the plot the current device
   print(
