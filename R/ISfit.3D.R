@@ -1,4 +1,4 @@
-ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 , beginTime=c(1970,1,1,0,0,0) , endTime=c(2100,1,1,0,0,0) , fitFun=leastSquare.lvmrq , absLimit=5 , diffLimit=1e-2 , maxLambda=1e30 , maxIter=10 , plotTest=FALSE , plotFit=FALSE , absCalib=FALSE , TiIsotropic=TRUE , TeIsotropic=TRUE , recursive=TRUE , scaleFun=acfscales , calScale=1, MCMCsettings=list( niter=10000 , updatecov=100 , burninlength=5000 , outputlength=5000 ) )
+ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 , beginTime=c(1970,1,1,0,0,0) , endTime=c(2100,1,1,0,0,0) , fitFun=leastSquare.lvmrq , absLimit=5 , diffLimit=1e-2 , maxLambda=1e30 , maxIter=10 , plotTest=FALSE , plotFit=FALSE , absCalib=FALSE , TiIsotropic=TRUE , TeIsotropic=TRUE , recursive=TRUE , scaleFun=acfscales , siteScales=NULL, calScale=1, MCMCsettings=list( niter=10000 , updatecov=100 , burninlength=5000 , outputlength=5000 ) )
   { 
       
       # 3D incoherent scatter plasma parameter fit using LPI output files in ddirs
@@ -24,6 +24,9 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
       #   TiIsotropic     TRUE if ion thermal velocity distribution is modeled as isotropic, FALSE if bi-maxwellian
       #   recursive       logical, should the data directories be searched recursively
       #   scaleFun        function that returns acf scaling factors for each site
+      #   siteScales      ACF scales for each site as returned by siteCalib. (Run first with siteScales=NULL, then run siteCalib
+      #                   and use its output as siteScales in a second analysis run). This scaling affects only the relative site scales
+      #                   actual electron density calibration is done wiht calScale
       #   calScale        additional scaling factor from ionosonde calibration applied to ALL ACF samples
       #   MCMCsettings    a list of input arguments for the modMCMC function
       #
@@ -124,6 +127,26 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
                   sites[n,6:7]   <- dlist[[n]][["azelT"]]
                   sites[n,8:10]  <- dlist[[n]][["llhR"]]
                   sites[n,11:12] <- dlist[[n]][["azelR"]]
+              }
+
+              # if siteScales is null, we will give NULL to ISapriori that will
+              # then allow scaling for all others but the reference site
+              if(is.null(siteScales)){
+                  sScales <- NULL
+              }else{
+                  # if siteScales was given, we need to pick correct rows from it
+                  sScales <- matrix(nrow=nd,ncol=dim(siteScales)[2])
+                  for(n in seq(nd)){
+                      # select the site that is closest to site n
+                      # it must be reasonably close, since the calibration
+                      # was done with ISfit.3D results from identical data.
+                      # There are small differences because siteCalib rounds the
+                      # site information to reasonably accuracy before site
+                      # identification
+                      sdiffs <- apply( siteScales[,2:12] , FUN=function(x,y){sum(abs(x-y)**2)},MARGIN=1,y=sites[n,2:12])
+                      sScales[n,] <- siteScales[which(sdiffs==min(sdiffs)),]
+                      sScales[n,1] <- n
+                  }
               }
 
               # select the reference site
@@ -374,7 +397,7 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
                           limitParam[2,] <- scaleParams(parLimits[2,] , parScales , inverse=F)
                       
                           # apriori information
-                          apriori        <- ISapriori( initParam , nIon=3 , absCalib=absCalib , TiIsotropic=TiIsotropic , TeIsotropic=TeIsotropic , refSite=refsite )
+                          apriori        <- ISapriori( initParam , nIon=3 , absCalib=absCalib , TiIsotropic=TiIsotropic , TeIsotropic=TeIsotropic , refSite=refsite , siteScales=sScales[,(h+12):(h+12+nh)] )
 
                           model[h,]      <- parInit
                           
@@ -443,7 +466,7 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
               
               
               # save the results to file
-              PP <- list(param=param,std=std,model=model,chisqr=chisqr,status=status,time_sec=time_sec,date=date,POSIXtime=POSIXtime,height=height,latitude=latitude,longitude=longitude,sites=sites,intersect=intersect,covar=covar,B=B,heightLimits.km=hlims/1000,contribSites=contribSites,mIon=c(30.5,16.0,1.0),MCMC=MCMC,timeLimits.s=iperLimits[k:(k+1)])
+              PP <- list(param=param,std=std,model=model,chisqr=chisqr,status=status,time_sec=time_sec,date=date,POSIXtime=POSIXtime,height=height,latitude=latitude,longitude=longitude,sites=sites,intersect=intersect,covar=covar,B=B,heightLimits.km=hlims/1000,contribSites=contribSites,mIon=c(30.5,16.0,1.0),MCMC=MCMC,timeLimits.s=iperLimits[k:(k+1)],functionCall=match.call(expand.dots=TRUE))
               resFile <- file.path( odir , paste( sprintf( '%13.0f' , trunc( iperLimits[k+1]  * 1000 ) ) , "PP.Rdata" , sep=''))
               save( PP , file=resFile )
               
