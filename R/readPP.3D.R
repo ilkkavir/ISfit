@@ -36,7 +36,7 @@ readPP.3D <- function(dpath,recursive=F){
     # 
     mIon   <- PP[["mIon"]]
     if(is.null(mIon)){
-        if(exists(PPI_param)) mIon <- PPI_param$mi
+        if(exists('PPI_param')) mIon <- PPI_param$mi
     }
     # number of receiver sites
     nSites <- dim(PP$sites)[1]
@@ -142,8 +142,8 @@ readPP.3D <- function(dpath,recursive=F){
                 param[r,nPar+5,k] <- PP$param[r,5]/PP$param[r,4] +
                     PP$covar[[r]][4,4]*PP$param[r,5]/PP$param[r,4]**3 -
                         PP$covar[[r]][4,5]/PP$param[r,4]**2
-                std[r,nPar+1,k] <- sqrt(c(1,2)%*%PP$covar[[r]][2:3,2:3]%*%c(1,2)/sum(c(1,2)**2))
-                std[r,nPar+2,k] <- sqrt(c(1,2)%*%PP$covar[[r]][4:5,4:5]%*%c(1,2)/sum(c(1,2)**2))
+                std[r,nPar+1,k] <- sqrt(c(1,2)%*%PP$covar[[r]][2:3,2:3]%*%c(1,2)/9)
+                std[r,nPar+2,k] <- sqrt(c(1,2)%*%PP$covar[[r]][4:5,4:5]%*%c(1,2)/9)
                 std[r,nPar+3,k] <- sqrt(PP$B[r,]%*%PP$covar[[r]][7:9,7:9]%*%PP$B[r,]/sum(PP$B[r,]**2))
                 std[r,nPar+4,k] <- sqrt( PP$covar[[r]][2,2]*PP$param[r,3]**2/PP$param[r,2]**4 +
                                         PP$covar[[r]][3,3]/PP$param[r,2]**2 -
