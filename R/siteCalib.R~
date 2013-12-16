@@ -85,9 +85,6 @@ siteCalib <- function( ddir='.' , recursive=FALSE )
         # final scales
         sites[,13:(12+nh)]        <- sites[,13:(12+nh)] * sites[,(13+nh):(12+2*nh)]
 
-        # we want standard deviation, not variance
-        sites[,(13+nh):(12+2*nh)] <- sqrt( sites[,(13+nh):(12+2*nh)] )
-
         # generate new site indices
         sites[1:nstot,1] <- seq(nstot)
 
