@@ -29,7 +29,9 @@ export(
     faradayRotation.KAIRA,
     faradayDirectTheory,
     staticAntennaTimes,
-    siteCalib
+    siteCalib,
+    faradayFit.KAIRA,
+    averageVelocities
     )
 
 useDynLib(ISfit)

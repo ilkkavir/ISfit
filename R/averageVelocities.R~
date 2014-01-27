@@ -1,0 +1,28 @@
+averageVelocities <- function(ddir='.')
+    {
+
+        # average ion vector velocity components over all measured heights and return
+        # the averaged vectors in both geographic and geomagnetic coordinate systems
+
+        # read the data files
+        dlist <- readPP.3D( ddir )
+
+        # number of integration periods
+        nt <- length( dlist[["time_sec"]] )
+
+        # matrices for velocity components and their error estimates
+        Vmat <- matrix(ncol=6,nrow=nt)
+        Verr <- Vmat
+
+        # dimnames for the matrices
+        dnames <- list( sapply( dlist[["POSIXtime"]] , as.character ) , c('Vix','Viy','Viz','ViBx','ViBy','ViB') )
+
+        # variance-weighted averages of velocity vector components and their
+        # standard deviations
+        
+
+
+
+
+
+    }

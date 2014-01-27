@@ -66,7 +66,7 @@ ISapriori <- function( aprioriParam ,  nIon , absCalib=FALSE , TiIsotropic=FALSE
         if(absCalib){
             aprioriStd[(nIon+10):length(aprioriParam)] <- 1e-3 # fix all sites to the same ACF scale
         }else{
-            aprioriStd[(nIon+10):length(aprioriParam)] <- 1   # allow scaling for other sites
+            aprioriStd[(nIon+10):length(aprioriParam)] <- 10   # allow scaling for other sites
         }
         if(!is.null(siteScales)){
             ssinds <- which(!is.na(rowSums(siteScales)))

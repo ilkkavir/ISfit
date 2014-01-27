@@ -35,7 +35,10 @@ siteCalib <- function( ddir='.' , recursive=FALSE )
             sitesf[sitesf[,7]==90,6]<-90
             sitesf[sitesf[,12]==90,11]<-90
 
-            for( s in seq(ns) ){
+            # skip NA rows from "sites" that did not actually provide any data
+            msites <- which(!is.na(rowSums(sitesf[,2:12])))
+
+            for( s in msites ){
                 # try to find this site from the existing site matrix
                 sind <- which( apply( sites[,2:12] , FUN=function(x,y){all(x==y)} , MARGIN=1 , y=sitesf[s,2:12] ) )
 

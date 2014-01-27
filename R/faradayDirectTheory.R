@@ -2,7 +2,7 @@ faradayDirectTheory <- function( p , ACF , VAR , nlags , cosxx , cosxy , cosyx ,
     {
         # direct theory function for faraday rotation estimation
         # We are apparently unable to fit the known ellipsoid because
-        # the x and polarization are not in phase and have different gains.
+        # the x and y polarization are not in phase and have different gains.
         # We will thus simply estimate the polarization ellipsoid based on
         # the measured cross-covariances, ALTHOUGH WE KNOW THAT THE ESTIMATED
         # ELLIPSOID IS NOT THE CORRECT ONE!
@@ -33,10 +33,11 @@ faradayDirectTheory <- function( p , ACF , VAR , nlags , cosxx , cosxy , cosyx ,
                       (p[1:nlags] + 1i*p[(nlags+1):(2*nlags)]) * Pyxr )
         
         res <- abs( ACF - acfout )**2  / VAR 
-
+#cat('                                           \r',Pxxr,Pyyr,Pxyr,Pyxr,p[2*nlags+1],sum(res)/(2*nlags+2))
+#cat(Pxxr,Pyyr,Pxyr,Pyxr,p[2*nlags+1],p[2*nlags+2],sum(res),'\n')
         if(plot){
             layout(matrix(c(1)))
-            plot(Re(ACF),ylim=c(-3,3)*5e-8)
+            plot(Re(ACF),ylim=c(-3,3))
             points(Im(ACF),col='red')
             lines(Re(acfout))
             lines(Im(acfout),col='red')

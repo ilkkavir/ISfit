@@ -37,8 +37,8 @@ ISparamLimits <- function(nIon,nSite){
   paramLimits[2,10:(9+nIon)] <- 1
 
   # acf scales
-  paramLimits[1,(10+nIon):nPar] <- 1e-2
-  paramLimits[2,(10+nIon):nPar] <- 100
+  paramLimits[1,(10+nIon):nPar] <- 1e-30
+  paramLimits[2,(10+nIon):nPar] <- 1e30
 
   return(paramLimits)
 

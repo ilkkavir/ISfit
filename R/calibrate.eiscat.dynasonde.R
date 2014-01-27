@@ -1,4 +1,4 @@
-calibrate.eiscat.dynasonde <- function( dataDir , beginTime=c(1970,1,1,0,0,0) , endTime=c(2500,1,1,0,0,0) , region='F' , neMin=0 , multistatic=TRUE , timeplot=FALSE){
+calibrate.eiscat.dynasonde <- function( dataDir , beginTime=c(1970,1,1,0,0,0) , endTime=c(2500,1,1,0,0,0) , region='F' , neMin=0 , multistatic=TRUE , timeplot=FALSE, useCriticalFreq=TRUE){
 # electron density calibration with the EISCAT dynasonde
 
 
@@ -35,15 +35,23 @@ calibrate.eiscat.dynasonde <- function( dataDir , beginTime=c(1970,1,1,0,0,0) , 
     if( (ttmp$mon<10) & (ttmp$mday>=10) )  tstr <- paste( ttmp$year+1900 , paste('0' ,ttmp$mon+1 ,sep='') , ttmp$mday , sep='_')
     if( (ttmp$mon>=10) & (ttmp$mday<10) )  tstr <- paste( ttmp$year+1900 , ttmp$mon+1, paste( '0' , ttmp$mday,sep='') , sep='_')
     ofile <- paste(tstr,'.dat',sep='')
-    if(!file.exists(ofile)) download.file(paste('http://dynserv.eiscat.uit.no/DD/myque.php?q=select%20dDay,foE,foF2%20from%20tromso.resul',tstr,'%20where%20foE%3E0%20or%20foF2%3E0',sep=''),destfile=ofile)
+    if(useCriticalFreq){
+        if(!file.exists(ofile)) download.file(paste('http://dynserv.eiscat.uit.no/DD/myque.php?q=select%20dDay,foE,foF2%20from%20tromso.resul',tstr,'%20where%20foE%3E0%20or%20foF2%3E0',sep=''),destfile=ofile)
+    }else{
+        if(!file.exists(ofile)) download.file(paste('http://dynserv.eiscat.uit.no/DD/myque.php?q=select%20dDay,fmxE,fmxF%20from%20tromso.resul',tstr,'%20where%20fmxE%3E0%20or%20fmxF%3E0',sep=''),destfile=ofile)
+    }
     datalines <- readLines(ofile)
-    datalines <- datalines[10:(length(datalines)-10)]
-    datatmp <- as.numeric(unlist(sapply(strsplit(datalines,'  '),function(x){return(x[1:3])})))
-    datatmp[seq(1,length(datatmp),by=3)] <- (datatmp[seq(1,length(datatmp),by=3)]-1)*24*3600 + as.double(ISOdate(ttmp$year+1900,1,1,0,0,0))
-    datavec <- c(datavec,datatmp)
+    if(length(datalines)>10){
+        datalines <- datalines[10:(length(datalines)-10)]
+        datatmp <- as.numeric(unlist(sapply(strsplit(datalines,'  '),function(x){return(x[1:3])})))
+        datatmp[seq(1,length(datatmp),by=3)] <- (datatmp[seq(1,length(datatmp),by=3)]-1)*24*3600 + as.double(ISOdate(ttmp$year+1900,1,1,0,0,0))
+        datavec <- c(datavec,datatmp)
+    }
   }
   dynamat <- matrix(datavec,ncol=3,byrow=TRUE)
   dynamat <- dynamat[which( (dynamat[,1]<=trange[2]) & (dynamat[,1]>=trange[1]) ) , ]
+
+  if(!is.matrix(dynamat)) dynamat <- matrix(dynamat,nrow=1)
 
   if(region=='F'){
     dynamat <- dynamat[dynamat[,3]>0,c(1,3)]
@@ -52,6 +60,7 @@ calibrate.eiscat.dynasonde <- function( dataDir , beginTime=c(1970,1,1,0,0,0) , 
   }else{
     stop('"region" must be either "E" or "F"')
   }
+  if(!is.matrix(dynamat)) dynamat <- matrix(dynamat,nrow=1)
 
   # the dynasonde data are measured with 120s temporal resolution, take 2 min of radar data around each dynasonde data point
   ndyna <- dim(dynamat)[1]
@@ -106,6 +115,8 @@ calibrate.eiscat.dynasonde <- function( dataDir , beginTime=c(1970,1,1,0,0,0) , 
   }
 
   necompar <- necompar[necompar[,2]>neMin,]
+
+  if(!is.matrix(necompar)) necompar <- matrix(necompar,nrow=1)
 
   if(timeplot){
       plot(necompar[,1],necompar[,2],ylim=c(0,max(necompar[,2:3],na.rm=TRUE,finite=TRUE)))

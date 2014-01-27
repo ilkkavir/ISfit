@@ -92,17 +92,43 @@ faradayRotation.KAIRA <- function( ACFxx , ACFyy, ACFxy , ACFyx , VARxx , VARyy,
         acfinit <- ACF[1:nlags] + ACF[(nlags+1):(2*nlags)]
 
         # initialize faraday rotation to zero, ACF is divided into real and imaginary parts
-        p <- c( Re(acfinit) , Im(acfinit) , sin(beta)**2 ,  0)
+        p <- c( Re(acfinit) , Im(acfinit) , 0 ,  0)
+        
+        # simple grid search for iteration start values (with fixed ACF)
+        ss <- matrix(ncol=10,nrow=10)
+        eccss <- seq(0,.99,length.out=10)
+        phiss <- seq(0,pi,length.out=10)
+        for(k in seq(10) ){
+            for(l in seq(10) ){
+                pss <- p
+                pss[2*nlags+1] <- eccss[k]
+                pss[2*nlags+2] <- phiss[l]
+                ss[k,l] <- sum(faradayDirectTheory(pss,ACF,VAR,nlags,cosxx,cosxy,cosyx,cosyy,h=h))
+            }
+        }
+
+        ssinds <- which(ss==min(ss),arr.ind=TRUE)
+#        layout(matrix(c(1,2),ncol=2))
+#        image(ss,main=c(eccss[ssinds[1]],phiss[ssinds[2]]),col=rev(gray(seq(1000)/1000)))
+#        plot(Re(ACF),type='l')
+#        lines(Im(ACF),col='red')
+#        lines(sqrt(VAR),col='blue')
+
+        # initialize the eccentricity and faraday rotation with the minimum ss point
+        # from grid search
+        p[2*nlags+1] <- eccss[ssinds[1]]
+        p[2*nlags+2] <- phiss[ssinds[2]]
 
         p2 <-modFit( f=faradayDirectTheory , p=p , ACF=ACF , VAR=VAR , nlags=nlags ,
                     cosxx=cosxx,cosxy=cosxy,cosyx=cosyx,cosyy=cosyy,
                     h=h,
-                    lower=c(rep(-Inf,nlags*2), 0 , -Inf ),
-                    upper=c(rep(Inf,nlags*2), 1 , Inf),
-                    control=list(maxiter=500)
+                    lower=c(rep(-Inf,nlags*2), 0 , 0 ),
+                    upper=c(rep(Inf,nlags*2), 1 , pi),
+                    control=list(maxiter=500),
+                    plot=FALSE
                     )
-        
-        covar <- tryCatch( solve(p2$hessian) , error=function(x){matrix(NA,nrow=(2*nlags+2),ncol=(2*nlags+2))} )
+#cat('\n')        
+        covar <- tryCatch( solve(p2$hessian) , error=function(x){print('err');matrix(NA,nrow=(2*nlags+2),ncol=(2*nlags+2))} )
 
         reslist <- list()
         reslist$ACF <- p2$par[1:nlags]+1i*p2$par[(nlags+1):(2*nlags)]

@@ -28,38 +28,48 @@ acfscales <- function( sites )
             }else{
                 # Tromso TX
                 if( abs( sum( sites[n,3:4] - radarSites()[["TRO"]][1:2] ) ) < .1 ){
-                    scales[,1] <- 299792458/sites[,2]/ifelse(sites[,2]<250e6,60,32)*180/pi
-                    scales[,2] <- FALSE
+                    scales[n,1] <- 299792458/sites[n,2]/ifelse(sites[n,2]<250e6,60,32)*180/pi
+                    scales[n,2] <- FALSE
                 }
                 # Tromso RX
                 if( abs( sum( sites[n,8:9] - radarSites()[["TRO"]][1:2] ) ) < .1 ){
-                    scales[,3] <- 299792458/sites[,2]/ifelse(sites[,2]<250e6,60,32)*180/pi
-                    scales[,4] <- FALSE
-                    scales[,5] <- FALSE
+                    scales[n,3] <- 299792458/sites[n,2]/ifelse(sites[n,2]<250e6,60,32)*180/pi
+                    scales[n,4] <- FALSE
+                    scales[n,5] <- FALSE
                 }
                 # Kiruna RX
                 if( abs( sum( sites[n,8:9] - radarSites()[["KIR"]][1:2] ) ) < .1 ){
-                    scales[,3] <- 299792458/sites[,2]/32*180/pi
-                    scales[,4] <- FALSE
-                    scales[,5] <- FALSE
+                    scales[n,3] <- 299792458/sites[n,2]/32*180/pi
+                    scales[n,4] <- FALSE
+                    scales[n,5] <- FALSE
                 }
                 # Sodankyla RX
                 if( abs( sum( sites[n,8:9] - radarSites()[["SOD"]][1:2] ) ) < .1 ){
-                    scales[,3] <- 299792458/sites[,2]/32*180/pi
-                    scales[,4] <- FALSE
-                    scales[,5] <- FALSE
+                    scales[n,3] <- 299792458/sites[n,2]/32*180/pi
+                    scales[n,4] <- FALSE
+                    scales[n,5] <- FALSE
+                }
+                # KAIRA RX
+                if( abs( sum( sites[n,8:9] - radarSites()[["KIL"]][1:2] ) ) < .1 ){
+                    scales[n,3] <- 2
+                    scales[n,4] <- TRUE
+                    scales[n,5] <- FALSE
                 }
                 # Tromso monostatic
                 if( abs( sum( sites[n,c(3,4,8,9)] - rep(radarSites()[["TRO"]][1:2],2) ) ) < .1 ){
-                    scales[,6] <- 1
+                    scales[n,6] <- 1
                 }
                 # Tromso - Kiruna bistatic
                 if( abs( sum( sites[n,c(3,4,8,9)] - c(radarSites()[["TRO"]][1:2],radarSites()[["KIR"]][1:2]) ) ) < .1 ){
-                    scales[,6] <- 1
+                    scales[n,6] <- 1
                 }
                 # Tromso - Sodankyla bistatic
                 if( abs( sum( sites[n,c(3,4,8,9)] - c(radarSites()[["TRO"]][1:2],radarSites()[["SOD"]][1:2]) ) ) < .1 ){
-                    scales[,6] <- 1
+                    scales[n,6] <- 1
+                }
+                # Tromso - KAIRA bistatic
+                if( abs( sum( sites[n,c(3,4,8,9)] - c(radarSites()[["TRO"]][1:2],radarSites()[["KIL"]][1:2]) ) ) < .1 ){
+                    scales[n,6] <- 1e3
                 }
             }
         }

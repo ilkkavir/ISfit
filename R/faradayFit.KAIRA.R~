@@ -1,0 +1,10 @@
+faradayFit.KAIRA  <- function( xxpath , yypath , xypath , yxpath , azXpol=318 , azelBore=c(0,90) , h=-1 )
+    {
+
+
+
+
+
+
+
+    }
