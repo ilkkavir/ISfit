@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 export(
     ISapriori,
     ISapriori.general,
@@ -29,14 +30,12 @@ export(
     faradayRotation.KAIRA,
     faradayDirectTheory,
     staticAntennaTimes,
-    siteCalib,
-    faradayFit.KAIRA,
-    averageVelocities,
-    plotPP,
-    readPP,
-    readPP.3D
+    siteCalib
     )
 
 useDynLib(ISfit)
+=======
+export(plotPP,readPP,readPP.3D)
 S3method(plotPP,character)
 S3method(plotPP,list)
+>>>>>>> PPIgraphics
