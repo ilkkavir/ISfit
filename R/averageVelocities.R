@@ -69,8 +69,13 @@ averageVelocities <- function( ddir='.' , ofile=NULL , ascii=FALSE )
                 close(ff)
             # otherwise Rdata
             }else{
-                save( Vion=Vion , Verr=Verr , time_sec=dlist[["time_sec"]] , POSIXtime=dlist[["POSIXtime"]] , date=dlist[["date"]] ,
-                     note="Vix=geographic east, Viy=geographic north, Viz=upwards, ViBx=geomagnetic east, ViBy=geomagnetic north, ViB=field-aligned (downwards in northern hemisphere!)" , file=paste( ofile , '.Rdata' , sep='' ) )
+                time_sec <- dlist[["time_sec"]]
+                POSIXtime <- dlist[["POSIXtime"]]
+                date <- dlist[["date"]]
+                note <- "Vix=geographic east, Viy=geographic north, Viz=upwards, ViBx=geomagnetic east, ViBy=geomagnetic north, ViB=field-aligned (downwards in northern hemisphere!)"
+                
+                save( Vion=Vion , Verr=Verr , time_sec=time_sec , POSIXtime=POSIXtime , date=date ,
+                     note=note , file=paste( ofile , '.Rdata' , sep='' ) )                     
             }
             # return the output invisibly
             return( invisible( outlist ) )

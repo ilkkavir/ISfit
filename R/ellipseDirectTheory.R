@@ -1,26 +1,25 @@
-faradayDirectTheory <- function( p , nlags , cosxx , cosxy , cosyx , cosyy , beta , h=-1 , phcorr=0 , syy=1 , scross=1, ... )
+ellipseDirectTheory <- function( p , nlags , cosxx , cosxy , cosyx , cosyy , h=-1 , ... )
     {
         #
-        # direct theory function for faraday rotation estimation
+        # direct theory function for fitting a general polarization ellipse to KAIRA data
         #
-        # This function is for fitting a known ellipsoid when the
-        # phase correction phcorr, the y-polarization scale syy, and
-        # the cross-polarization scale scross are known. 
+        # This function is for fitting a general ellipse when receiver phase and amplitude
+        # corrections are not known. Use faradayDirectTheory when fitting known ellipsoids
+        # with known corrections. 
         #
         # Input:
         #   p      parameters, p[1:nlags] is real part of ACF,
         #                  p[(nlags+1):(2*nlags)] is imaginary part of ACF,
         #                  p[2*nlags+1] is ellipsoid rotation angle
+        #                  p[2*nlags+2] is the angle between incident and scattered waves
+        #                  (we fit this instead of eccentricity because the same angle is used
+        #                   in the final fit with faradayDirectTheory)
         #   nlags  number of lags in ACf
         #   cosxx, cosxy, cosyy, cosines of angles between coordinate axes of the
         #                 system in which the wave propagation direction is positive
         #                 z-axis, and projections of x- and y-dipole directions to this
         #                 xy-plane
-        #   beta   angle between incident and scattered waves
         #   h      ellipse handedness
-        #   phcorr correction to relative phase in between the two receiver polarizations
-        #   syy    correction to y-polarization gain
-        #   scross correction to cross-polarization gain
         #
         # Returns:
         #
@@ -32,9 +31,9 @@ faradayDirectTheory <- function( p , nlags , cosxx , cosxy , cosyx , cosyy , bet
         # I. Virtanen 2013, 2014
         #
 
-        cossqr <- cos(beta)**2
+        cossqr <- cos(p[2*nlags+2])**2
         
-        # ellipsoid semi-major axis for unit power
+        # ellipse semi-major axis for unit power
         A <- 1/sqrt(1+cossqr)
 
         # semi-minor axis
@@ -51,11 +50,6 @@ faradayDirectTheory <- function( p , nlags , cosxx , cosxy , cosyx , cosyy , bet
         Pyyr <- Pxx * cosxy**2 + Pyy * cosyy**2 + ( Pxy + Pyx ) * cosxy * cosyy
         Pxyr <- Pxx * cosxx * cosxy + Pyy * cosyx * cosyy + Pxy * cosxx * cosyy + Pyx * cosyx * cosxy
         Pyxr <- Pxx * cosxx * cosxy + Pyy * cosyx * cosyy + Pxy * cosxy * cosyx + Pyx * cosyy * cosxx
-
-        # phase and amplitude corrections
-        Pyyr <- Pyyr * syy
-        Pxyr <- Pxyr * scross * exp(1i*phcorr)
-        Pyxr <- Pyxr * scross * exp(-1i*phcorr)
 
         # the real part of acf is in p[1:nlags] and the imaginary part in p[(nlags+1):(2*nlags)]
         # the output vector contains is in order ACFxx, ACFyy, CCFxy, CCFyx

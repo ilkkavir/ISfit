@@ -416,9 +416,9 @@ plotPP.list <- function(data,par=list(Ne=c(10,12),Ti=c(0,3000),Te=c(0,4000),ViR1
         }
         if(!trellis){
             if(length(tInds)==1){
-                mtext( paste( data[["POSIXtime"]][tInds] , "UTC" ), side = 3, line = -2, outer = TRUE )
+                mtext( paste( as.character( data[["POSIXtime"]][[tInds]] ) , "UTC" ), side = 3, line = -2, outer = TRUE )
             }else{
-                mtext( substr(data[["POSIXtime"]][tInds[1]] , 1 , 10 ) , side = 3, line = -1.5, outer = TRUE , cex=1)
+                mtext( substr( as.character( data[["POSIXtime"]][[tInds[1]]] ) , 1 , 10 ) , side = 3, line = -1.5, outer = TRUE , cex=1)
             }
         }
         # if we did not plot on an x11 device, we must close the device properly

@@ -113,13 +113,13 @@ readPP.3D <- function(dpath,recursive=F){
         param[,1:nPark,k]   <- PP$param
         std[,1:nPark,k]     <- PP$std
         model[,1:nPark,k]   <- PP$model
-        chisqr[,k]   <- PP$chisqr
-        status[,k]   <- PP$status
-        time_sec[k]  <- PP$time_sec
-        date[[k]]    <- PP$date
-        POSIXtime    <- PP$POSIXtime
-        height[,k]   <- PP$height
-        sites[1:nSitesk,,k]   <- PP$sites
+        chisqr[,k]          <- PP$chisqr
+        status[,k]          <- PP$status
+        time_sec[k]         <- PP$time_sec
+        date[[k]]           <- PP$date
+        POSIXtime[[k]]      <- PP$POSIXtime
+        height[,k]          <- PP$height
+        sites[1:nSitesk,,k] <- PP$sites
 
         for(r in seq(nHeight)){
             # if there will be only NA's there is no need to proceed
@@ -214,7 +214,7 @@ readPP.3D <- function(dpath,recursive=F){
 
     return(list(param=param,std=std,model=model,chisqr=chisqr,status=status,height=height,time_sec=time_sec,date=date,POSIXtime=POSIXtime,sites=sites,n=nFile,nPar=nPar,nHeight=nHeight,mIon=mIon,covar=covar))
     
-} # readPP
+}
 
 
 

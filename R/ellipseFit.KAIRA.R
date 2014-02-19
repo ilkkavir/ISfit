@@ -1,7 +1,7 @@
-faradayFit.KAIRA  <- function( xxpath , yypath , xypath , yxpath , opath, heightLimits.km , beginTime=c(2012,1,1,0,0,0),endTime=c(2100,1,1,0,0,0) , timeRes.s , maxdev=1, azXpol=318 , azelBore=c(0,90) , handedness=-1 , plotFit=FALSE , phcorr=0 , syy=1 , scross=1 )
+ellipseFit.KAIRA  <- function( xxpath , yypath , xypath , yxpath , opath, heightLimits.km , beginTime=c(2012,1,1,0,0,0),endTime=c(2100,1,1,0,0,0) , timeRes.s , maxdev=1, azXpol=318 , azelBore=c(0,90) , handedness=-1 , plotFit=FALSE , absLimit=2)
     {
         #
-        # Faraday rotation estimation from KAIRA data
+        # fit general polarization ellipses to KAIRA data without gain and phase corrections
         #
         #
         # xxpath           path to x-polarization ACF results
@@ -102,7 +102,7 @@ faradayFit.KAIRA  <- function( xxpath , yypath , xypath , yxpath , opath, height
 
                 ACFout <- matrix(NA*(0+0i),nrow=nh,ncol=length(dlist[["xx"]][["lag.us"]]))
                 VARout <- matrix(nrow=nh,ncol=length(dlist[["xx"]][["lag.us"]]))
-                beta <- latitude <- longitude <- height <- ran.gate <- phi <- varphi <- chisqr <- rep(NA,nh)
+                cosxx <- cosxy <- cosyx <- cosyy <- betaGeom <- beta <- varbeta <- latitude <- longitude <- height <- ran.gate <- phi <- varphi <- chisqr <- rep(NA,nh)
 
                 intersect <- list()
                 
@@ -160,32 +160,36 @@ faradayFit.KAIRA  <- function( xxpath , yypath , xypath , yxpath , opath, height
                     if(!is.na(gainR) & !is.na(ran.gate[h])){
 
                         acfscale <- max(abs(acf.gate[["xx"]]),na.rm=TRUE)
-                        frot <- faradayRotation.KAIRA( ACFxx=acf.gate[["xx"]]/acfscale,
-                                                ACFyy=acf.gate[["yy"]]/acfscale,
-                                                ACFxy=acf.gate[["xy"]]/acfscale,
-                                                ACFyx=acf.gate[["yx"]]/acfscale,
-                                                VARxx=var.gate[["xx"]]/acfscale**2,
-                                                VARyy=var.gate[["yy"]]/acfscale**2,
-                                                VARxy=var.gate[["xy"]]/acfscale**2,
-                                                VARyx=var.gate[["yx"]]/acfscale**2,
-                                                r=ran.gate[h],
-                                                azelT=dlist[["xx"]][["azelT"]],
-                                                llhR=dlist[["xx"]][["llhR"]],
-                                                llhT=dlist[["xx"]][["llhT"]],
-                                                azXpol=azXpol,
-                                                azelBore=azelBore,
-                                                h=handedness,
-                                                phcorr=phcorr,
-                                                syy=syy,
-                                                scross=scross,
-                                                plotFit=plotFit
-                                                )
+                        frot <- polEllipse.KAIRA( ACFxx=acf.gate[["xx"]]/acfscale,
+                                                 ACFyy=acf.gate[["yy"]]/acfscale,
+                                                 ACFxy=acf.gate[["xy"]]/acfscale,
+                                                 ACFyx=acf.gate[["yx"]]/acfscale,
+                                                 VARxx=var.gate[["xx"]]/acfscale**2,
+                                                 VARyy=var.gate[["yy"]]/acfscale**2,
+                                                 VARxy=var.gate[["xy"]]/acfscale**2,
+                                                 VARyx=var.gate[["yx"]]/acfscale**2,
+                                                 r=ran.gate[h],
+                                                 azelT=dlist[["xx"]][["azelT"]],
+                                                 llhR=dlist[["xx"]][["llhR"]],
+                                                 llhT=dlist[["xx"]][["llhT"]],
+                                                 azXpol=azXpol,
+                                                 azelBore=azelBore,
+                                                 h=handedness,
+                                                 plotFit=plotFit,
+                                                 absLimit=absLimit
+                                                 )
                         ACFout[h,] <- frot[["ACF"]]*acfscale
                         VARout[h,] <- frot[["var"]]*acfscale**2
                         phi[h] <- frot[["phi"]]
                         varphi[h] <- frot[["varphi"]]
                         chisqr[h] <- frot[["chisqr"]]
                         beta[h] <- frot[["beta"]]
+                        varbeta[h] <- frot[["varbeta"]]
+                        betaGeom[h] <- frot[["betaGeom"]]
+                        cosxx[h] <- frot[["cosxx"]]
+                        cosxy[h] <- frot[["cosxy"]]
+                        cosyx[h] <- frot[["cosyx"]]
+                        cosyy[h] <- frot[["cosyy"]]
                         Sys.sleep(1)
                     }
 
@@ -217,9 +221,18 @@ faradayFit.KAIRA  <- function( xxpath , yypath , xypath , yxpath , opath, height
                 ACF[["radarFreq"]] <- dlist[["xx"]][["radarFreq"]]
                 ACF[["maxRanges"]] <- rep(Inf,length(ACF[["lag.us"]]))
                 ACF[["beta"]] <- beta
-                ACF[["note"]] <- "ACFs from Faraday rotation estimation"
+                ACF[["varbeta"]] <- varbeta
+                ACF[["betaGeom"]] <- betaGeom
+                ACF[["cosxx"]] <- cosxx
+                ACF[["cosxy"]] <- cosxy
+                ACF[["cosyx"]] <- cosyx
+                ACF[["cosyy"]] <- cosyy
+                ACF[["azXpol"]] <- azXpol
+                ACF[["azelBore"]] <- azelBore
+                ACF[["handedness"]] <- handedness
+                ACF[["note"]] <- "ACFs from general polarization ellipse fit, do  not use for plasma parameter estimation"
 
-                resFile <- file.path( opath , paste( sprintf( '%13.0f' , trunc( iperLimits[k+1]  * 1000 ) ) , "FLP.Rdata" , sep=''))
+                resFile <- file.path( opath , paste( sprintf( '%13.0f' , trunc( iperLimits[k+1]  * 1000 ) ) , "ELP.Rdata" , sep=''))
                 
                 save( ACF , file=resFile )
 

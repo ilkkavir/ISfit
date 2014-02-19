@@ -1,8 +1,8 @@
-faradayRotation.KAIRA <- function( ACFxx , ACFyy, ACFxy , ACFyx , VARxx , VARyy, VARxy , VARyx, r , azelT=c(0,90) , llhR=radarSites()[["KIL"]] , llhT=radarSites()[["TRO"]] , azXpol=318 , azelBore=c(0,90) , h=-1 , plotFit=FALSE , phcorr=0 , syy=1 , scross=1 )
+polEllipse.KAIRA <- function( ACFxx , ACFyy, ACFxy , ACFyx , VARxx , VARyy, VARxy , VARyx, r , azelT=c(0,90) , llhR=radarSites()[["KIL"]] , llhT=radarSites()[["TRO"]] , azXpol=318 , azelBore=c(0,90) , h=-1 , plotFit=FALSE , absLimit=2)
     {
         #
-        # Faraday rotation and autocovariance function estimation from
-        # KAIRA cross-covariance measurements
+        # 
+        # Fit general polarization ellipses to KAIRA data
         #
         #
         #
@@ -52,10 +52,6 @@ faradayRotation.KAIRA <- function( ACFxx , ACFyy, ACFxy , ACFyx , VARxx , VARyy,
         # xr-axis
         xr <- radarPointings:::normalUnitVector.cartesian( yr , zr )
 
-
-        # THE PROJECTIONS WERE MISSING IN EARLIER VERSIONS, DOES THIS
-        # FIX THE ECCENTRICITY PROBLEMS??
-        
         # projections of xr and yr to the plane of wave electric field
         xrp <- xr - sum( z*xr/sqrt(sum(z**2)))*z
         yrp <- yr - sum( z*yr/sqrt(sum(z**2)))*z
@@ -96,10 +92,11 @@ faradayRotation.KAIRA <- function( ACFxx , ACFyy, ACFxy , ACFyx , VARxx , VARyy,
         # initial values for ACF
         acfinit <- ACF[1:nlags] + ACF[(nlags+1):(2*nlags)]
 
-        # initialize faraday rotation to zero, ACF is divided into real and imaginary parts
-        p <- c( Re(acfinit) , Im(acfinit) , 0 )
+        # initialize faraday rotation and scattering angles to zero and beta,
+        # ACF is divided into real and imaginary parts
+        p <- c( Re(acfinit) , Im(acfinit) , 0 , beta )
         
-        p2 <- leastSquare.lvmrq( measData=ACF , measVar=VAR , initParam=p , aprioriTheory=matrix(rep(0,2*nlags+1),nrow=1) , aprioriMeas=0 , invAprioriCovar=1, paramLimits=matrix(c(rep(-Inf,nlags*2), 0 , rep(Inf,nlags*2), pi ),nrow=2,byrow=TRUE),directTheory=faradayDirectTheory,nlags=nlags,cosxx=cosxx,cosxy=cosxy,cosyx=cosyx,cosyy=cosyy,h=h,beta=beta,phcorr=phcorr,syy=syy,scross=scross,plotFit=plotFit)
+        p2 <- leastSquare.lvmrq( measData=ACF , measVar=VAR , initParam=p , aprioriTheory=matrix(rep(0,2*nlags+2),nrow=1) , aprioriMeas=0 , invAprioriCovar=1, paramLimits=matrix(c(rep(-Inf,nlags*2), -2*pi , -2*pi , rep(Inf,nlags*2), 2*pi , 2*pi ),nrow=2,byrow=TRUE),directTheory=ellipseDirectTheory,nlags=nlags,cosxx=cosxx,cosxy=cosxy,cosyx=cosyx,cosyy=cosyy,h=h,plotFit=plotFit,absLimit=absLimit)
 
         reslist <- list()
         reslist$ACF <- p2$param[1:nlags]+1i*p2$param[(nlags+1):(2*nlags)]
@@ -107,9 +104,15 @@ faradayRotation.KAIRA <- function( ACFxx , ACFyy, ACFxy , ACFyx , VARxx , VARyy,
         for(k in seq(nlags)) reslist$var[k] <- p2$covar[k,k] + p2$covar[(k+nlags),(k+nlags)]
         reslist$phi <- p2$param[2*nlags+1]
         reslist$varphi <- p2$covar[(2*nlags+1),(2*nlags+1)]
-        reslist$beta <- beta
+        reslist$beta <- p2$param[2*nlags+2]
+        reslist$varbeta <- p2$covar[(2*nlags+2),(2*nlags+2)]
+        reslist$betaGeom <- beta
         reslist$covar <- p2$covar
         reslist$chisqr <- p2$chisqr
+        reslist$cosxx <- cosxx
+        reslist$cosxy <- cosxy
+        reslist$cosyx <- cosyx
+        reslist$cosyy <- cosyy
 
         return(reslist)
     }
