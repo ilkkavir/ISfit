@@ -1,0 +1,7 @@
+postInteg.height <- function( parlist , par='Tipar' ){
+
+
+    dparam <- sqrt( 1 / colSums( 1 / parlist$std[,par,]**2 , na.rm=T) )
+    param  <- colSums( parlist$param[,par,] / parlist$std[,par,]**2 , na.rm=T) * dparam**2;
+        
+}

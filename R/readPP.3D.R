@@ -135,23 +135,26 @@ readPP.3D <- function(dpath,recursive=F){
                 # approximation of the ratio of two correlated normal random variables
                 # from Hayya et al., A note on the ratio of two normally distributed variables,
                 # Management Science, 21 (11), 1338-1341, 1975
-                param[r,nPar+4,k] <- PP$param[r,3]/PP$param[r,2] +
-                    PP$covar[[r]][2,2]*PP$param[r,3]/PP$param[r,2]**3 -
-                        PP$covar[[r]][2,3]/PP$param[r,2]**2
+                # ..ignored the additional terms from the above reference...
+                # could perhaps use the full Geary-Hinkley transformation but will leave it like this
+                # now. The different approximations could be validated by means of MCMC fits
+                param[r,nPar+4,k] <- PP$param[r,3]/PP$param[r,2] #+
+#                    PP$covar[[r]][2,2]*PP$param[r,3]/PP$param[r,2]**3 -
+#                        PP$covar[[r]][2,3]/PP$param[r,2]**2
                 # electron perpendicular/parallel temperature ratio
-                param[r,nPar+5,k] <- PP$param[r,5]/PP$param[r,4] +
-                    PP$covar[[r]][4,4]*PP$param[r,5]/PP$param[r,4]**3 -
-                        PP$covar[[r]][4,5]/PP$param[r,4]**2
+                param[r,nPar+5,k] <- PP$param[r,5]/PP$param[r,4] #+
+#                    PP$covar[[r]][4,4]*PP$param[r,5]/PP$param[r,4]**3 -
+#                        PP$covar[[r]][4,5]/PP$param[r,4]**2
                 std[r,nPar+1,k] <- sqrt(c(1,2)%*%PP$covar[[r]][2:3,2:3]%*%c(1,2)/9)
                 std[r,nPar+2,k] <- sqrt(c(1,2)%*%PP$covar[[r]][4:5,4:5]%*%c(1,2)/9)
                 std[r,nPar+3,k] <- sqrt(PP$B[r,]%*%PP$covar[[r]][7:9,7:9]%*%PP$B[r,]/sum(PP$B[r,]**2))
                 std[r,nPar+4,k] <- sqrt( PP$covar[[r]][2,2]*PP$param[r,3]**2/PP$param[r,2]**4 +
-                                        PP$covar[[r]][3,3]/PP$param[r,2]**2 -
-                                        2*PP$covar[[r]][2,3]*PP$param[r,3]/PP$param[r,2]**3
+                                        PP$covar[[r]][3,3]/PP$param[r,2]**2 #-
+#                                        2*PP$covar[[r]][2,3]*PP$param[r,3]/PP$param[r,2]**3
                                         )
                 std[r,nPar+5,k] <- sqrt( PP$covar[[r]][4,4]*PP$param[r,5]**2/PP$param[r,4]**4 +
-                                        PP$covar[[r]][5,5]/PP$param[r,4]**2 -
-                                        2*PP$covar[[r]][4,5]*PP$param[r,5]/PP$param[r,4]**3
+                                        PP$covar[[r]][5,5]/PP$param[r,4]**2 #-
+#                                        2*PP$covar[[r]][4,5]*PP$param[r,5]/PP$param[r,4]**3
                                         )
                 # ion velocity components perpendicular to the magnetic field..
                 # geomagnetic north

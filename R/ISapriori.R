@@ -45,7 +45,7 @@ ISapriori <- function( aprioriParam ,  nIon , absCalib=FALSE , TiIsotropic=FALSE
         
         aprioriMeas[1:nPar]          <- aprioriParam
         
-        aprioriStd[1]                <- 1e5                # electron density
+        aprioriStd[1]                <- 1e4                # electron density
         aprioriStd[2]                <- 1                  # parallel ion temperature
         aprioriStd[3]                <- 1                  # perpendicular ion temperature
         aprioriStd[4]                <- 1                  # parallel electron temperature
@@ -60,6 +60,7 @@ ISapriori <- function( aprioriParam ,  nIon , absCalib=FALSE , TiIsotropic=FALSE
         # remove model information about perpendicular temperatures
         aprioriTheory[3,] <- 0
         aprioriTheory[5,] <- 0
+        aprioriMeas[c(3,5)] <- 0
   
 
 
@@ -85,7 +86,7 @@ ISapriori <- function( aprioriParam ,  nIon , absCalib=FALSE , TiIsotropic=FALSE
         if(TeIsotropic){
             aprioriStd[curRow]             <- 1e-3
         }else{
-            aprioriStd[curRow]             <- .1
+            aprioriStd[curRow]             <- 1
         }
         curRow                         <- curRow + 1
         
@@ -95,7 +96,7 @@ ISapriori <- function( aprioriParam ,  nIon , absCalib=FALSE , TiIsotropic=FALSE
         if(TiIsotropic){
             aprioriStd[curRow]             <- 1e-3
         }else{
-            aprioriStd[curRow]             <- .1
+            aprioriStd[curRow]             <- 1
         }
         curRow                         <- curRow + 1
         

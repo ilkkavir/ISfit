@@ -135,7 +135,7 @@ plotPP.list <- function(data,par=list(Ne=c(10,12),Ti=c(0,3000),Te=c(0,4000),ViR1
 
         # height limits
         if(is.null(ylim)){
-            hLim <- range(data[["height"]])
+            hLim <- range( data[["height"]] , na.rm=TRUE )
         }else{
             hLim <- ylim
         }

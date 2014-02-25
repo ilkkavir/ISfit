@@ -220,7 +220,7 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
 
               # a time vector converted from iperLimits
               t <- as.POSIXlt( iperLimits[k+1] , origin='1970-01-01' , tz='ut')
-              date <- c(t$year+1900,t$mon,t$mday,t$hour,t$min,t$sec)
+              date <- c(t$year+1900,t$mon+1,t$mday,t$hour,t$min,t$sec)
               
               # height gate limits
               if( all( is.na( heightLimits.km ) ) ){
@@ -248,7 +248,7 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
               }
 
               # a list for site indices contributing at each height
-              contribSites <- list()
+              contribSites <- apriori <- list()
               
               for( h in seq( nh ) ){
                   
@@ -399,7 +399,7 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
                           limitParam[2,] <- scaleParams(parLimits[2,] , parScales , inverse=F)
                       
                           # apriori information
-                          apriori        <- ISapriori( initParam , nIon=3 , absCalib=absCalib , TiIsotropic=TiIsotropic , TeIsotropic=TeIsotropic , refSite=refsite , siteScales=sScales[,c((h+12),(h+12+nh))] )
+                          apriori[[h]]   <- ISapriori( initParam , nIon=3 , absCalib=absCalib , TiIsotropic=TiIsotropic , TeIsotropic=TeIsotropic , refSite=refsite , siteScales=sScales[,c((h+12),(h+12+nh))] )
 
                           model[h,]      <- parInit
                           
@@ -414,9 +414,9 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
                               iSite           = unlist(ind.site),
                               B               = B[h,],
                               initParam       = initParam,
-                              invAprioriCovar = apriori$invAprioriCovar,
-                              aprioriTheory   = apriori$aprioriTheory,
-                              aprioriMeas     = apriori$aprioriMeas,
+                              invAprioriCovar = apriori[[h]]$invAprioriCovar,
+                              aprioriTheory   = apriori[[h]]$aprioriTheory,
+                              aprioriMeas     = apriori[[h]]$aprioriMeas,
                               mIon            = c(30.5,16,1),
                               nIon            = 3,
                               paramLimits     = limitParam,
@@ -469,7 +469,7 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
               
               
               # save the results to file
-              PP <- list(param=param,std=std,model=model,chisqr=chisqr,status=status,time_sec=time_sec,date=date,POSIXtime=POSIXtime,height=height,latitude=latitude,longitude=longitude,sites=sites,intersect=intersect,covar=covar,B=B,heightLimits.km=hlims/1000,contribSites=contribSites,mIon=c(30.5,16.0,1.0),MCMC=MCMC,timeLimits.s=iperLimits[k:(k+1)],functionCall=match.call(expand.dots=TRUE))
+              PP <- list(param=param,std=std,model=model,chisqr=chisqr,status=status,time_sec=time_sec,date=date,POSIXtime=POSIXtime,height=height,latitude=latitude,longitude=longitude,sites=sites,intersect=intersect,covar=covar,B=B,heightLimits.km=hlims/1000,contribSites=contribSites,mIon=c(30.5,16.0,1.0),MCMC=MCMC,timeLimits.s=iperLimits[k:(k+1)],functionCall=match.call(expand.dots=TRUE),apriori=apriori)
               resFile <- file.path( odir , paste( sprintf( '%13.0f' , trunc( iperLimits[k+1]  * 1000 ) ) , "PP.Rdata" , sep=''))
               save( PP , file=resFile )
               
