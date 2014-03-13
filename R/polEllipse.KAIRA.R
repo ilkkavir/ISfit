@@ -1,7 +1,7 @@
 polEllipse.KAIRA <- function( ACFxx , ACFyy, ACFxy , ACFyx , VARxx , VARyy, VARxy , VARyx, r , azelT=c(0,90) , llhR=radarSites()[["KIL"]] , llhT=radarSites()[["TRO"]] , azXpol=318 , azelBore=c(0,90) , h=-1 , plotFit=FALSE , absLimit=2)
     {
         #
-        # 
+        #
         # Fit general polarization ellipses to KAIRA data
         #
         #
@@ -70,7 +70,7 @@ polEllipse.KAIRA <- function( ACFxx , ACFyy, ACFxy , ACFyx , VARxx , VARyy, VARx
         cosxy <- abs(cos(phixy))
         cosyx <- abs(cos(phiyx))
         cosyy <- abs(cos(phiyy))
-        
+
         # use only those lags from which we have all cross-correlations
         okinds <- which( !( is.na(ACFxx) & is.na(ACFyy) & is.na(ACFxy) & is.na(ACFyx) & is.na(VARxx) & is.na(VARyy) & is.na(VARxy) & is.na(VARyx) ) )
 
@@ -95,8 +95,8 @@ polEllipse.KAIRA <- function( ACFxx , ACFyy, ACFxy , ACFyx , VARxx , VARyy, VARx
         # initialize faraday rotation and scattering angles to zero and beta,
         # ACF is divided into real and imaginary parts
         p <- c( Re(acfinit) , Im(acfinit) , 0 , beta )
-        
-        p2 <- leastSquare.lvmrq( measData=ACF , measVar=VAR , initParam=p , aprioriTheory=matrix(rep(0,2*nlags+2),nrow=1) , aprioriMeas=0 , invAprioriCovar=1, paramLimits=matrix(c(rep(-Inf,nlags*2), -2*pi , -2*pi , rep(Inf,nlags*2), 2*pi , 2*pi ),nrow=2,byrow=TRUE),directTheory=ellipseDirectTheory,nlags=nlags,cosxx=cosxx,cosxy=cosxy,cosyx=cosyx,cosyy=cosyy,h=h,plotFit=plotFit,absLimit=absLimit)
+
+        p2 <- leastSquare.lvmrq( measData=ACF , measVar=VAR , initParam=p , aprioriTheory=matrix(rep(0,2*nlags+2),nrow=1) , aprioriMeas=0 , invAprioriCovar=1, paramLimits=matrix(c(rep(-Inf,nlags*2), -Inf , -Inf , rep(Inf,nlags*2), Inf , Inf ),nrow=2,byrow=TRUE),directTheory=ellipseDirectTheory,nlags=nlags,cosxx=cosxx,cosxy=cosxy,cosyx=cosyx,cosyy=cosyy,h=h,plotFit=plotFit,absLimit=absLimit)
 
         reslist <- list()
         reslist$ACF <- p2$param[1:nlags]+1i*p2$param[(nlags+1):(2*nlags)]

@@ -1,45 +1,29 @@
-plotMarginalDistribution <- function(fpath,pdf=NULL,jpg=NULL,figNum=NULL,width=8.27,height=2.9225,paper='a4',Ne=T,Ti=T,Te=T,Vi=T,Ve=F,coll=F,pIon=c(F,F,F),NeLim=c(9,12),TiLim=c(0,2000),TeLim=c(0,2000),ViLim=c(-200,200),VeLim=c(-200,200),collLim=c(0,5),pIonLim=c(0,1),rLim=NULL,hLim=NULL,tLim=NULL,bg='white',fg='black',res=300,cex=1.0,allPoints=F,confLimits=c(.682,.954,.996),burnin=0.1,cutModel=T){
-# 
-# Plot the marginal posterior distributions from a MCMC analysis. 
+plotMarginalDistribution <- function(fpath,pdf=NULL,jpg=NULL,figNum=NULL,width=8.27,height=2.9225,paper='a4',par=list(Ne=c(10,12),Tepar=c(0,4000),Teperp=c(0,4000),Tipar=c(0,3000),Tiperp=c(0,3000),Vix=c(-1000,1000),Viy=c(-1000,1000),Viz=c(-400,400)),hLim=NULL,tLim=NULL,bg='white',fg='black',res=300,cex=1.0,allPoints=F,confLimits=c(.682,.954,.996)){
+#
+# Plot the marginal posterior distributions from an MCMC analysis.
 # Either individual points (X11 only to avoid large files) or color-coded probability regions
 # The possibility for large files with individual points plotted is easy to add, if someone really needs that
-# 
+#
 # I. Virtanen 2010
-# 
+#
 
   # load the data
-  load(fpath)
+    if(!file.exists(fpath)) stop(paste("Path",fpath,"does not exist"))
+    if(file.info(fpath)$isdir) stop("Only contents of individual files can be plotted")
+    load(fpath)
 
 
   # find the parameters the user wants to plot
-  rInds <- rep(T,length(PP$range))
-  pInds <- c(Ne,Ti,Te,coll,Vi,Ve,pIon)
+  rInds <- rep(T,length(PP$height))
 
   hLim2 <- range(PP$height,na.rm=T)
-  if(!is.null(hLim)){ rInds <- (PP$height >= hLim[1]) & (PP$height <= hLim[2]); hLim2 <- hLim}
-  if(!is.null(rLim)){ rInds <- rInds & ((PP$range >= rLim[1]) & (PP$range <= rLim[2])); hLim2 <- range(PP$height[rInds])}
+  hInds <- seq(length(PP$height))
+  if(!is.null(hLim)){ hInds <- (PP$height >= hLim[1]) & (PP$height <= hLim[2]); hLim2 <- hLim}
 
-  tLim2 <- range(PP$time_sec,na.rm=T)
-  if(!is.null(tLim)){
-    tLim2 <- (floor(PP$time_sec[1] / 3600 / 24) * 24 + tLim) * 3600
-    tInds <- (PP$time_sec >= tLim2[1]) & (PP$time_sec <= tLim2[2])
-  }
-
-  if(!any(rInds)) stop('No data from the given range interval')
-  if(!any(pInds)) stop('No parameters to fit')
-
-  # cut off the model values
-  if(cutModel){
-    for(r in seq(length(PP$range))){
-      for(p in seq(dim(PP$param)[2])){
-        if(is.na(PP$param[r,p])) PP$mcmc[r,p,] <- NA
-      }
-    }
-  }
+  if(!any(hInds)) stop('No data from the given height interval')
 
   # how many frames do we actuallly have?
-  nFig <- sum(pInds)
-
+  nFig <- length(par)
 
   # try to make equal number of rows and columns, more columns than rows if necessary
   nRows   <- min(2,ceiling(nFig/2))
@@ -73,90 +57,170 @@ plotMarginalDistribution <- function(fpath,pdf=NULL,jpg=NULL,figNum=NULL,width=8
   par(cex.lab=cex,cex.axis=cex,bg=bg,mar=c(5,5,5,1))
   layout(matrix(seq(nRows*nCols),nrow=nRows))
 
-  # number of burnin points
-  Nburnin <- burnin*PP$Nmcmc
   # actual plotting
-  if(Ne) addDistPlot(
-                        d    = PP$mcmc[rInds,1,(Nburnin+1):PP$Nmcmc],                                   # the data
-                        log  = T,                                                                          # logarithmic scale in x-axis
-                        h    = PP$height[rInds],                                                           # heigts
-                        xlim = NeLim,                                                                      # limits of the x-axis
-                        ylim = hLim2,                                                                      # limits of the y-axis
-                        xlab = list(expression(paste("Log","(N"[e]^{},") [m"[]^{-3},"]")),col=fg,cex=cex), # x-axis label
-                      points = allPoints,
-                  confLimits = confLimits
-                    )
+        for(p in seq(length(par))){
 
-  if(Ti) addDistPlot(
-                        d    = PP$mcmc[rInds,2,(Nburnin+1):PP$Nmcmc],
-                        log  = F,
-                        h    = PP$height[rInds],
-                        xlim = TiLim,
-                        ylim = hLim2,
-                        xlab = list(expression(paste("T"[i]^{}," [K]")),col=fg,cex=cex),
-                      points = allPoints,
-                  confLimits = confLimits      
-                      )
+            # select whether x-axis is logarithmic or not
+            xlog <- switch( names(par[p]) , Ne=TRUE , Coll=TRUE , FALSE )
 
-  if(Te) addDistPlot(
-                        d    = PP$mcmc[rInds,2,(Nburnin+1):PP$Nmcmc]*PP$mcmc[rInds,3,(Nburnin+1):PP$Nmcmc],
-                        log  = F,
-                        h    = PP$height[rInds],
-                        xlim = TeLim,
-                        ylim = hLim2,
-                        xlab = list(expression(paste("T"[e]^{}," [K]")),col=fg,cex=cex),
-                      points = allPoints,
-                  confLimits = confLimits      
-                      )
+            # x-axis labels
+            xlab <- switch( names(par[p]) ,
+                           Ne=list(expression(paste("Log","(N"[e]^{},") [m"[]^{-3},"]")),col=fg,cex=cex,vjust=1.2),
+                           Ti=list(expression(paste("T"[i]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
+                           Tipar=list(expression(paste("T"["i||"]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
+                           Tiperp=list(expression(paste("T"[paste("i",symbol("\136"))]^{},"[K]")),col=fg,cex=cex,vjust=1.2),
+                           Tiratio=list(expression(paste("T"[paste("i",symbol("\136"))]^{},"/","T"["i||"]^{},"[K]")),col=fg,cex=cex,vjust=1.2),
+                           Teratio=list(expression(paste("T"[paste("e",symbol("\136"))]^{},"/","T"["e||"]^{},"[K]")),col=fg,cex=cex,vjust=1.2),
+                           Te=list(expression(paste("T"[e]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
+                           Tepar=list(expression(paste("T"["e||"]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
+                           Teperp=list(expression(paste("T"[paste("e",symbol("\136"))]^{},"[K]")),col=fg,cex=cex,vjust=1.2),
+                           Coll=list(expression(paste("Log(",nu['in']^{},") [s"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                           Vix=list(expression(paste("V"[i]^{}," East [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                           Viy=list(expression(paste("V"[i]^{}," North [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                           Viz=list(expression(paste("V"[i]^{}," Up [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                           ViB=list(expression(paste("V"["i||"]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                           ViBx=list(expression(paste("V"[paste("i",symbol("\136"))]^{}," East [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                           ViBy=list(expression(paste("V"[paste("i",symbol("\136"))]^{}," North [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                           ViR1=list(expression(paste("V"[iR1]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                           ViR2=list(expression(paste("V"[iR2]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                           ViR3=list(expression(paste("V"[iR3]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                           ViR4=list(expression(paste("V"[iR4]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                           ViR5=list(expression(paste("V"[iR5]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                           ViR6=list(expression(paste("V"[iR6]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                           ViR7=list(expression(paste("V"[iR7]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                           ViR8=list(expression(paste("V"[iR8]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                           ViR9=list(expression(paste("V"[iR9]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                           ViR10=list(expression(paste("V"[iR10]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                           ViR11=list(expression(paste("V"[iR11]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                           ViR12=list(expression(paste("V"[iR12]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                           ViR13=list(expression(paste("V"[iR13]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                           ViR14=list(expression(paste("V"[iR14]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                           ViR15=list(expression(paste("V"[iR15]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                           ViR16=list(expression(paste("V"[iR16]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                           ViR17=list(expression(paste("V"[iR17]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                           ViR18=list(expression(paste("V"[iR18]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                           ViR19=list(expression(paste("V"[iR19]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                           ViR20=list(expression(paste("V"[iR20]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                           ViR21=list(expression(paste("V"[iR21]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                           ViR22=list(expression(paste("V"[iR22]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                           ViR23=list(expression(paste("V"[iR23]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                           ViR24=list(expression(paste("V"[iR24]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                           ViR25=list(expression(paste("V"[iR25]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                           ViR26=list(expression(paste("V"[iR26]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                           ViR27=list(expression(paste("V"[iR27]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                           ViR28=list(expression(paste("V"[iR28]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                           ViR29=list(expression(paste("V"[iR29]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
 
-    if(coll) addDistPlot(
-                        d    = PP$mcmc[rInds,4,(Nburnin+1):PP$Nmcmc],
-                        log  = T,
-                        h    = PP$height[rInds],
-                        xlim = collLim,
-                        ylim = hLim2,
-                        xlab = list(expression(paste("Log(",nu['in']^{},") [s"[]^{-1},"]")),col=fg,cex=cex),
-                      points = allPoints,
-                  confLimits = confLimits      
-                      )
+                           ViR1hor=list(expression(paste("V"[iR1hor]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                           ViR2hor=list(expression(paste("V"[iR2hor]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                           ViR3hor=list(expression(paste("V"[iR3hor]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                           ViR4hor=list(expression(paste("V"[iR4hor]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                           ViR5hor=list(expression(paste("V"[iR5hor]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                           ViR6hor=list(expression(paste("V"[iR6hor]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                           ViR7hor=list(expression(paste("V"[iR7hor]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                           ViR8hor=list(expression(paste("V"[iR8hor]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                           ViR9hor=list(expression(paste("V"[iR9hor]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                           ViR10hor=list(expression(paste("V"[iR10hor]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                           ViR11hor=list(expression(paste("V"[iR11hor]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                           ViR12hor=list(expression(paste("V"[iR12hor]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                           ViR13hor=list(expression(paste("V"[iR13hor]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                           ViR14hor=list(expression(paste("V"[iR14hor]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                           ViR15hor=list(expression(paste("V"[iR15hor]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                           ViR16hor=list(expression(paste("V"[iR16hor]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                           ViR17hor=list(expression(paste("V"[iR17hor]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                           ViR18hor=list(expression(paste("V"[iR18hor]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                           ViR19hor=list(expression(paste("V"[iR19hor]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                           ViR20hor=list(expression(paste("V"[iR20hor]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                           ViR21hor=list(expression(paste("V"[iR21hor]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                           ViR22hor=list(expression(paste("V"[iR22hor]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                           ViR23hor=list(expression(paste("V"[iR23hor]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                           ViR24hor=list(expression(paste("V"[iR24hor]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                           ViR25hor=list(expression(paste("V"[iR25hor]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                           ViR26hor=list(expression(paste("V"[iR26hor]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                           ViR27hor=list(expression(paste("V"[iR27hor]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                           ViR28hor=list(expression(paste("V"[iR28hor]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
+                           ViR29hor=list(expression(paste("V"[iR29hor]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
 
-    if(Vi) addDistPlot(
-                        d    = PP$mcmc[rInds,5,(Nburnin+1):PP$Nmcmc],
-                        log  = F,
-                        h    = PP$height[rInds],
-                        xlim = ViLim,
-                        ylim = hLim2,
-                        xlab = list(expression(paste("V"[i]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex),
-                      points = allPoints,
-                  confLimits = confLimits      
-                      )
+                           TiR1=list(expression(paste("T"[iR1]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
+                           TiR2=list(expression(paste("T"[iR2]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
+                           TiR3=list(expression(paste("T"[iR3]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
+                           TiR4=list(expression(paste("T"[iR4]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
+                           TiR5=list(expression(paste("T"[iR5]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
+                           TiR6=list(expression(paste("T"[iR6]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
+                           TiR7=list(expression(paste("T"[iR7]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
+                           TiR8=list(expression(paste("T"[iR8]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
+                           TiR9=list(expression(paste("T"[iR9]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
+                           TiR10=list(expression(paste("T"[iR10]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
+                           TiR11=list(expression(paste("T"[iR11]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
+                           TiR12=list(expression(paste("T"[iR12]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
+                           TiR13=list(expression(paste("T"[iR13]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
+                           TiR14=list(expression(paste("T"[iR14]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
+                           TiR15=list(expression(paste("T"[iR15]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
+                           TiR16=list(expression(paste("T"[iR16]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
+                           TiR17=list(expression(paste("T"[iR17]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
+                           TiR18=list(expression(paste("T"[iR18]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
+                           TiR19=list(expression(paste("T"[iR19]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
+                           TiR20=list(expression(paste("T"[iR20]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
+                           TiR21=list(expression(paste("T"[iR21]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
+                           TiR22=list(expression(paste("T"[iR22]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
+                           TiR23=list(expression(paste("T"[iR23]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
+                           TiR24=list(expression(paste("T"[iR24]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
+                           TiR25=list(expression(paste("T"[iR25]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
+                           TiR26=list(expression(paste("T"[iR26]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
+                           TiR27=list(expression(paste("T"[iR27]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
+                           TiR28=list(expression(paste("T"[iR28]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
+                           TiR29=list(expression(paste("T"[iR29]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
 
-    if(Ve) addDistPlot(
-                        d    = (PP$mcmc[rInds,6,(Nburnin+1):PP$Nmcmc]+PP$mcmc[rInds,5,(Nburnin+1):PP$Nmcmc]),
-                        log  = F,
-                        h    = PP$height[rInds],
-                        xlim = VeLim,
-                        ylim = hLim2,
-                        xlab = list(expression(paste("V"[e]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex),
-                      points = allPoints,
-                  confLimits = confLimits      
-                      )
+                           TeR1=list(expression(paste("T"[eR1]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
+                           TeR2=list(expression(paste("T"[eR2]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
+                           TeR3=list(expression(paste("T"[eR3]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
+                           TeR4=list(expression(paste("T"[eR4]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
+                           TeR5=list(expression(paste("T"[eR5]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
+                           TeR6=list(expression(paste("T"[eR6]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
+                           TeR7=list(expression(paste("T"[eR7]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
+                           TeR8=list(expression(paste("T"[eR8]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
+                           TeR9=list(expression(paste("T"[eR9]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
+                           TeR10=list(expression(paste("T"[eR10]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
+                           TeR11=list(expression(paste("T"[eR11]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
+                           TeR12=list(expression(paste("T"[eR12]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
+                           TeR13=list(expression(paste("T"[eR13]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
+                           TeR14=list(expression(paste("T"[eR14]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
+                           TeR15=list(expression(paste("T"[eR15]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
+                           TeR16=list(expression(paste("T"[eR16]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
+                           TeR17=list(expression(paste("T"[eR17]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
+                           TeR18=list(expression(paste("T"[eR18]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
+                           TeR19=list(expression(paste("T"[eR19]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
+                           TeR20=list(expression(paste("T"[eR20]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
+                           TeR21=list(expression(paste("T"[eR21]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
+                           TeR22=list(expression(paste("T"[eR22]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
+                           TeR23=list(expression(paste("T"[eR23]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
+                           TeR24=list(expression(paste("T"[eR24]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
+                           TeR25=list(expression(paste("T"[eR25]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
+                           TeR26=list(expression(paste("T"[eR26]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
+                           TeR27=list(expression(paste("T"[eR27]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
+                           TeR28=list(expression(paste("T"[eR28]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
+                           TeR29=list(expression(paste("T"[eR29]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
 
-  for(k in seq(length(pIon))){
-    if(pIon[k]){
-      addDistPlot(
-                        d    = PP$mcmc[rInds,(6+k),(Nburnin+1):PP$Nmcmc],
-                        log  = F,
-                        h    = PP$height[rInds],
-                        xlim = pIonLim,
-                        ylim = hLim2,
-                        xlab =list(sprintf("Fractional abundance of ion mass %.1f u",PP$mi[k+1]),col=fg,cex=cex),
-                      points = allPoints,
-                  confLimits = confLimits      
-                      )
-    }
+                           Ion1=list(sprintf("Fraction of ion mass %.1f u",data$mi[1]),col=fg,cex=cex,vjust=1.2),
+                           Ion2=list(sprintf("Fraction of ion mass %.1f u",data$mi[2]),col=fg,cex=cex,vjust=1.2),
+                           Ion3=list(sprintf("Fraction of ion mass %.1f u",data$mi[3]),col=fg,cex=cex,vjust=1.2),
+                           Ion4=list(sprintf("Fraction of ion mass %.1f u",data$mi[4]),col=fg,cex=cex,vjust=1.2),
+                           Ion5=list(sprintf("Fraction of ion mass %.1f u",data$mi[5]),col=fg,cex=cex,vjust=1.2)
+                           )
 
-  }
+
+            # need to somehow combine list elements from different heights.. the MCMC output is not a huge array anymore!
+            nheights <- length(hInds)
+            nmcmc <- PP$functionCall$MCMCsettings$niter - PP$functionCall$MCMCsettings$burninlength
+            d <- matrix(0,nrow=nheights,ncol=nmcmc)
+            for(rii in seq(nheights)){
+                d[ rii , ] <- PP[["MCMC"]][[hInds[rii]]][["pars"]][ , names(par)[p]]
+            }
+
+            addDistPlot( d=d , log=xlog , h=PP$height[hInds] , xlim=par[[p]] , ylim=hLim2 , xlab=xlab[[1]] , points=allPoints , confLimits=confLimits )
+
+        }
+
 
   # if we did not plot on an x11 device, we must close the device properly
   if(sum(figList)==2) dev.off()

@@ -5,7 +5,7 @@ ISmcmc <- function( measData , measVar , initParam , aprioriTheory , aprioriMeas
         init2 <- initres$param
         names(init2) <- names(initParam)
 
-        mcmcargs <- c( list( f=SS , p=init2 , measData=measData , measVar=measVar , directTheory=directTheory , aprioriTheory=aprioriTheory , aprioriMeas=aprioriMeas , invAprioriCovar=invAprioriCovar , lower=paramLimits[1,] , upper=paramLimits[2,] , jump=initres$covar*2.4**2/length(init2) ) , MCMCsettings , list( ... ))
+        mcmcargs <- c( list( f=SS , p=init2 , measData=measData , measVar=measVar , directTheory=directTheory , aprioriTheory=aprioriTheory , aprioriMeas=aprioriMeas , invAprioriCovar=invAprioriCovar , lower=paramLimits[1,] , upper=paramLimits[2,] , jump=initres$covar*2.4^2/length(init2) ) , MCMCsettings , list( ... ))
 
         resmcmc <- do.call( modMCMC , mcmcargs  )
 

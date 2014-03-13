@@ -39,14 +39,14 @@
 ##
 
 
-plotPP <- function(data,par=list(Ne=c(10,12),Ti=c(0,3000),Te=c(0,4000),ViR1=c(-200,200)),xlim=NULL,ylim=NULL,pdf=NULL,jpg=NULL,figNum=NULL,width=8.27,height=2.9225,paper='a4',tickRes=NULL,model=F,stdThreshold=.5,NeMin=1e9,chisqrLim=10,bg='white',fg='black',res=300,cex=1.0,col.regions=guisdap.colors,multistatic=TRUE,trellis=FALSE,cutgaps=TRUE)
+plotPP <- function(data,par=list(Ne=c(10,12),TeR1=c(0,4000),TiR1=c(0,3000),ViR1=c(-400,400)),xlim=NULL,ylim=NULL,pdf=NULL,jpg=NULL,figNum=NULL,width=8.27,height=2.9225,paper='a4',tickRes=NULL,model=F,stdThreshold=.5,NeMin=1e9,chisqrLim=10,bg='white',fg='black',res=300,cex=1.0,col.regions=guisdap.colors,multistatic=TRUE,trellis=FALSE,cutgaps=TRUE)
     {
 
         UseMethod("plotPP")
 
     }
 
-plotPP.character <- function(data,par=list(Ne=c(10,12),Ti=c(0,3000),Te=c(0,4000),ViR1=c(-200,200),azel=T),xlim=NULL,ylim=NULL,pdf=NULL,jpg=NULL,figNum=NULL,width=8.27,height=2.9225,paper='a4',tickRes=NULL,model=F,stdThreshold=.5,NeMin=1e9,chisqrLim=10,bg='white',fg='black',res=300,cex=1.0,col.regions=guisdap.colors,multistatic=TRUE,trellis=FALSE,cutgaps=TRUE)
+plotPP.character <- function(data,par=list(Ne=c(10,12),TeR1=c(0,4000),TiR1=c(0,3000),ViR1=c(-400,400),azel=T),xlim=NULL,ylim=NULL,pdf=NULL,jpg=NULL,figNum=NULL,width=8.27,height=2.9225,paper='a4',tickRes=NULL,model=F,stdThreshold=.5,NeMin=1e9,chisqrLim=10,bg='white',fg='black',res=300,cex=1.0,col.regions=guisdap.colors,multistatic=TRUE,trellis=FALSE,cutgaps=TRUE)
     {
 
         # read all data
@@ -60,13 +60,13 @@ plotPP.character <- function(data,par=list(Ne=c(10,12),Ti=c(0,3000),Te=c(0,4000)
         argnames <- names(args)
         args <- lapply( names( args ) , FUN=function(x){ eval( as.name( x ) ) } )
         names(args) <- argnames
-    
+
         do.call( plotPP , args )
 
     }
-    
 
-plotPP.list <- function(data,par=list(Ne=c(10,12),Ti=c(0,3000),Te=c(0,4000),ViR1=c(-200,200),azel=T),xlim=NULL,ylim=NULL,pdf=NULL,jpg=NULL,figNum=NULL,width=8.27,height=2.9225,paper='a4',tickRes=NULL,model=F,stdThreshold=.5,NeMin=1e9,chisqrLim=10,bg='white',fg='black',res=300,cex=1.0,col.regions=guisdap.colors,multistatic=TRUE,trellis=FALSE,cutgaps=TRUE)
+
+plotPP.list <- function(data,par=list(Ne=c(10,12),TeR1=c(0,4000),TiR1=c(0,3000),ViR1=c(-400,400),azel=T),xlim=NULL,ylim=NULL,pdf=NULL,jpg=NULL,figNum=NULL,width=8.27,height=2.9225,paper='a4',tickRes=NULL,model=F,stdThreshold=.5,NeMin=1e9,chisqrLim=10,bg='white',fg='black',res=300,cex=1.0,col.regions=guisdap.colors,multistatic=TRUE,trellis=FALSE,cutgaps=TRUE)
     {
         # take a copy that will be returned
         data2 <- data
@@ -76,7 +76,7 @@ plotPP.list <- function(data,par=list(Ne=c(10,12),Ti=c(0,3000),Te=c(0,4000),ViR1
             warning("No data")
             return(invisible(NULL))
         }
-  
+
         # cut off large variances (only Ne is studied)
         if(!is.null(stdThreshold)){
             thrInds <- (data$std[,1,] / data$param[,1,]) >  stdThreshold
@@ -114,7 +114,7 @@ plotPP.list <- function(data,par=list(Ne=c(10,12),Ti=c(0,3000),Te=c(0,4000),ViR1
             data[["param"]][,,(tdlarge+1)] <- NA
         }
 
-            
+
         # number of figures panels
         nFig <- length(par)
 
@@ -140,7 +140,7 @@ plotPP.list <- function(data,par=list(Ne=c(10,12),Ti=c(0,3000),Te=c(0,4000),ViR1
             hLim <- ylim
         }
 
-        
+
         # height of the full plot window
         wHeight <- min(nFig,4)*height
 
@@ -169,7 +169,7 @@ plotPP.list <- function(data,par=list(Ne=c(10,12),Ti=c(0,3000),Te=c(0,4000),ViR1
         }else{
             layout(matrix(seq(2*length(par)),ncol=2,byrow=T),widths=rep(c(.9,.1),2*length(par)))
             par(mar=c(2,3,2,1),mgp=c(1.5,.5,0))
-            
+
             treold <- trellis.par.get()
             trenew <- treold
             trenew$bacground$col <- bg
@@ -187,12 +187,12 @@ plotPP.list <- function(data,par=list(Ne=c(10,12),Ti=c(0,3000),Te=c(0,4000),ViR1
             trenew$layout.widths$right.padding <- 1
             trenew$layout.heights$key.axis.padding<-1
             trellis.par.set(list(background=trenew$background,layout.heights=trenew$layout.heights,layout.widths=trenew$layout.widths))
-            
+
             # tick marks in the time axis
             ticks <- timeTicks(tLim,tickRes)
 
         }
-  
+
         # actual plotting
         curFig <- 1
 
@@ -248,7 +248,7 @@ plotPP.list <- function(data,par=list(Ne=c(10,12),Ti=c(0,3000),Te=c(0,4000),ViR1
                            ViR27=list(expression(paste("V"[iR27]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
                            ViR28=list(expression(paste("V"[iR28]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
                            ViR29=list(expression(paste("V"[iR29]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
-                           
+
                            ViR1hor=list(expression(paste("V"[iR1hor]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
                            ViR2hor=list(expression(paste("V"[iR2hor]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
                            ViR3hor=list(expression(paste("V"[iR3hor]^{}," [ms"[]^{-1},"]")),col=fg,cex=cex,vjust=1.2),
@@ -338,7 +338,7 @@ plotPP.list <- function(data,par=list(Ne=c(10,12),Ti=c(0,3000),Te=c(0,4000),ViR1
                            TeR27=list(expression(paste("T"[eR27]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
                            TeR28=list(expression(paste("T"[eR28]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
                            TeR29=list(expression(paste("T"[eR29]^{}," [K]")),col=fg,cex=cex,vjust=1.2),
-                           
+
                            Ion1=list(sprintf("Fraction of ion mass %.1f u",data$mi[1]),col=fg,cex=cex,vjust=1.2),
                            Ion2=list(sprintf("Fraction of ion mass %.1f u",data$mi[2]),col=fg,cex=cex,vjust=1.2),
                            Ion3=list(sprintf("Fraction of ion mass %.1f u",data$mi[3]),col=fg,cex=cex,vjust=1.2),
@@ -375,7 +375,7 @@ plotPP.list <- function(data,par=list(Ne=c(10,12),Ti=c(0,3000),Te=c(0,4000),ViR1
             }else{
                 d <- data[["param"]][,names(par[p]),tInds]
                 if(length(tInds)==1){
-                    err <- data[["std"]][,names(par[p]),tInds]                    
+                    err <- data[["std"]][,names(par[p]),tInds]
                     if( xlog ){
                         d[data[["std"]][,names(par[p]),tInds]>10**(par[[p]][3])] <- NA
                         err[data[["std"]][,names(par[p]),tInds]>10**(par[[p]][3])] <- NA
@@ -423,9 +423,9 @@ plotPP.list <- function(data,par=list(Ne=c(10,12),Ti=c(0,3000),Te=c(0,4000),ViR1
         }
         # if we did not plot on an x11 device, we must close the device properly
         if((sum(figList)==2)&is.null(figNum)) dev.off()
-        
+
         return(invisible(data2))
-        
+
     }
 
 

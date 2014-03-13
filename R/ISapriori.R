@@ -23,13 +23,13 @@ ISapriori <- function( aprioriParam ,  nIon , absCalib=FALSE , TiIsotropic=FALSE
         #
         #  I. Virtanen 2012, 2013
         #
-        
+
         # length of the parameter vector
         nPar                         <- length(aprioriParam)
 
         # number of imaginary apriori "measurements"
         nApriori                     <- ( nPar + 3 )
-  
+
         # apriori theory matrix
         aprioriTheory                <- matrix( 0 , nrow=nApriori , ncol=nPar )
 
@@ -39,12 +39,12 @@ ISapriori <- function( aprioriParam ,  nIon , absCalib=FALSE , TiIsotropic=FALSE
         # the apriori covariance matrix will be diagonal, so we begin with
         # a vector of standard deviations, which is easier.
         aprioriStd                   <- vector(mode='numeric',length=nApriori)
-  
+
         # apriori parameter values
         aprioriTheory[1:nPar,1:nPar] <- diag(rep(1,nPar))
-        
+
         aprioriMeas[1:nPar]          <- aprioriParam
-        
+
         aprioriStd[1]                <- 1e4                # electron density
         aprioriStd[2]                <- 1                  # parallel ion temperature
         aprioriStd[3]                <- 1                  # perpendicular ion temperature
@@ -61,25 +61,25 @@ ISapriori <- function( aprioriParam ,  nIon , absCalib=FALSE , TiIsotropic=FALSE
         aprioriTheory[3,] <- 0
         aprioriTheory[5,] <- 0
         aprioriMeas[c(3,5)] <- 0
-  
+
 
 
         if(absCalib){
             aprioriStd[(nIon+10):length(aprioriParam)] <- 1e-3 # fix all sites to the same ACF scale
         }else{
-            aprioriStd[(nIon+10):length(aprioriParam)] <- 10   # allow scaling for other sites
+            aprioriStd[(nIon+10):length(aprioriParam)] <- 1   # allow scaling for other sites
         }
         if(!is.null(siteScales)){
             ssinds <- which(!is.na(rowSums(siteScales)))
             aprioriMeas[ssinds+nIon+9] <- siteScales[ssinds,1]  # user-given scaling factors
             aprioriStd[ssinds+nIon+9] <- siteScales[ssinds,2]
         }
-        
+
         aprioriStd[nIon+9+refSite]     <- 1e-3                 # do not allow scaling at the reference site
-        
+
         # force certain parameter differences close to zero
         curRow                         <- nPar + 1
-  
+
         # electron temperature anisotropy
         aprioriTheory[curRow,c(4,5)]   <- c(1,-1)
         aprioriMeas[curRow]            <- 0
@@ -89,7 +89,7 @@ ISapriori <- function( aprioriParam ,  nIon , absCalib=FALSE , TiIsotropic=FALSE
             aprioriStd[curRow]             <- 1
         }
         curRow                         <- curRow + 1
-        
+
         # ion temperature anisotropy
         aprioriTheory[curRow,c(2,3)]   <- c(1,-1)
         aprioriMeas[curRow]            <- 0
@@ -99,13 +99,13 @@ ISapriori <- function( aprioriParam ,  nIon , absCalib=FALSE , TiIsotropic=FALSE
             aprioriStd[curRow]             <- 1
         }
         curRow                         <- curRow + 1
-        
+
         # Sum of ion abundances must be unity
         aprioriTheory[curRow,10:(nIon+9)] <- 1
         aprioriMeas[curRow] <- 1
         aprioriStd[curRow] <- 1e-3
 
-        
+
         return(list(aprioriTheory=aprioriTheory,invAprioriCovar=diag(1/aprioriStd**2),aprioriMeas=aprioriMeas))
-        
+
     }

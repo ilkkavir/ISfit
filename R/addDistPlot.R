@@ -1,23 +1,22 @@
 addDistPlot <- function(d,log=F,h,xlim,ylim=range(h,na.rm=T),xlab,points,confLimits){
-# 
+#
 # plot of the posteriori distributions from an MCMC analysis
 #
-# I. Virtanen 2010 
-# 
-  
+# I. Virtanen 2010
+#
+
   if(log) d <- log10(d)
 
   n <- length(d[1,])
 
   if(points){
-
     # plot the first range and set the axis limits
     plot(d[1,],rep(h[1],n),pch='.',xlim=xlim,ylim=ylim,xlab=xlab,ylab='Height [km]')
 
     # plot all the remaining ranges
     for(k in seq(1,length(h))){
       points(d[k,],rep(h[k],n),pch='.')
-    }    
+    }
 
   }else{
 
