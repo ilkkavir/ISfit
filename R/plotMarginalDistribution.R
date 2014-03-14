@@ -212,9 +212,11 @@ plotMarginalDistribution <- function(fpath,pdf=NULL,jpg=NULL,figNum=NULL,width=8
             # need to somehow combine list elements from different heights.. the MCMC output is not a huge array anymore!
             nheights <- length(hInds)
             nmcmc <- PP$functionCall$MCMCsettings$niter - PP$functionCall$MCMCsettings$burninlength
-            d <- matrix(0,nrow=nheights,ncol=nmcmc)
+            d <- matrix(NA,nrow=nheights,ncol=nmcmc)
             for(rii in seq(nheights)){
-                d[ rii , ] <- PP[["MCMC"]][[hInds[rii]]][["pars"]][ , names(par)[p]]
+                if(!is.null(PP[["MCMC"]][[hInds[rii]]])){
+                    d[ rii , ] <- PP[["MCMC"]][[hInds[rii]]][["pars"]][ , names(par)[p]]
+                }
             }
 
             addDistPlot( d=d , log=xlog , h=PP$height[hInds] , xlim=par[[p]] , ylim=hLim2 , xlab=xlab[[1]] , points=allPoints , confLimits=confLimits )
