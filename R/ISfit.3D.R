@@ -393,7 +393,10 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
 
                           # initial plasma parameter values, there should not be negative ones, as ion velocity is set to zero
                           # Also heavier clusters are included in ion mass 30.5, H+ is used as is and the rest is given to O+
-                          parInit        <- pmax( c( ptmp['e-',1] , ptmp['Ti',1] , ptmp['Ti',1], ptmp['Te',1] , ptmp['Te',1] , ioncoll , 0 , 0 , 0 , ifelse( (sum(ptmp[c('O2+','NO+','cluster'),1])<0) , 0 , sum(ptmp[c('O2+','NO+','cluster'),1])/ptmp['e-',1]) , 0 , ifelse( (ptmp['H+',1]<0) , 0 , ptmp['H+',1]/ptmp['e-',1] ) , rep(1,nd) ) , 0 )
+                          parInit        <- pmax( c( ptmp['e-',1] , ptmp['Ti',1] , ptmp['Ti',1], ptmp['Te',1] , ptmp['Te',1] , ioncoll , 0 , 0 , 0 , sum(ptmp[c('O2+','NO+','cluster'),1])/ptmp['e-',1] , 0 , ptmp['H+',1]/ptmp['e-',1] , rep(1,nd) ) , 0 )
+                          parInit[c(10,12)] <- pmax( 0, parInit[c(10,12)])
+                          parInit[c(10,12)] <- pmin( 1, parInit[c(10,12)])
+                          if(sum(parInit[c(10,12)])>1) parInit[c(10,12)] <- parInit[c(10,12)] / sum(parInit[c(10,12)])
                           parInit[11] <- 1 - sum( parInit[c(10,12)] )
                           # switched to estimating the molecular ion abundance as 1 - O+ - H+. The above estimation has larger error at low altitudes where heavier ions actually exists
 #                          parInit        <- pmax( c( ptmp['e-',1] , ptmp['Ti',1] , ptmp['Ti',1], ptmp['Te',1] , ptmp['Te',1] , ioncoll , 0 , 0 , 0 , ifelse( (sum(ptmp[c('H+','O+'),1])/ptmp['e-',1]>=1) , 0 , 1-sum(ptmp[c('H+','O+'),1])/ptmp['e-',1]) , ifelse( (ptmp['O+',1]<0) , 0 , ptmp['O+',1]/ptmp['e-',1]) , ifelse( (ptmp['H+',1]<0) , 0 , ptmp['H+',1]/ptmp['e-',1] ) , rep(1,nd) ) , 0 )
