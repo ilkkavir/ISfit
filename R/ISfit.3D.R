@@ -42,14 +42,15 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
       ddirs <- unique(ddirs)
       nd <- length(ddirs)
       for( n in seq(nd) ){
-          dfiles[[n]] <- dir( ddirs[n] , full.names=T , recursive=recursive , pattern="[[:digit:]]LP.Rdata")
+          dfiles[[n]] <- dir( ddirs[n] , full.names=T , recursive=recursive , pattern="[[:digit:]]*LP.Rdata")
       }
 
       # stop if there is no data
       if ( sum( sapply( dfiles , length ) ) == 0 ) stop( "Could not find any data files." )
 
       # read timestamps from file names. This is the unix time at end of integration period
-      tstamps <- lapply( dfiles , function(x){as.numeric(substr(x,nchar(x)-20,nchar(x)-8)) / 1000 } )
+#      tstamps <- lapply( dfiles , function(x){as.numeric(substr(x,nchar(x)-20,nchar(x)-8)) / 1000 } )
+      tstamps <- lapply(dfiles,function(x){sapply(x,function(x){as.numeric(substr(rev(unlist(strsplit(x,.Platform[["file.sep"]])))[1],1,13))/1000})})
 
       # convert beginTime and endTime into unix time format
       bTime <- as.double(ISOdate(beginTime[1],beginTime[2], beginTime[3],beginTime[4], beginTime[5],beginTime[6])) + beginTime[6]%%1
@@ -63,7 +64,7 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
           iperLast <- ceiling( ( min( max( sapply( tstamps , max ) ) , eTime ) - bTime ) / timeRes.s )
 
           # stop if analysis end time is before its start time
-          if( iperLast < iperFirst ) stop()
+          if( iperLast < iperFirst ) stop("Last integration period is before the first one.")
 
           # integration period limits
           iperLimits <- seq( iperFirst , iperLast ) * timeRes.s + bTime
