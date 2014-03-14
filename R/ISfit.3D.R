@@ -176,13 +176,26 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
                   # if there are none or several candidates we will need to ask the user
                   if( length(refsite) != 1){
                       if( length(refsite)==0){
-                          cat('Could not find a monostatic site,\n')
-                          cat('available sites are:\n')
-                          cat('Site        TXfreq       TXlat       TXlon    TXheight        TXaz       TXele       RXlat       RXlon    RXheight        RXaz       RXele\n')
-                          for(s in seq(nd)){
-                              cat(sprintf("[%2i]",s),sprintf(" %10.2f",sites[s,2:12]),sprintf("\n"))
+                          if(!siteselprev){
+                              cat('Could not find a monostatic site,\n')
+                              cat('available sites are:\n')
+                              cat('Site        TXfreq       TXlat       TXlon    TXheight        TXaz       TXele       RXlat       RXlon    RXheight        RXaz       RXele\n')
+                              for(s in seq(nd)){
+                                  cat(sprintf("[%2i]",s),sprintf(" %10.2f",sites[s,2:12]),sprintf("\n"))
+                              }
+                              refsite <- as.numeric(readline("Please select number of the reference site: "))
+                              testnum <- as.numeric( readline("Use the same selection in all intgration periods? (1=yes, 0=no) :  ") )
+                              if(testnum) siteselprev <- refsite
+                          }else{
+                              cat('Could not find a monostatic site,\n')
+                              cat('available sites are:\n')
+                              cat('Site        TXfreq       TXlat       TXlon    TXheight        TXaz       TXele       RXlat       RXlon    RXheight        RXaz       RXele\n')
+                              for(s in seq(nd)){
+                                  cat(sprintf("[%2i]",s),sprintf(" %10.2f",sites[s,2:12]),sprintf("\n"))
+                              }
+                              cat("Using previous selection (",siteselprev,")\n")
+                              refsite <- siteselprev
                           }
-                          refsite <- as.numeric(readline("Please select number of the reference site: "))
                       }else{
                           if(!siteselprev){
                               cat('Found several monostatic sites,\n')

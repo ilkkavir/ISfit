@@ -2,34 +2,27 @@ ISmcmc <- function( measData , measVar , initParam , aprioriTheory , aprioriMeas
     {
         initres <- leastSquare.lvmrq(measData=measData , measVar=measVar , initParam=initParam , aprioriTheory=aprioriTheory , aprioriMeas=aprioriMeas , invAprioriCovar=invAprioriCovar , paramLimits=paramLimits , directTheory=directTheory , ... )
 
-        init2 <- initres$param
+        # use the iteration result as strating point if the iteration was successful
+        # otherwise use the prior model but make sure that the parameter variances
+        # are not too large, otherwise even the adaptive MCMC will be in trouble
+        if( initres[["fitStatus"]]){
+            init2 <- initParam
+            initcovar <- diag(pmin(.1,diag(solve(t(aprioriTheory) %*% invAprioriCovar %*% aprioriTheory + diag(rep(1e-16,length(init2)))))))
+        }else{
+            init2 <- initres[["param"]]
+            initcovar <- initres[["covar"]]
+        }
+
         names(init2) <- names(initParam)
 
-        mcmcargs <- c( list( f=SS , p=init2 , measData=measData , measVar=measVar , directTheory=directTheory , aprioriTheory=aprioriTheory , aprioriMeas=aprioriMeas , invAprioriCovar=invAprioriCovar , lower=paramLimits[1,] , upper=paramLimits[2,] , jump=initres$covar*2.4^2/length(init2) ) , MCMCsettings , list( ... ))
+
+        mcmcargs <- c( list( f=SS , p=init2 , measData=measData , measVar=measVar , directTheory=directTheory , aprioriTheory=aprioriTheory , aprioriMeas=aprioriMeas , invAprioriCovar=invAprioriCovar , lower=paramLimits[1,] , upper=paramLimits[2,] , jump=initcovar*2.4^2/length(init2) ) , MCMCsettings , list( ... ))
 
         resmcmc <- do.call( modMCMC , mcmcargs  )
 
-#        npar <- length(initParam)
-#        res <- list(
-#            param=resmcmc[["bestpar"]],
-#            covar=matrix(0,ncol=npar,nrow=npar),
-#            chisqr=resmcmc[["bestfunp"]]/length(measData),
-#            nIter=NULL,
-#            fitStatus=0
-#            )
-#        for(k in seq(npar)){
-#            for(l in seq(k,npar)){
-#                res[["covar"]][k,l] <- mean( (resmcmc[["pars"]][,k] - resmcmc[["bestpar"]][k] ) * (resmcmc[["pars"]][,l] - resmcmc[["bestpar"]][l] ))
-#            }
-#        }
-#
-#        res[["covar"]] <- res[["covar"]] + t(res[["covar"]])
-#        diag(res[["covar"]]) <- diag(res[["covar"]])/2
-#
-#        cat(sprintf("%.2f",init2),'\n')
-#        cat(sprintf("%.2f",res$param),'\n')
-#
-        return(list(param=initres$param,covar=initres$covar,chisqr=initres$chisqr,fitStatus=initres$fitStatus,MCMC=resmcmc))
+        # return the iteration output list padded with the MCMC output
+        initres$MCMC <- resmcmc
+        return(initres)
 
     }
 
