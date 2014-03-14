@@ -21,7 +21,7 @@ addDistPlot <- function(d,log=F,h,xlim,ylim=range(h,na.rm=T),xlab,points,confLim
   }else{
 
     # polygons around the confidence areas
-    confPolygons <- confidencePolygons(d,h,confLimits)
+    confPolygons <- confidencePolygons(d,h,confLimits,xlim + c(-1,1)*10*max(abs(xlim)))
 
     # an idiotic but simple way to set the proper margins
     plot(c(0,0),col='transparent',xlim=xlim,ylim=ylim,xlab=xlab,ylab='Height [km]')

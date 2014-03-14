@@ -1,4 +1,4 @@
-confidencePolygons <- function(d,h,limits){
+confidencePolygons <- function(d,h,limits,parlimits){
 # 
 # I. Virtanen 2010
 # 
@@ -18,21 +18,14 @@ confidencePolygons <- function(d,h,limits){
     confInt <- matrix(ncol=2,nrow=dim(d)[1])
     for(r in seq(dim(d)[1])){
       confInt[r,] <- sort(d[r,])[c( (1-limits[k]) , (1+limits[k]) )*np/2]
+      if(any(is.na(confInt[r,]))) confInt[r,] <- parlimits
     }
     confPols[[k]]     <- list()
     confPols[[k]]$x   <- c(confInt[,1],rev(confInt[,2]),confInt[1,1])
     confPols[[k]]$y   <- c(h,rev(h),h[1])
     confPols[[k]]$col <- rgb((1-k/(n+1)),(1-k/(n+1)),(1-k/(n+1)))
 
-    # take care of NA values
-    for(r in seq(2,length(confPols[[k]]$x))){
-      if(is.na(confPols[[k]]$x[r])){
-        confPols[[k]]$x[r] <- confPols[[k]]$x[r-1]
-        confPols[[k]]$y[r] <- confPols[[k]]$y[r-1]
-      }
-    }
-
-  }
+}
 
   return(confPols)
 
