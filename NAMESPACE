@@ -34,7 +34,8 @@ export(
     averageVelocities,
     plotPP,
     readPP,
-    readPP.3D
+    readPP.3D,
+    readFaradayDir
     )
 
 useDynLib(ISfit)

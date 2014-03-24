@@ -10,10 +10,12 @@ testfit <- function(
         ),
     locTarg   = c(0,0,200),
     locxy     = T,
-    
+    refSite = 1,
+
     fwhmTrans = c(1),
     fwhmRec   = c(1),
     fwhmRange = c(1),
+    fwhmIonSlab = 100,
     resNS,
     resEW,
     resH,
@@ -24,21 +26,23 @@ testfit <- function(
     phArrRec  = FALSE,
     absCalib  = FALSE,
     TiIsotropic=FALSE,
-    
+    TeIsotropic=TRUE,
+
     TperpTpar = 1,
     vion      = c(0,0,0),
     vele      = vion,
-    
+
     nlags     = 30,
     integrationTime = 10,
     dutyCycle = .1,
-    
+
+    plotFit  = T,
     plotTest  = F,
     absLimit  = 5,
     diffLimit = 1e-2,
     maxLambda = 1e30,
     maxIter   = 100,
-    
+
     time      = c(2009,7,1,11,0,0),
     heights   = seq(1000),
     fitFun=leastSquare.lvmrq,
@@ -95,7 +99,7 @@ testfit <- function(
 #
 #
 #
-# I. Virtanen 2012  
+# I. Virtanen 2012
 #
 
   # if only one location is given as a vector, convert it into a list
@@ -137,7 +141,7 @@ testfit <- function(
     latlonTarg   <- list(lat=locTarg[1],lon=locTarg[2])
   }
   xyzTarg        <- ISgeometry:::sphericalToCartesian(c(latlonTarg$lat,latlonTarg$lon,ISgeometry:::EarthRadius()+locTarg[3]))
-  
+
   # lists for site parameters
   kSite <- vector(mode='list',length=nComb)
   aSite <- vector(mode='numeric',length=nComb)
@@ -149,7 +153,7 @@ testfit <- function(
       kSite[[(t-1)*nRec+r]] <- ISgeometry:::rotateHorizontal.vector.cartesian(
                                  ISgeometry:::scatterPlaneNormal.cartesian(xyzTrans[[t]],xyzRec[[r]],xyzTarg),
                                  xyzTarg
-                               )                                                                 
+                               )
       # scattering angle (angle between incident and scattered waves)
       aSite[(t-1)*nRec+r]   <- ISgeometry:::vectorAngle.cartesian((xyzTarg-xyzTrans[[t]]),(xyzRec[[r]]-xyzTarg),degrees=T)
     }
@@ -164,7 +168,7 @@ testfit <- function(
   # an approximation for NO+-neutral colllision frequency (Schunk & Walker, Planet. Space Sci., 1971)
   # the densities in outfmsis are in cm^-3
   ioncoll        <- sum( ionNeutralCollisionFrequency(ptmp[,h])['NO+',] )
-  
+
   # an approximation for electron-neutral collision frequency
   elecoll        <- ioncoll*.35714
 
@@ -181,7 +185,7 @@ testfit <- function(
                          c(1.0,ptmp['H+',h]/ele[1],tion,ioncoll,vion)
                          )
 
-  
+
   nIon           <- length(ion)
   mIon <- sapply(ion,FUN=function(x){x[1]})
 
@@ -198,7 +202,7 @@ testfit <- function(
       # initially isotropic temperatures and Te=Ti
       initParam[c(10,11)]                     <- initParam[10]
       for(k in seq(0,nIon)) initParam[c(10,11)+((k-1)*8)] <- initParam[c(10,11)]
-  
+
       # parameter scaling factors
       parScales      <- ISparamScales.general(initParam,nIon)
 
@@ -212,7 +216,7 @@ testfit <- function(
       limitParam     <- parLimits
       limitParam[1,] <- scaleParams(parLimits[1,] , parScales , inverse=F)
       limitParam[2,] <- scaleParams(parLimits[2,] , parScales , inverse=F)
-  
+
       # apriori information
       apriori <- ISapriori.general( initParam , nIon , absCalib , TiIsotropic )
       directTheory <- ISdirectTheory.general
@@ -227,7 +231,7 @@ testfit <- function(
 
       # initially isotropic temperatures and Te=Ti
       initParam[3:5] <- initParam[2]
-  
+
       # parameter scaling factors
       parScales      <- ISparamScales(initParam,nIon)
 
@@ -241,9 +245,9 @@ testfit <- function(
       limitParam     <- parLimits
       limitParam[1,] <- scaleParams(parLimits[1,] , parScales , inverse=F)
       limitParam[2,] <- scaleParams(parLimits[2,] , parScales , inverse=F)
-  
+
       # apriori information
-      apriori <- ISapriori( initParam , nIon , absCalib , TiIsotropic )
+      apriori <- ISapriori( aprioriParam=initParam , nIon=nIon , absCalib=absCalib , TiIsotropic=TiIsotropic , TeIsotropic=TeIsotropic , refSite=refSite )
 
       directTheory <- ISdirectTheory
   }
@@ -260,7 +264,7 @@ testfit <- function(
 
 
   # simulated ACF data
-  simudata <- ISmeas.simu( refPoint=refPoint , locTrans=locTrans , locRec=locRec , locTarg=locTarg , locxy=locxy , fwhmTrans=fwhmTrans , fwhmRec=fwhmRec , fwhmRange=fwhmRange , resNS=resNS , resEW=resEW , resH=resH , Pt=Pt , Tnoise=Tnoise , fradar=fradar , phArrTrans=phArrTrans , phArrRec=phArrRec , ele=ele , ion=ion , freq=seq(-100000,100000,by=1000)*fradar/1e9 , lags=lags , integrationTime=integrationTime , dutyCycle=dutyCycle , time=time)
+  simudata <- ISmeas.simu( refPoint=refPoint , locTrans=locTrans , locRec=locRec , locTarg=locTarg , locxy=locxy , fwhmTrans=fwhmTrans , fwhmRec=fwhmRec , fwhmRange=fwhmRange , fwhmIonSlab=fwhmIonSlab , resNS=resNS , resEW=resEW , resH=resH , Pt=Pt , Tnoise=Tnoise , fradar=fradar , phArrTrans=phArrTrans , phArrRec=phArrRec , ele=ele , ion=ion , freq=seq(-100000,100000,by=1000)*fradar/1e9 , lags=lags , integrationTime=integrationTime , dutyCycle=dutyCycle , time=time)
 
   # wave vectors, scattering angles, and site indices
   nData <- nlags * nComb
@@ -293,6 +297,7 @@ testfit <- function(
               scaleFun        = scaleParams,
               scale           = parScales,
               plotTest        = plotTest,
+              plotFit        = plotFit,
               maxLambda       = maxLambda,
               maxIter         = maxIter,
               mIon=mIon,
@@ -301,7 +306,7 @@ testfit <- function(
               )
           )
       )
-  
+
 
 
 
@@ -313,4 +318,4 @@ testfit <- function(
   }
   fitpar$parScales <- parScales
   invisible(fitpar)
-} 
+}

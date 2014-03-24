@@ -1,4 +1,4 @@
-ISmeas.simu <- function(refPoint=KIR,locTrans=TRO,locRec=list(TRO,KIR,KIL),locTarg=c(TRO,200),locxy=FALSE,fwhmTrans=c(1),fwhmRec=c(1,2,4),fwhmRange=c(1),resNS,resEW,resH,Pt=c(1e6),Tnoise=c(200),fradar=233e6,phArrTrans=c(FALSE),phArrRec=c(FALSE,FALSE,TRUE),ele=c(1e11,300,300,0,0,0,0),ion=list(c(30.5,.7e11,300,300,0,0,0,0),c(16,.3e11,300,300,0,0,0,0),c(1,0,300,300,0,0,0,0)),freq=seq(-1000,1000)*100,lags=seq(50)*50e-6,integrationTime=10,dutyCycle=.12,time=c(2012,6,1))
+ISmeas.simu <- function(refPoint=KIR,locTrans=TRO,locRec=list(TRO,KIR,KIL),locTarg=c(TRO,200),locxy=FALSE,fwhmTrans=c(1),fwhmRec=c(1,2,4),fwhmRange=c(1),fwhmIonSlab=100,resNS,resEW,resH,Pt=c(1e6),Tnoise=c(200),fradar=233e6,phArrTrans=c(FALSE),phArrRec=c(FALSE,FALSE,TRUE),ele=c(1e11,300,300,0,0,0,0),ion=list(c(30.5,.7e11,300,300,0,0,0,0),c(16,.3e11,300,300,0,0,0,0),c(1,0,300,300,0,0,0,0)),freq=seq(-1000,1000)*100,lags=seq(50)*50e-6,integrationTime=10,dutyCycle=.12,time=c(2012,6,1))
   {
     # simulated incoherent scatter ACFs for a given measurement geometry and plasma parameters
     #
@@ -10,12 +10,12 @@ ISmeas.simu <- function(refPoint=KIR,locTrans=TRO,locRec=list(TRO,KIR,KIL),locTa
   # if only one location is given as a vector, convert it into a list
   if(!is.list(locTrans)) locTrans <- list(locTrans)
   if(!is.list(locRec))   locRec   <- list(locRec)
-  
+
 
   nTrans <- length(locTrans)
   nRec   <- length(locRec)
   nComb <- nRec * nTrans
-  
+
   # make sure that all locations are available as both (lat,lon,height) and (x,y,z)
   # transmitters
   xyzTrans <- vector(mode='list',length=nTrans)
@@ -52,7 +52,7 @@ ISmeas.simu <- function(refPoint=KIR,locTrans=TRO,locRec=list(TRO,KIR,KIL),locTa
                                                      fwhmTrans=fwhmTrans , fwhmRec=fwhmRec , fwhmRange=fwhmRange , x=xyhTarg[1] ,
                                                      y=xyhTarg[2] , heights=xyhTarg[3] , infinity=1e3 , resNS=resNS ,
                                                      resEW=resEW , resH=resH , Pt=Pt , Ne=ele[1] , Tnoise=Tnoise , fradar=fradar ,
-                                                     tau0=100 , phArrTrans=phArrTrans , phArrRec=phArrRec )
+                                                     tau0=100 , phArrTrans=phArrTrans , phArrRec=phArrRec , fwhmIonSlab=fwhmIonSlab )
 
 
   # baud length from fwhmRange
@@ -70,7 +70,7 @@ ISmeas.simu <- function(refPoint=KIR,locTrans=TRO,locRec=list(TRO,KIR,KIL),locTa
     }
   }
 
-  
+
   # signal-to-noise ratios and scattering wave vectors for each transmitter - receiver combination
   snr <- rep(0,nComb)
   kscat <- rep(list(c(0,0,0),nComb))
@@ -102,5 +102,5 @@ ISmeas.simu <- function(refPoint=KIR,locTrans=TRO,locRec=list(TRO,KIR,KIL),locTa
 
 
   return(list(ACF=acflist,var=varlist,sdacf=sdacf))
-  
+
   }
