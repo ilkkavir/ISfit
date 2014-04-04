@@ -1,7 +1,8 @@
-ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 , beginTime=c(1970,1,1,0,0,0) , endTime=c(2100,1,1,0,0,0) , fitFun=leastSquare.lvmrq , absLimit=5 , diffLimit=1e-2 , maxLambda=1e30 , maxIter=10 , plotTest=FALSE , plotFit=FALSE , absCalib=FALSE , TiIsotropic=TRUE , TeIsotropic=TRUE , recursive=TRUE , scaleFun=acfscales , siteScales=NULL, calScale=1, MCMCsettings=list( niter=10000 , updatecov=100 , burninlength=5000 , outputlength=5000 ) , maxdev=2 , trueHessian=FALSE , nCores=1)
+integrateData <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 , beginTime=c(1970,1,1,0,0,0) , endTime=c(2100,1,1,0,0,0) , fitFun=leastSquare.lvmrq , absLimit=5 , diffLimit=1e-2 , maxLambda=1e30 , maxIter=10 , plotTest=FALSE , plotFit=FALSE , absCalib=FALSE , TiIsotropic=TRUE , TeIsotropic=TRUE , recursive=TRUE , scaleFun=acfscales , siteScales=NULL, calScale=1, MCMCsettings=list( niter=10000 , updatecov=100 , burninlength=5000 , outputlength=5000 ) , maxdev=2 , trueHessian=FALSE , nCores=1)
   {
 
-      # 3D incoherent scatter plasma parameter fit using LPI output files in ddirs
+      # Integrate ACFs as in ISfit.3D and write the integrated data to files
+      # This function contains loads of unnecessary calculations....
       #
       # This is a GUISDAP-style fit, which uses a single ion temperature and collision frequency. Currently 3 ions ( 30.5 , 16.0 , 1.0 )
       #
@@ -53,6 +54,11 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
       nd <- length(ddirs)
       for( n in seq(nd) ){
           dfiles[[n]] <- dir( ddirs[n] , full.names=T , recursive=recursive , pattern="[[:digit:]]*LP.Rdata")
+      }
+
+      # create sub-directories for each site in odir
+      for(n in seq(nd)){
+          dir.create(file.path(odir,paste('Site',n,sep='')),recursive=TRUE,showWarnings=FALSE)
       }
 
       # stop if there is no data
@@ -276,7 +282,12 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
                       # a list for site indices contributing at each height
                       contribSites <- apriori <- list()
 
+
+                      acflist <- list()
+
                       for( h in seq( nh ) ){
+
+                          acflist[[h]] <- list()
 
                           # Initial values, these will be immediately updated if any data is found
                           height[h]      <- sum(hlims[h:(h+1)])/2000
@@ -434,80 +445,54 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
 
                                   model[h,]      <- parInit
 
-                                  fitpar   <- ISparamfit(
-                                      acf             = unlist(acf.site),
-                                      var             = unlist(var.site),
-                                      lags            = unlist(lag.site),
-                                      nData           = sum(nlags.site),
-                                      fSite           = sites[,2],
-                                      aSite           = aSite,
-                                      kSite           = kSite,
-                                      iSite           = unlist(ind.site),
-                                      B               = B[h,],
-                                      initParam       = initParam,
-                                      invAprioriCovar = apriori[[h]]$invAprioriCovar,
-                                      aprioriTheory   = apriori[[h]]$aprioriTheory,
-                                      aprioriMeas     = apriori[[h]]$aprioriMeas,
-                                      mIon            = c(30.5,16,1),
-                                      nIon            = 3,
-                                      paramLimits     = limitParam,
-                                      directTheory    = ISdirectTheory,
-                                      absLimit        = absLimit,
-                                      diffLimit       = diffLimit,
-                                      scaleFun        = scaleParams,
-                                      scale           = parScales,
-                                      plotTest        = plotTest,
-                                      plotFit         = plotFit,
-                                      maxLambda       = maxLambda,
-                                      maxIter         = maxIter,
-                                      fitFun          = fitFun,
-                                      MCMCsettings    = MCMCsettings,
-                                      trueHessian     = trueHessian
-                                      )
+                                  acflist[[h]][["ACF"]] <- unlist(acf.site)
+                                  acflist[[h]][["var"]] <- unlist(var.site)
+                                  acflist[[h]][["lag"]] <- unlist(lag.site)
+                                  acflist[[h]][["isite"]] <- unlist(ind.site)
 
-                                  # scale back to physical units
-                                  param[h,] <- scaleParams( fitpar$param , scale=parScales , inverse=TRUE )
-                                  covar[[h]] <- scaleCovar( fitpar$covar , scale=parScales , inverse=TRUE)
-                                  std[h,]   <- sqrt(diag(covar[[h]]))
-                                  chisqr[h] <- fitpar[["chisqr"]]
-                                  status[h] <- fitpar[["fitStatus"]]
-                                  dimnames(covar[[h]])   <- list(c('Ne','Tipar','Tiperp','Tepar','Teperp','Coll','Vix','Viy','Viz',paste('Ion',seq(3),sep=''),paste('Site',seq(nd),sep='')),c('Ne','Tipar','Tiperp','Tepar','Teperp','Coll','Vix','Viy','Viz',paste('Ion',seq(3),sep=''),paste('Site',seq(nd),sep='')))
-
-                                  contribSites[[h]] <- unique(unlist(ind.site))
-                                  if(!is.null(fitpar$MCMC)){
-                                      MCMC[[h]] <- fitpar$MCMC
-                                      for( sr in seq(dim(MCMC[[h]][["pars"]][1]))) MCMC[[h]][["pars"]][k,] <-  scaleParams( MCMC[[h]][["pars"]][k,] , parScales , inverse=T )
-                                      MCMC[[h]][["bestpar"]] <- scaleParams( MCMC[[h]][["bestpar"]] , parScales , inverse=TRUE )
-                                      MCMC[[h]][["pars"]] <- t( apply( MCMC[[h]][["pars"]] , FUN=scaleParams , MARGIN=1  , scale=parScales , inverse=TRUE) )
-                                      dimnames(MCMC[[h]][["pars"]]) <- list( NULL , c('Ne','Tipar','Tiperp','Tepar','Teperp','Coll','Vix','Viy','Viz',paste('Ion',seq(3),sep=''),paste('Site',seq(nd),sep='')) )
-                                      names(MCMC[[h]][["bestpar"]]) <- c('Ne','Tipar','Tiperp','Tepar','Teperp','Coll','Vix','Viy','Viz',paste('Ion',seq(3),sep=''),paste('Site',seq(nd),sep=''))
-                                  }
                               }
                           }
                       }
 
                       time_sec <- iperLimits[k+1]
                       POSIXtime <- as.POSIXlt(time_sec,origin='1970-01-01',tz='ut')
-                      std[is.na(std)] <- Inf
 
 
-                      dimnames(param) <- list(paste('gate',seq(nh),sep=''),c('Ne','Tipar','Tiperp','Tepar','Teperp','Coll','Vix','Viy','Viz',paste('Ion',seq(3),sep=''),paste('Site',seq(nd),sep='')))
-                      dimnames(std)   <- list(paste('gate',seq(nh),sep=''),c('Ne','Tipar','Tiperp','Tepar','Teperp','Coll','Vix','Viy','Viz',paste('Ion',seq(3),sep=''),paste('Site',seq(nd),sep='')))
-                      dimnames(model)   <- list(paste('gate',seq(nh),sep=''),c('Ne','Tipar','Tiperp','Tepar','Teperp','Coll','Vix','Viy','Viz',paste('Ion',seq(3),sep=''),paste('Site',seq(nd),sep='')))
-                      names(height) <- paste('gate',seq(nh),sep='')
-                      names(latitude) <- paste('gate',seq(nh),sep='')
-                      names(longitude) <- paste('gate',seq(nh),sep='')
-                      dimnames(B) <- list(paste('gate',seq(nh),sep=''),c('x','y','z'))
+                      # create the ACF lists for each site and save them in files
+                      lag.us <- unique(lag*1e6)
+                      nlags <- length(lag.us)
+                      range.km <- height
+                      nranges <- length(range.km)
+                      for( n in seq(nd)){
+                          ACF <- list()
+                          ACF$ACF <- ACF$var <- matrix(NA,ncol=nlags,nrow=nranges)
+                          ACF$lag.us <- lag.us
+                          ACF$range.km <- range.km
+                          ACF$nGates <- nranges
+                          ACF$time.s <- time_sec
+                          ACF$timeString <- as.character(POSIXtime)
+                          ACF$radarFreq <- sites[n,2]
+                          ACF$llhT <- sites[n,3:5]
+                          ACF$azelT <- sites[n,6:7]
+                          ACF$llhR <- sites[n,8:10]
+                          ACF$azelR <- sites[n,11:12]
+                          for(rr in seq(nranges)){
+                              if(any(acflist[[rr]][["isite"]]==n)){
+                                  ACF$range.km[rr] <- height2range( azelT=ACF$azelT , h=range.km[rr]*1000 , llhR=ACF$llhR , llhT=ACF$llhT )/1000
+                                  for(ll in seq(nlags)){
+                                      ind <- which( (acflist[[rr]][["isite"]]==n) & (abs(acflist[[rr]][["lag"]]-lag.us[ll]*1e-6)<1e-7))
+                                      if(any(ind)){
+                                          ACF$ACF[rr,ll] <- acflist[[rr]][["ACF"]][ind]
+                                          ACF$var[rr,ll] <- acflist[[rr]][["var"]][ind]
+                                      }
+                                  }
+                              }
+                          }
+                          resFile <- file.path( odir , paste('Site',n,sep='') , paste( sprintf( '%13.0f' , trunc( iperLimits[k+1]  * 1000 ) ) , "LP.Rdata" , sep=''))
+                          save(ACF,file=resFile)
+                          cat(iperLimits[k+1],'\n')
 
-
-                      # save the results to file
-                      PP <- list(param=param,std=std,model=model,chisqr=chisqr,status=status,time_sec=time_sec,date=date,POSIXtime=POSIXtime,height=height,latitude=latitude,longitude=longitude,sites=sites,intersect=intersect,covar=covar,B=B,heightLimits.km=hlims/1000,contribSites=contribSites,mIon=c(30.5,16.0,1.0),MCMC=MCMC,timeLimits.s=iperLimits[k:(k+1)],functionCall=functionCall,apriori=apriori)
-                      resFile <- file.path( odir , paste( sprintf( '%13.0f' , trunc( iperLimits[k+1]  * 1000 ) ) , "PP.Rdata" , sep=''))
-                      save( PP , file=resFile )
-
-                      cat(iperLimits[k+1],'\n')
-
-
+                      }
                   }
               }
               )

@@ -9,20 +9,20 @@ siteCalib <- function( ddir='.' , recursive=FALSE )
         # check that the dfiles vector is not empty
         if( length(dfiles)==0) stop("No data files")
 
-        # all files should have identical height gates, load the first one 
+        # all files should have identical height gates, load the first one
         load(dfiles[1])
 
         # number of height gates
         nh <- length(PP[["height"]])
-    
+
         # initialize with 1000 rows, expand later if necessary
         sites <- matrix(ncol=(12+nh*2),nrow=1000)
 
         # total number of sites found
         nstot <- 0
-    
+
         for( f in dfiles){
-        
+
             # load a new file
             load(f)
 
@@ -63,10 +63,12 @@ siteCalib <- function( ddir='.' , recursive=FALSE )
 
                 # accept only those points that actually have contribution from this site
                 hinds <- rep(0,nh)
-                for(h in seq(length(PP[["contribSites"]]))){
-                    hinds[h] <- any( PP[["contribSites"]][[h]]==s)
+                if( length(PP[["contribSites"]])>0){
+                    for(h in seq(length(PP[["contribSites"]]))){
+                        hinds[h] <- any( PP[["contribSites"]][[h]]==s)
+                    }
                 }
-            
+
                 # ACF scales at all heights
                 srow <- c(PP[["param"]][,paste('Site',sitesf[s,1],sep='')]/PP[["std"]][,paste('Site',sitesf[s,1],sep='')]**2,1/PP[["std"]][,paste('Site',sitesf[s,1],sep='')]**2) * hinds
 
@@ -96,5 +98,5 @@ siteCalib <- function( ddir='.' , recursive=FALSE )
 
         # return the scales for all sites
         return(sites[1:nstot,])
-        
+
     }

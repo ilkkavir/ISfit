@@ -35,9 +35,15 @@ export(
     plotPP,
     readPP,
     readPP.3D,
-    readFaradayDir
+    readFaradayDir,
+    ISmcmc,
+    sumxy,
+    readPP.MCMC,
+    plotMarginalDistribution
     )
 
 useDynLib(ISfit)
 S3method(plotPP,character)
 S3method(plotPP,list)
+S3method(plotMarginalDistribution,list)
+S3method(plotMarginalDistribution,character)

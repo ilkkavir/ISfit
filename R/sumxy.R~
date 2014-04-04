@@ -1,0 +1,19 @@
+sumxy <- function( xxdir , yydir , odir )
+    {
+        #
+        # sum x and y polarization ACFs in KAIRA analysis
+        #
+
+        # list files in xxdir
+        xxfiles <- dir(xxdir,full.names=FALSE,pattern='LP.Rdata')
+        # list files in yydir
+        yyfiles <- dir(yydir,full.names=FALSE,pattern='LP.Rdata')
+
+        # common files
+        xyfiles <- intersect( xxfiles , yyfiles )
+
+        # stop if no common files
+        if(length(xyfiles)==0) stop(paste("No matching files names in",xxdir,"and",yydir))
+
+
+    }

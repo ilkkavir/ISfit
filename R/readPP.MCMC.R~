@@ -1,0 +1,15 @@
+readPP.MCMC <- function( fpath )
+    {
+        #
+        # read plasma parameters from the MCMC fit results
+        #
+        #
+        #
+        #
+        # I. Virtanen 2014
+        #
+
+
+
+
+    }
