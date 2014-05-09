@@ -167,27 +167,28 @@ plotPP.list <- function(data,par=list(Ne=c(10,12),TeR1=c(0,4000),TiR1=c(0,3000),
             par(mar=c(3,3,3,1),mgp=c(1.5,.5,0))
             trellis <- FALSE
         }else{
-            layout(matrix(seq(2*length(par)),ncol=2,byrow=T),widths=rep(c(.9,.1),2*length(par)))
-            par(mar=c(2,3,2,1),mgp=c(1.5,.5,0))
-
-            treold <- trellis.par.get()
-            trenew <- treold
-            trenew$bacground$col <- bg
-            trenew$layout.heights$strip <- 0
-            trenew$layout.heights$xlab <- 0
-            trenew$layout.heights$sub <- 0
-            trenew$layout.heights$between <- 0
-            trenew$layout.heights$main <- .1
-            trenew$layout.heights$top.padding <- 0
-            trenew$layout.heights$main.key.padding <- 0
-            trenew$layout.heights$key.top <- 1
-            trenew$layout.heights$bottom.padding <- 0
-            trenew$layout.heights$xlab.key.padding <- 0
-            trenew$layout.widths$panel <- 5
-            trenew$layout.widths$right.padding <- 1
-            trenew$layout.heights$key.axis.padding<-1
-            trellis.par.set(list(background=trenew$background,layout.heights=trenew$layout.heights,layout.widths=trenew$layout.widths))
-
+            if(trellis){
+                treold <- trellis.par.get()
+                trenew <- treold
+                trenew$bacground$col <- bg
+                trenew$layout.heights$strip <- 0
+                trenew$layout.heights$xlab <- 0
+                trenew$layout.heights$sub <- 0
+                trenew$layout.heights$between <- 0
+                trenew$layout.heights$main <- .1
+                trenew$layout.heights$top.padding <- 0
+                trenew$layout.heights$main.key.padding <- 0
+                trenew$layout.heights$key.top <- 1
+                trenew$layout.heights$bottom.padding <- 0
+                trenew$layout.heights$xlab.key.padding <- 0
+                trenew$layout.widths$panel <- 5
+                trenew$layout.widths$right.padding <- 1
+                trenew$layout.heights$key.axis.padding<-1
+                trellis.par.set(list(background=trenew$background,layout.heights=trenew$layout.heights,layout.widths=trenew$layout.widths))
+            }else{
+                layout(matrix(seq(2*length(par)),ncol=2,byrow=T),widths=rep(c(.9/sqrt(cex),.1*sqrt(cex)),2*length(par)))
+                par(mar=c(2,3,2,1)*cex,mgp=c(1.5,.5,0)*cex)
+            }
             # tick marks in the time axis
             ticks <- timeTicks(tLim,tickRes)
 
@@ -413,18 +414,18 @@ plotPP.list <- function(data,par=list(Ne=c(10,12),TeR1=c(0,4000),TiR1=c(0,3000),
                             col.regions = col.regions
                             )
                     }else{
-                        image(data$time_sec[tInds],data$height[,tInds[1]],t(d),xlim=tLim,ylim=hLim,zlim=par[[p]][1:2],col=col.regions(1000),xaxt='n',ylab='Height [km]',xlab='')
-                        axis(1,at=ticks$tick,labels=ticks$string)
-                        image(c(0,1),seq(par[[p]][1],par[[p]][2],length.out=1000),t(matrix(rep(seq(par[[p]][1],par[[p]][2],length.out=1000),2),ncol=2)),col=col.regions(1000),ylab=main[[1]],xaxt='n',xlab='')
+                        image(data$time_sec[tInds],data$height[,tInds[1]],t(d),xlim=tLim,ylim=hLim,zlim=par[[p]][1:2],col=col.regions(1000),xaxt='n',ylab='Height [km]',xlab='',cex=cex,cex.lab=cex,cex.axis=cex)
+                        axis(1,at=ticks$tick,labels=ticks$string,cex=cex,cex.lab=cex,cex.axis=cex)
+                        image(c(0,1),seq(par[[p]][1],par[[p]][2],length.out=1000),t(matrix(rep(seq(par[[p]][1],par[[p]][2],length.out=1000),2),ncol=2)),col=col.regions(1000),ylab=main[[1]],xaxt='n',xlab='',cex=cex,cex.lab=cex,cex.axis=cex)
                     }
                 }
             }
         }
         if(!trellis){
             if(length(tInds)==1){
-                mtext( paste( as.character( data[["POSIXtime"]][[tInds]] ) , "UTC" ), side = 3, line = -2, outer = TRUE )
+                mtext( paste( as.character( data[["POSIXtime"]][[tInds]] ) , "UTC" ), side = 3, line = -2, outer = TRUE , cex = cex )
             }else{
-                mtext( substr( as.character( data[["POSIXtime"]][[tInds[1]]] ) , 1 , 10 ) , side = 3, line = -1.5, outer = TRUE , cex=1)
+                mtext( substr( as.character( data[["POSIXtime"]][[tInds[1]]] ) , 1 , 10 ) , side = 3, line = -1.5, outer = TRUE , cex = cex )
             }
         }
         # if we did not plot on an x11 device, we must close the device properly
