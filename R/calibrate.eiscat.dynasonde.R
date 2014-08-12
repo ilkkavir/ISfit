@@ -1,4 +1,4 @@
-calibrate.eiscat.dynasonde <- function( dataDir , beginTime=c(1970,1,1,0,0,0) , endTime=c(2500,1,1,0,0,0) , region='F' , neMin=0 , multistatic=TRUE , timeplot=FALSE, useCriticalFreq=TRUE){
+calibrate.eiscat.dynasonde <- function( dataDir , beginTime=c(1970,1,1,0,0,0) , endTime=c(2500,1,1,0,0,0) , region='F' , neMin=0 , multistatic=TRUE , timeplot=FALSE, xyplot=TRUE, useCriticalFreq=TRUE){
 # electron density calibration with the EISCAT dynasonde
 
 
@@ -124,6 +124,8 @@ calibrate.eiscat.dynasonde <- function( dataDir , beginTime=c(1970,1,1,0,0,0) , 
       dev.new()
   }
 
+  cat("Calibrating with",length(necompar[,1]),"data points\n")
+  
   maxne <- max(necompar[,2:3])
 
   fitvar <- 1/sum(necompar[,2]**2/necompar[,4],na.rm=T)
@@ -135,13 +137,14 @@ calibrate.eiscat.dynasonde <- function( dataDir , beginTime=c(1970,1,1,0,0,0) , 
 
   x <- c(0,1e14)
 
-  plot(necompar[,2],necompar[,3],xlim=c(0,maxne)*1.2,ylim=c(0,maxne)*1.2,xlab='Dynasonde',ylab='IS radar',main=paste(sprintf("Ratio = %6.3f, std = %6.3f, chisqr = %6.3f",fitres,sqrt(fitvar),chisqr)))
-  lines(x,x*fitres,col='red',lwd=2)
-  lines(x,x*(fitres+2*sqrt(fitvar)),col='blue')
-  lines(x,x*(fitres-2*sqrt(fitvar)),col='blue')
-
+  if(xyplot){
+    plot(necompar[,2],necompar[,3],xlim=c(0,maxne)*1.2,ylim=c(0,maxne)*1.2,xlab='Dynasonde',ylab='IS radar',main=paste(sprintf("Ratio = %6.3f, std = %6.3f, chisqr = %6.3f",fitres,sqrt(fitvar),chisqr)))
+    lines(x,x*fitres,col='red',lwd=2)
+    lines(x,x*(fitres+2*sqrt(fitvar)),col='blue')
+    lines(x,x*(fitres-2*sqrt(fitvar)),col='blue')
+  }
 
   
-  return(c(fitres,fitvar,chisqr))
+  return(c(neratio=fitres,var=fitvar,chisqr=chisqr))
   
 }
