@@ -35,7 +35,7 @@ plotMarginalDistribution.list <- function(data,pdf=NULL,jpg=NULL,figNum=NULL,wid
 
     hLim2 <- range(data$height,na.rm=T)
     hInds <- seq(length(data$height))
-    if(!is.null(hLim)){ hInds <- (data$height[,1] >= hLim[1]) & (data$height[,2] <= hLim[2]); hLim2 <- hLim}
+    if(!is.null(hLim)){ hInds <- which( (data$height >= hLim[1]) & (data$height <= hLim[2])); hLim2 <- hLim}
 
     if(!any(hInds)) stop('No data from the given height interval')
 

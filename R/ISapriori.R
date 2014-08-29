@@ -70,6 +70,7 @@ ISapriori <- function( aprioriParam ,  nIon , absCalib=FALSE , TiIsotropic=FALSE
             aprioriStd[(nIon+10):length(aprioriParam)] <- 1   # allow scaling for other sites
         }
         if(!is.null(siteScales)){
+            if(!is.matrix(siteScales)) siteScales <- matrix(siteScales,nrow=1)
             ssinds <- which(!is.na(rowSums(siteScales)))
             aprioriMeas[ssinds+nIon+9] <- siteScales[ssinds,1]  # user-given scaling factors
             aprioriStd[ssinds+nIon+9] <- siteScales[ssinds,2]
