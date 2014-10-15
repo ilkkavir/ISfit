@@ -22,9 +22,10 @@ Depends: \tab IGRF11, ISspectrum, NLSQ, IRI2011, radarPointings, FME, lattice\cr
 
   \code{\link{plotMarginalDistribution}} Plot marginal distributions of plasma parameters using results of MCMC analysis
 
+  To be completed, please be patient...
+
 }
 
-To be completed, please be patient...
 
 \author{
 Ilkka Virtanen (University of Oulu, Finland) \cr \email{ilkka.i.virtanen@oulu.fi}
