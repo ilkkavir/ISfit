@@ -497,8 +497,8 @@ integrateData <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.
               }
               )
           if(nCores>1){
-              parallel(runcmd)
-              if( (k%%nCores == 0) | k==nIper ) collect(wait=TRUE)
+              mcparallel(runcmd)
+              if( (k%%nCores == 0) | k==nIper ) mccollect(wait=TRUE)
           }else{
               eval( runcmd )
           }
