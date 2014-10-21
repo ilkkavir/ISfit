@@ -1,4 +1,4 @@
-sumxy <- function( xxdir , yydir , odir , yyscale=1)
+sumxy <- function( xxdir , yydir , odir , yyscale=1 , sumscale=1)
     {
         #
         # sum x and y polarization ACFs in KAIRA analysis
@@ -20,8 +20,8 @@ sumxy <- function( xxdir , yydir , odir , yyscale=1)
             load(file.path(yydir,fn))
             yyACF <- ACF
             load(file.path(xxdir,fn))
-            ACF$ACF <- ACF$ACF + yyACF$ACF * yyscale
-            ACF$var <- ACF$var + yyACF$var * yyscale**2
+            ACF$ACF <- ( ACF$ACF + yyACF$ACF * yyscale ) * sumscale
+            ACF$var <- ( ACF$var + yyACF$var * yyscale**2 ) *sumscale**2
             save(ACF,file=file.path(odir,fn))
             cat('\r',fn)
         }

@@ -1,4 +1,4 @@
-readPP.3D <- function(dpath,recursive=F){
+readPP.3D <- function(dpath,measuredOnly=T,recursive=F,...){
 #
 #
 # read plasma parameters from files
@@ -209,17 +209,19 @@ readPP.3D <- function(dpath,recursive=F){
                 # remove parameters that must be based solely on the prior model
                 # sometimes there are minor antenna movements that are treated as separate
                 # "sites" by the analysis, strip these off before counting the sites
-                nsitesr <- length(PP$contribSites[[r]])
-                if(nsitesr>1) nsitesr <- dim(unique(floor(t(t(PP$sites[PP$contribSites[[r]],])*c(0,100,10,10,1,1,1,10,10,1,1,1)))))[1]
-                # if there is only one site, remove all but the projections to that receiver
-                if(nsitesr==1){
-                    param[r,c(2,3,4,5,7,8,9,nPar+1,nPar+2,nPar+3,nPar+4,nPar+5,nPar+6,nPar+7),k] <- NA
-                    std[r,c(2,3,4,5,7,8,9,nPar+1,nPar+2,nPar+3,nPar+4,nPar+5,nPar+6,nPar+7),k] <- NA
-                }
-                # if there are two sites we can accept also the temperature anisotropy estimates
-                if(nsitesr==2){
-                    param[r,c(7,8,9,nPar+3,nPar+6,nPar+7),k] <- NA
-                    std[r,c(7,8,9,nPar+3,nPar+6,nPar+7),k] <- NA
+                if(measuredOnly){
+                    nsitesr <- length(PP$contribSites[[r]])
+                    if(nsitesr>1) nsitesr <- dim(unique(floor(t(t(PP$sites[PP$contribSites[[r]],])*c(0,100,10,10,1,1,1,10,10,1,1,1)))))[1]
+                    # if there is only one site, remove all but the projections to that receiver
+                    if(nsitesr==1){
+                        param[r,c(2,3,4,5,7,8,9,nPar+1,nPar+2,nPar+3,nPar+4,nPar+5,nPar+6,nPar+7),k] <- NA
+                        std[r,c(2,3,4,5,7,8,9,nPar+1,nPar+2,nPar+3,nPar+4,nPar+5,nPar+6,nPar+7),k] <- NA
+                    }
+                    # if there are two sites we can accept also the temperature anisotropy estimates
+                    if(nsitesr==2){
+                        param[r,c(7,8,9,nPar+3,nPar+6,nPar+7),k] <- NA
+                        std[r,c(7,8,9,nPar+3,nPar+6,nPar+7),k] <- NA
+                    }
                 }
             }
         }
@@ -229,6 +231,8 @@ readPP.3D <- function(dpath,recursive=F){
     dimnames(std) <- list(dimnames(PP[["param"]])[[1]],c(dimnames(PP[["param"]])[[2]][1:12],paste('Site',seq(nSites),sep=''),'Ti','Te','ViB','Tiratio','Teratio','ViBx','ViBy', paste('ViR',paste(rep(seq(nSites),each=2),c('','hor'),sep=''),sep=''),paste('TiR',seq(nSites),sep=''),paste('TeR',seq(nSites),sep='')),paste(seq(nFile)))
     dimnames(model) <- list(dimnames(PP[["param"]])[[1]],c(dimnames(PP[["param"]])[[2]][1:12],paste('Site',seq(nSites),sep=''),'Ti','Te','ViB','Tiratio','Teratio','ViBx','ViBy', paste('ViR',paste(rep(seq(nSites),each=2),c('','hor'),sep=''),sep=''),paste('TiR',seq(nSites),sep=''),paste('TeR',seq(nSites),sep='')),paste(seq(nFile)))
     dimnames(covar) <- c(list(paste(seq(nHeight))),lapply(dimnames(PP[["covar"]][[1]]),FUN=function(x,nSites){c(x[1:12],paste('Site',seq(nSites),sep=''),'Ti','Te','ViB','Tiratio','Teratio','ViBx','ViBy', paste('ViR',paste(rep(seq(nSites),each=2),c('','hor'),sep=''),sep=''),paste('TiR',seq(nSites),sep=''),paste('TeR',seq(nSites),sep=''))},nSites=nSites),list(paste(seq(nFile))))
+
+    if(!measuredOnly) warning("Returning also parameters that are based solely on the prior model.")
 
     return(list(param=param,std=std,model=model,chisqr=chisqr,status=status,height=height,time_sec=time_sec,date=date,POSIXtime=POSIXtime,sites=sites,n=nFile,nPar=nPar,nHeight=nHeight,mIon=mIon,covar=covar))
 

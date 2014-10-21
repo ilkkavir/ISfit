@@ -39,19 +39,19 @@
 ##
 
 
-plotPP <- function(data,par=list(Ne=c(10,12),TeR1=c(0,4000),TiR1=c(0,3000),ViR1=c(-400,400)),xlim=NULL,ylim=NULL,pdf=NULL,jpg=NULL,figNum=NULL,width=8.27,height=2.9225,paper='a4',tickRes=NULL,model=F,stdThreshold=.5,NeMin=1e9,chisqrLim=10,bg='white',fg='black',res=300,cex=1.0,col.regions=guisdap.colors,multistatic=TRUE,trellis=FALSE,cutgaps=TRUE,main=NA)
+plotPP <- function(data,par=list(Ne=c(10,12),TeR1=c(0,4000),TiR1=c(0,3000),ViR1=c(-400,400)),xlim=NULL,ylim=NULL,pdf=NULL,jpg=NULL,figNum=NULL,width=8.27,height=2.9225,paper='a4',tickRes=NULL,model=F,stdThreshold=.5,NeMin=1e9,chisqrLim=10,bg='white',fg='black',res=300,cex=1.0,col.regions=guisdap.colors,multistatic=TRUE,trellis=FALSE,cutgaps=TRUE,main=NA,measuredOnly=T)
     {
 
         UseMethod("plotPP")
 
     }
 
-plotPP.character <- function(data,par=list(Ne=c(10,12),TeR1=c(0,4000),TiR1=c(0,3000),ViR1=c(-400,400)),xlim=NULL,ylim=NULL,pdf=NULL,jpg=NULL,figNum=NULL,width=8.27,height=2.9225,paper='a4',tickRes=NULL,model=F,stdThreshold=.5,NeMin=1e9,chisqrLim=10,bg='white',fg='black',res=300,cex=1.0,col.regions=guisdap.colors,multistatic=TRUE,trellis=FALSE,cutgaps=TRUE,main=NA)
+plotPP.character <- function(data,par=list(Ne=c(10,12),TeR1=c(0,4000),TiR1=c(0,3000),ViR1=c(-400,400)),xlim=NULL,ylim=NULL,pdf=NULL,jpg=NULL,figNum=NULL,width=8.27,height=2.9225,paper='a4',tickRes=NULL,model=F,stdThreshold=.5,NeMin=1e9,chisqrLim=10,bg='white',fg='black',res=300,cex=1.0,col.regions=guisdap.colors,multistatic=TRUE,trellis=FALSE,cutgaps=TRUE,main=NA,measuredOnly=T)
     {
 
         # read all data
         if(multistatic){
-            data <- readPP.3D(data)
+            data <- readPP.3D(data,measuredOnly)
         }else{
             data <- readPP(data)
         }
@@ -66,7 +66,7 @@ plotPP.character <- function(data,par=list(Ne=c(10,12),TeR1=c(0,4000),TiR1=c(0,3
     }
 
 
-plotPP.list <- function(data,par=list(Ne=c(10,12),TeR1=c(0,4000),TiR1=c(0,3000),ViR1=c(-400,400)),xlim=NULL,ylim=NULL,pdf=NULL,jpg=NULL,figNum=NULL,width=8.27,height=2.9225,paper='a4',tickRes=NULL,model=F,stdThreshold=.5,NeMin=1e9,chisqrLim=10,bg='white',fg='black',res=300,cex=1.0,col.regions=guisdap.colors,multistatic=TRUE,trellis=FALSE,cutgaps=TRUE,main=NA)
+plotPP.list <- function(data,par=list(Ne=c(10,12),TeR1=c(0,4000),TiR1=c(0,3000),ViR1=c(-400,400)),xlim=NULL,ylim=NULL,pdf=NULL,jpg=NULL,figNum=NULL,width=8.27,height=2.9225,paper='a4',tickRes=NULL,model=F,stdThreshold=.5,NeMin=1e9,chisqrLim=10,bg='white',fg='black',res=300,cex=1.0,col.regions=guisdap.colors,multistatic=TRUE,trellis=FALSE,cutgaps=TRUE,main=NA,...)
     {
         # take a copy that will be returned
         data2 <- data

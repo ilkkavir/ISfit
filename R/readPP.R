@@ -1,13 +1,13 @@
-readPP <- function(dpath,recursive=F){
-# 
+readPP <- function(dpath,recursive=F,...){
+#
 #
 # read plasma parameters from files
 # This is a very simple version that does not calculate
 # projections to sites etc. Use readPP.3D for more advanced
 # treatment of parameters.
-# 
+#
 # I. Virtanen 2010, 2013
-# 
+#
 
   if(is.null(dpath))   return(NULL)
   if(length(dpath)==0) return(NULL)
@@ -32,10 +32,10 @@ readPP <- function(dpath,recursive=F){
 
   # number of data files
   nFile  <- length(flist)
-  
+
   # number of height gates
   nHeight <- length(PP$height)
-  
+
   # number of plasma parameters
   nPar   <- dim(PP$param)[2]
 
@@ -81,14 +81,14 @@ readPP <- function(dpath,recursive=F){
     POSIXtime[[k]]<- PP$POSIXtime
     height[1:nhk,k]   <- PP$height
   }
-  
+
   dimnames(param) <- list(paste("gate",seq(nHeight),sep=''),dimnames(PP[["param"]])[[2]],seq(nFile))
   dimnames(std) <- list(paste("gate",seq(nHeight),sep=''),dimnames(PP[["param"]])[[2]],seq(nFile))
   dimnames(model) <- list(paste("gate",seq(nHeight),sep=''),dimnames(PP[["param"]])[[2]],seq(nFile))
 
   # warn the user about dangers of this function..
   warning("This function does not make any checks about data reliability, use readPP.3D instead if you are not sure what you are doing.")
-  
+
   return(list(param=param,std=std,model=model,chisqr=chisqr,status=status,height=height,time_sec=time_sec,date=date,POSIXtime=POSIXtime, n=nFile,nPar=nPar,nHeight=nHeight))
 
 } # readPP
