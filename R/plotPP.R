@@ -352,33 +352,38 @@ plotPP.list <- function(data,par=list(Ne=c(10,12),TeR1=c(0,4000),TiR1=c(0,3000),
             }else{
                 main <- maincpy[p]
             }
-            # azimuth and elevation in 1D fits
+
+            # azel fit removed, this is not trivial with several transmitters...
+
+
+#            # azimuth and elevation in 1D fits
             if(names(par[p])=="azel"){
-                if(par[[p]]){
-                    if(trellis){
-                        trenew$layout.widths$right.padding <- 10.5
-                        trenew$layout.heights$key.axis.padding<--1
-                        trellis.par.set(list(background=trenew$background,layout.heights=trenew$layout.heights,layout.widths=trenew$layout.widths))
-                        curFig <- addAzElPlot(
-                            az     = data$azelT[,1,tInds]%%360,
-                            el     = data$azelT[,2,tInds],
-                            t      = data$time_sec[tInds],
-                            xlim   = tLim,
-                            cex    = cex,
-                            ticks  = ticks,
-                            nFig   = nFig,
-                            curFig = curFig
-                            )
-                        trenew$layout.widths$right.padding <- 1
-                        trenew$layout.heights$key.axis.padding<-1
-                        trellis.par.set(list(background=trenew$background,layout.heights=trenew$layout.heights,layout.widths=trenew$layout.widths))
-                    }else{
-                        plot(data$time_sec,data$azelT[,1,tInds]%%360,ylim=c(0,360),xlim=tLim,xaxt='n',xlab='',ylab='Degrees')
-                        points(data$time_sec,data$azelT[,2,tInds],col='red')
-                        axis(1,at=ticks$tick,labels=ticks$string)
-                        plot.new()
-                    }
-                }
+                stop("Sorry, the azel fit option has been removed.")
+#                if(par[[p]]){
+#                    if(trellis){
+#                        trenew$layout.widths$right.padding <- 10.5
+#                        trenew$layout.heights$key.axis.padding<--1
+#                        trellis.par.set(list(background=trenew$background,layout.heights=trenew$layout.heights,layout.widths=trenew$layout.widths))
+#                        curFig <- addAzElPlot(
+#                            az     = data$azelT[,1,tInds]%%360,
+#                            el     = data$azelT[,2,tInds],
+#                            t      = data$time_sec[tInds],
+#                            xlim   = tLim,
+#                            cex    = cex,
+#                            ticks  = ticks,
+#                            nFig   = nFig,
+#                            curFig = curFig
+#                            )
+#                        trenew$layout.widths$right.padding <- 1
+#                        trenew$layout.heights$key.axis.padding<-1
+#                        trellis.par.set(list(background=trenew$background,layout.heights=trenew$layout.heights,layout.widths=trenew$layout.widths))
+#                    }else{
+#                        plot(data$time_sec[tInds],data$azelT[,1,tInds]%%360,ylim=c(0,360),xlim=tLim,xaxt='n',xlab='',ylab='Degrees')
+#                        points(data$time_sec[tInds],data$azelT[,2,tInds],col='red')
+#                        axis(1,at=ticks$tick,labels=ticks$string)
+#                        plot.new()
+#                    }
+#                }
             }else{
                 d <- data[["param"]][,names(par[p]),tInds]
                 if(length(tInds)==1){
