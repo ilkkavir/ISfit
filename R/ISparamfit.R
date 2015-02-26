@@ -1,6 +1,6 @@
 ISparamfit <- function( acf , var , lags , iSite , fSite , aSite , kSite , B , initParam ,
                        aprioriTheory , aprioriMeas , invAprioriCovar , 
-                       nIon , paramLimits , fitFun=leastSquare.lvmrq , scaleFun=scaleParams , directTheory=ISdirectTheory , ... ){
+                       nIon , paramLimits , fitFun=leastSquare.lvmrq , scaleFun=scaleParams , directTheory=ISdirectTheory , h=300 , ... ){
 #
 # Incoherent scatter plasma parameter fit
 # 
@@ -26,6 +26,7 @@ ISparamfit <- function( acf , var , lags , iSite , fSite , aSite , kSite , B , i
 #  scaleFun       the function used for scaling step sizes in Levenberg-Marquardt iteration. Must
 #                 match with directTheory
 #  directTheory   direct theory function for the fitting routine
+#  h               height in km for frequency axis selection
 #  ...            additional input needed by scaleFun
 #
 # OUTPUT:
@@ -58,13 +59,28 @@ ISparamfit <- function( acf , var , lags , iSite , fSite , aSite , kSite , B , i
   freq <- list()
   for(k in seq(ns)){
       if(any(iSite==k)){
-          fmax <- 4/min(diff(unique(sort(lags[which(iSite==k)]))))
-          fstep <- min(1/max(lags[which(iSite==k)])/4,fSite[k]/1e6)
-          if(is.infinite(fmax)) fmax <- fSite[k]/1e4
-          if(is.infinite(fstep)) fstep <- fSite[k]/1e6
-          if(fmax<1e3) fmax <- fSite[k]/1e4
-          if(fstep>=fmax) fstep <- fmax / 100
-          freq[[k]] <- seq(-fmax,fmax,by=fstep)
+          # changed fstep minimum from fSite[k]/1e6 to fSite[k]/1e7
+          # this works better at low altitudes but is far too slow
+          # will need to invent something better, perhaps simply a
+          # height-based selection of fmax and fstep?
+          # at low altitudes the lag-covarage based fmax is usually far too wide.
+#          fmax <- 4/min(diff(unique(sort(lags[which(iSite==k)]))))
+#          fstep <- min(1/max(lags[which(iSite==k)])/4,fSite[k]/1e7)
+#          if(is.infinite(fmax)) fmax <- fSite[k]/1e4
+#          if(is.infinite(fstep)) fstep <- fSite[k]/1e7
+#          if(fmax<1e3) fmax <- fSite[k]/1e4
+#          if(fstep>=fmax) fstep <- fmax / 100
+#          freq[[k]] <- seq(-fmax,fmax,by=fstep)
+          if(h<80){
+              fmax <- fSite[k]/8e5
+          }else if(h < 120){
+              fmax <- fSite[k]/4e4
+          }else if(h < 300){
+              fmax <- fSite[k]/2e4
+          }else{
+              fmax <- fSite[k]/5e3
+          }
+          freq[[k]] <- seq(-fmax,fmax,length.out=2001)
       }
   }
 
@@ -77,6 +93,8 @@ ISparamfit <- function( acf , var , lags , iSite , fSite , aSite , kSite , B , i
   # the actual fitting
   nlsParam <- fitFun( measData=acf , measVar=var , initParam=initParam , aprioriTheory=aprioriTheory , aprioriMeas=aprioriMeas , invAprioriCovar=invAprioriCovar , paramLimits=paramLimits , fAmb=fAmb , scaleFun=scaleFun , nIon=nIon , nSite=ns , iSite=iSite , fSite=fSite , aSite=aSite , kSite=kSite , B=B , xSite=freq , directTheory=directTheory , ... )
 
+  nlsParam[["xSite"]] <- freq
+  
   return(nlsParam)
 
   

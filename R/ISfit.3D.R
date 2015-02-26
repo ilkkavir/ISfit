@@ -1,4 +1,4 @@
-ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 , beginTime=c(1970,1,1,0,0,0) , endTime=c(2100,1,1,0,0,0) , fitFun=leastSquare.lvmrq , absLimit=5 , diffLimit=1e-2 , maxLambda=1e30 , maxIter=10 , plotTest=FALSE , plotFit=FALSE , absCalib=FALSE , TiIsotropic=TRUE , TeIsotropic=TRUE , recursive=TRUE , aprioriFunction=ISapriori , scaleFun=acfscales , siteScales=NULL, calScale=1, MCMCsettings=list( niter=10000 , updatecov=100 , burninlength=5000 , outputlength=5000 ) , maxdev=2 , trueHessian=FALSE , nCores=1)
+ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 , beginTime=c(1970,1,1,0,0,0) , endTime=c(2100,1,1,0,0,0) , fitFun=leastSquare.lvmrq , absLimit=5 , diffLimit=1e-2 , maxLambda=1e30 , maxIter=10 , plotTest=FALSE , plotFit=FALSE , absCalib=FALSE , TiIsotropic=TRUE , TeIsotropic=TRUE , recursive=TRUE , aprioriFunction=ISapriori , scaleFun=acfscales , siteScales=NULL, calScale=1, MCMCsettings=list( niter=10000 , updatecov=100 , burninlength=5000 , outputlength=5000 ) , maxdev=2 , trueHessian=FALSE , nCores=1 , plotSpectra=FALSE, ... )
   {
 
       # 3D incoherent scatter plasma parameter fit using LPI output files in ddirs
@@ -29,6 +29,10 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
       #                   actual electron density calibration is done wiht calScale
       #   calScale        additional scaling factor from ionosonde calibration applied to ALL ACF samples
       #   MCMCsettings    a list of input arguments for the modMCMC function
+      #   maxdev          maximum angular deviation from the beam centre intersection
+      #   trueHessian     logical, calculate the Hessian from finite differences of cost function instead of the direct theory approximation?
+      #   nCores          number of parallel processes
+      #   plotSpectra     logical, plot the fitted spectra from each site
       #
       # OUTPUT:
       #   None, the results are written to files in odir.
@@ -37,8 +41,19 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
       if(nCores>1){
           if(plotTest) warning("Cannot use graphics with nCores > 1, setting plotTest=FALSE")
           if(plotFit) warning("Cannot use graphics with nCores > 1, setting plotFit=FALSE")
+          if(plotSpectra) warning("Cannot use graphics with nCores > 1, setting plotSpectra=FALSE")
           plotTest <- FALSE
           plotFit <- FALSE
+          plotSpectra <- FALSE
+      }
+
+      if(plotTest|plotFit){
+          dev.new()
+          figFit <- dev.cur()
+      }
+      if(plotSpectra){
+          dev.new()
+          figSpec <- dev.cur()
       }
 
       # create the output directory
@@ -416,6 +431,8 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
 #                                  parInit        <- pmax( c( ptmp['e-',1] , ptmp['Ti',1] , ptmp['Ti',1], ptmp['Te',1] , ptmp['Te',1] , ioncoll , 0 , 0 , 0 , ifelse( (sum(ptmp[c('H+','O+'),1])/ptmp['e-',1]>=1) , 0 , 1-sum(ptmp[c('H+','O+'),1])/ptmp['e-',1]) , ifelse( (ptmp['O+',1]<0) , 0 , ptmp['O+',1]/ptmp['e-',1]) , ifelse( (ptmp['H+',1]<0) , 0 , ptmp['H+',1]/ptmp['e-',1] ) , rep(1,nd) ) , 0 )
                                   parInit[1]     <- max(parInit[1],1e9)
 
+                                  mIon <- c(30.5,16.0,1)
+
                                   # parameter scaling factors
                                   parScales      <- ISparamScales(parInit,3)
 
@@ -431,9 +448,11 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
                                   limitParam[2,] <- scaleParams(parLimits[2,] , parScales , inverse=F)
 
                                   # apriori information
-                                  apriori[[h]]   <- aprioriFunction( initParam , nIon=3 , absCalib=absCalib , TiIsotropic=TiIsotropic , TeIsotropic=TeIsotropic , refSite=refsite , siteScales=sScales[,c((h+12),(h+12+nh))] )
+                                  apriori[[h]]   <- aprioriFunction( initParam , nIon=3 , absCalib=absCalib , TiIsotropic=TiIsotropic , TeIsotropic=TeIsotropic , refSite=refsite , siteScales=sScales[,c((h+12),(h+12+nh))] , h=height[h] , ...)
 
                                   model[h,]      <- parInit
+
+                                  if(plotTest|plotFit) dev.set(figFit)
 
                                   fitpar   <- ISparamfit(
                                       acf             = unlist(acf.site),
@@ -449,7 +468,7 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
                                       invAprioriCovar = apriori[[h]]$invAprioriCovar,
                                       aprioriTheory   = apriori[[h]]$aprioriTheory,
                                       aprioriMeas     = apriori[[h]]$aprioriMeas,
-                                      mIon            = c(30.5,16,1),
+                                      mIon            = mIon,
                                       nIon            = 3,
                                       paramLimits     = limitParam,
                                       directTheory    = ISdirectTheory,
@@ -463,8 +482,36 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
                                       maxIter         = maxIter,
                                       fitFun          = fitFun,
                                       MCMCsettings    = MCMCsettings,
-                                      trueHessian     = trueHessian
+                                      trueHessian     = trueHessian,
+                                      h = height[h]
                                       )
+
+                                  if(plotSpectra){
+                                      if(!fitpar[["fitStatus"]]){
+                                          dev.set(figSpec)
+                                          nSites <- length(fitpar[["xSite"]])
+                                          layout(matrix(seq(nSites),nrow=nSites))
+                                          for(kk in seq(nSites)){
+                                              
+                                              # scale parameters
+                                              sparam <- scaleParams( fitpar$param , scale=parScales , inverse=T)
+                                              
+                                              # Conversion to parameter list
+                                              parlist <- ISparamVec2List( sparam , mIon )
+                                              
+                                              # spectra at each site
+                                              nf <- length(fitpar[["xSite"]][[kk]])
+                                              if(nf>0){
+                                                  sSite <- ISspectrum.3D( ele=parlist[["ele"]] , ion=parlist[["ion"]] , Bdir=B[h,] , kdir=kSite[[kk]] , fradar=sites[kk,2] , scattAngle=aSite[[kk]] , freq=fitpar[["xSite"]][[kk]] )
+                                                  plot(fitpar[["xSite"]][[kk]],sSite,main=paste("Site",kk,round(height[h]),'km'),xlab='Frequency [Hz]',ylab='Power')
+                                                  
+                                                  
+                                              }
+                                          }
+                                      }
+                                  }
+
+                                  
 
                                   # scale back to physical units
                                   param[h,] <- scaleParams( fitpar$param , scale=parScales , inverse=TRUE )
@@ -486,6 +533,7 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
                               }
                           }
                       }
+                      
 
                       time_sec <- iperLimits[k+1]
                       POSIXtime <- as.POSIXlt(time_sec,origin='1970-01-01',tz='ut')
@@ -520,4 +568,6 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
           }
 
       }
+      if(plotFit|plotTest) dev.off(figFit)
+      if(plotSpectra) dev.off(figSpec)
   }

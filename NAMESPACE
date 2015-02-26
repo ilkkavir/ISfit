@@ -1,5 +1,6 @@
 export(
     ISapriori,
+    ISaprioriH,
     ISapriori.general,
     ISapriori.guisdap,
     ISdirectTheory,
