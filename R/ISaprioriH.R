@@ -117,6 +117,11 @@ ISaprioriH <- function( aprioriParam ,  nIon , absCalib=FALSE , TiIsotropic=FALS
         aprioriTheory[curRow,c(2,4)] <- c(1,-1)
         aprioriMeas[curRow] <- 0
         aprioriStd[curRow] <- ifelse(h<hTeTi,1e-3,10)
+        if(h<hTeTi){
+            aprioriTheory[4,] <- 0
+            aprioriTheory[5,] <- 0
+            aprioriMeas[c(4,5)] <- 0
+        }
 
 
         return(list(aprioriTheory=aprioriTheory,invAprioriCovar=diag(1/aprioriStd**2),aprioriMeas=aprioriMeas))
