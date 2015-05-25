@@ -1,11 +1,11 @@
-addPPlinePlot <- function(d,err,log=F,h,xlim,ylim=range(h,na.rm=T),xlab){
+addPPlinePlot <- function(d,err,log=F,h,xlim,ylim=range(h,na.rm=T),xlab , cex=1 ){
 # OK, actually this should be addPPpointplot.. :)
-# 
+#
 # plots the data points as function of height, plus the given errorbars as lines
 #
-# I. Virtanen 2010 
-# 
-  
+# I. Virtanen 2010
+#
+
   # lower limits of the errorbars
   errLims1 <- d-err
   # upper limits of the errorbars
@@ -29,7 +29,7 @@ addPPlinePlot <- function(d,err,log=F,h,xlim,ylim=range(h,na.rm=T),xlab){
     errLims2[is.infinite(errLims2)] <- 2*max(xlim)
 
     # plot the logarithm of the actual data
-    plot(log10(d),h,xlim=xlim,xlab=xlab,ylab='Height [km]',ylim=ylim)
+    plot(log10(d),h,xlim=xlim,xlab=xlab,ylab='Height [km]',ylim=ylim,cex.axis=cex,cex.lab=cex)
 
     # plot the errorbars as lines
     arrows(errLims1,h,errLims2,h,code=3,length=0)
@@ -38,7 +38,7 @@ addPPlinePlot <- function(d,err,log=F,h,xlim,ylim=range(h,na.rm=T),xlab){
   }else{
 
     # plot the data as points
-    plot(d,h,xlim=xlim,xlab=xlab,ylab='Height [km]',ylim=ylim)
+    plot(d,h,xlim=xlim,xlab=xlab,ylab='Height [km]',ylim=ylim,cex.axis=cex,cex.lab=cex)
 
     # add the errorbars as lines
     arrows(errLims1,h,errLims2,h,code=3,length=0)

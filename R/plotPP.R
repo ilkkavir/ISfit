@@ -164,7 +164,7 @@ plotPP.list <- function(data,par=list(Ne=c(10,12),TeR1=c(0,4000),TiR1=c(0,3000),
 
         if(length(tInds)==1){
             layout( matrix(seq(ceiling(length(par)/2)*2) , nrow=2 ) )
-            par(mar=c(3,3,3,1),mgp=c(1.5,.5,0))
+            par(mar=c(3,3,3,1)*cex,mgp=c(1.5,.5,0)*cex)
             trellis <- FALSE
         }else{
             if(trellis){
@@ -395,7 +395,7 @@ plotPP.list <- function(data,par=list(Ne=c(10,12),TeR1=c(0,4000),TiR1=c(0,3000),
                         d[data[["std"]][,names(par[p]),tInds]>par[[p]][3]] <- NA
                         err[data[["std"]][,names(par[p]),tInds]>par[[p]][3]] <- NA
                     }
-                    addPPlinePlot( d=d , err=err , log=xlog , h=data[["height"]][,tInds] , xlim=par[[p]][1:2] , ylim=hLim , xlab=main[[1]] )
+                    addPPlinePlot( d=d , err=err , log=xlog , h=data[["height"]][,tInds] , xlim=par[[p]][1:2] , ylim=hLim , xlab=main[[1]] , cex=cex )
                 }else{
                     if( xlog ){
                         d <- log10( d )
