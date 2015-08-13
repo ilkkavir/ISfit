@@ -211,7 +211,8 @@ readPP.3D <- function(dpath,measuredOnly=T,recursive=F,...){
                 # "sites" by the analysis, strip these off before counting the sites
                 if(measuredOnly){
                     nsitesr <- length(PP$contribSites[[r]])
-                    if(nsitesr>1) nsitesr <- dim(unique(floor(t(t(PP$sites[PP$contribSites[[r]],])*c(0,100,10,10,1,1,1,10,10,1,1,1)))))[1]
+                    #if(nsitesr>1) nsitesr <- dim(unique(floor(t(t(PP$sites[PP$contribSites[[r]],])*c(0,100,10,10,1,1,1,10,10,1,1,1)))))[1]
+                    if(nsitesr>1) nsitesr <- dim(unique(floor(t(t(PP$sites[PP$contribSites[[r]],])*c(0,0,10,10,0,0,0,10,10,0,0,0)))))[1]
                     # if there is only one site, remove all but the projections to that receiver
                     if(nsitesr==1){
                         param[r,c(2,3,4,5,7,8,9,nPar+1,nPar+2,nPar+3,nPar+4,nPar+5,nPar+6,nPar+7),k] <- NA

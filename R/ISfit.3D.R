@@ -122,6 +122,20 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
                               if(length(dlist[[n]][["nGates"]])!=length(dlist[[n]][["lag.us"]])){
                                   dlist[[n]][["nGates"]] <- rep(length(dlist[[n]][["range.km"]]),length(dlist[[n]][["lag.us"]]))
                               }
+                              # some sanity checks
+                              if( (dlist[[n]][['azelT']][2]<0) | (dlist[[n]][['azelR']][2]<0) | (dlist[[n]][['radarFreq']]<0) ){
+                                  dlist[[n]] <- list()
+                                  dlist[[n]][["ACF"]] <- matrix(NA)
+                                  dlist[[n]][["var"]] <- matrix(NA)
+                                  dlist[[n]][["lag.us"]] <- NA
+                                  dlist[[n]][["nGates"]] <- 1
+                                  dlist[[n]][["range.km"]] <- NA
+                                  dlist[[n]][["azelT"]] <- c(NA,NA)
+                                  dlist[[n]][["azelR"]] <- c(NA,NA)
+                                  dlist[[n]][["llhT"]] <- c(NA,NA,NA)
+                                  dlist[[n]][["llhR"]] <- c(NA,NA,NA)
+                                  dlist[[n]][["radarFreq"]] <- NA
+                              }
                           }else{
                               dlist[[n]] <- list()
                               dlist[[n]][["ACF"]] <- matrix(NA)
@@ -178,9 +192,9 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
                       }
 
                       # select the reference site
-                      # if there is only one site this is trivial
+                      # if there is data for only one site this is trivial
                       # if absCalib==TRUE we can just pick any site
-                      if( nd==1 | absCalib ){
+                      if( nd==1 | absCalib | sum(!is.na(rowSums(sites)))==1 ){
                           refsite <- which(!is.na(rowSums(sites)))[1]
                       }else{ # otherwise look for a monostatic site
 
@@ -201,51 +215,65 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
                               }
 
                           }
-                          # if there are none or several candidates we will need to ask the user
-                          if( length(refsite) != 1){
-                              if( length(refsite)==0){
-                                  if(!siteselprev){
-                                      cat('Could not find a monostatic site,\n')
-                                      cat('available sites are:\n')
-                                      cat('Site        TXfreq       TXlat       TXlon    TXheight        TXaz       TXele       RXlat       RXlon    RXheight        RXaz       RXele\n')
-                                      for(s in seq(nd)){
-                                          cat(sprintf("[%2i]",s),sprintf(" %10.2f",sites[s,2:12]),sprintf("\n"))
-                                      }
-                                      refsite <- as.numeric(readline("Please select number of the reference site: "))
-                                      testnum <- as.numeric( readline("Use the same selection in all intgration periods? (1=yes, 0=no) :  ") )
-                                      if(testnum) siteselprev <- refsite
-                                  }else{
-                                      cat('Could not find a monostatic site,\n')
-                                      cat('available sites are:\n')
-                                      cat('Site        TXfreq       TXlat       TXlon    TXheight        TXaz       TXele       RXlat       RXlon    RXheight        RXaz       RXele\n')
-                                      for(s in seq(nd)){
-                                          cat(sprintf("[%2i]",s),sprintf(" %10.2f",sites[s,2:12]),sprintf("\n"))
-                                      }
-                                      cat("Using previous selection (",siteselprev,")\n")
-                                      refsite <- siteselprev
-                                  }
+
+                          # just pick the first available site and warn the user
+                          if(length(refsite) != 1){
+                              if(length(refsite)==0){
+                                  cat("Could not find a monostatic site, using the first bistatic\n")
+                                  refsite <- which(!is.na(rowSums(sites)))[1] #sometimes eiscat data contains NaNs as coordinates...
                               }else{
-                                  if(!siteselprev){
-                                      cat('Found several monostatic sites,\n')
-                                      cat('available sites are:\n')
-                                      cat('Site        TXfreq       TXlat       TXlon    TXheight        TXaz       TXele       RXlat       RXlon    RXheight        RXaz       RXele\n')
-                                      for(s in refsite){
-                                          cat(sprintf("[%2i]",s),sprintf(" %10.2f",sites[s,2:12]),sprintf("\n"))
-                                      }
-                                      refsite <- as.numeric(readline("Please select number of the reference site: "))
-                                      siteselprev <- refsite
-                                  }else{
-                                      cat('Found several monostatic sites,\n')
-                                      cat('available sites are:\n')
-                                      cat('Site        TXfreq       TXlat       TXlon    TXheight        TXaz       TXele       RXlat       RXlon    RXheight        RXaz       RXele\n')
-                                      for(s in refsite){
-                                          cat(sprintf("[%2i]",s),sprintf(" %10.2f",sites[s,2:12]),sprintf("\n"))
-                                      }
-                                      cat("Using previous selection (",siteselprev,")\n")
-                                      refsite <- siteselprev
-                                  }
+                                  cat("Found several monostatic sites, using the first one\n")
+                                  refsite < refsite[1]
                               }
+                              
                           }
+
+# do not ask the user, he does not want to answer...
+#                          # if there are none or several candidates we will need to ask the user
+#                          if( length(refsite) != 1){
+#                              if( length(refsite)==0){
+#                                  if(!siteselprev){
+#                                      cat('Could not find a monostatic site,\n')
+#                                      cat('available sites are:\n')
+#                                      cat('Site        TXfreq       TXlat       TXlon    TXheight        TXaz       TXele       RXlat       RXlon    RXheight        RXaz       RXele\n')
+#                                      for(s in seq(nd)){
+#                                          cat(sprintf("[%2i]",s),sprintf(" %10.2f",sites[s,2:12]),sprintf("\n"))
+#                                      }
+#                                      refsite <- as.numeric(readline("Please select number of the reference site: "))
+#                                      testnum <- as.numeric( readline("Use the same selection in all intgration periods? (1=yes, 0=no) :  ") )
+#                                      if(testnum) siteselprev <- refsite
+#                                  }else{
+#                                      cat('Could not find a monostatic site,\n')
+#                                      cat('available sites are:\n')
+#                                      cat('Site        TXfreq       TXlat       TXlon    TXheight        TXaz       TXele       RXlat       RXlon    RXheight        RXaz       RXele\n')
+#                                      for(s in seq(nd)){
+#                                          cat(sprintf("[%2i]",s),sprintf(" %10.2f",sites[s,2:12]),sprintf("\n"))
+#                                      }
+#                                      cat("Using previous selection (",siteselprev,")\n")
+#                                      refsite <- siteselprev
+#                                  }
+#                              }else{
+#                                  if(!siteselprev){
+#                                      cat('Found several monostatic sites,\n')
+#                                      cat('available sites are:\n')
+#                                      cat('Site        TXfreq       TXlat       TXlon    TXheight        TXaz       TXele       RXlat       RXlon    RXheight        RXaz       RXele\n')
+#                                      for(s in refsite){
+#                                          cat(sprintf("[%2i]",s),sprintf(" %10.2f",sites[s,2:12]),sprintf("\n"))
+#                                      }
+#                                      refsite <- as.numeric(readline("Please select number of the reference site: "))
+#                                      siteselprev <- refsite
+#                                  }else{
+#                                      cat('Found several monostatic sites,\n')
+#                                      cat('available sites are:\n')
+#                                      cat('Site        TXfreq       TXlat       TXlon    TXheight        TXaz       TXele       RXlat       RXlon    RXheight        RXaz       RXele\n')
+#                                      for(s in refsite){
+#                                          cat(sprintf("[%2i]",s),sprintf(" %10.2f",sites[s,2:12]),sprintf("\n"))
+#                                      }
+#                                      cat("Using previous selection (",siteselprev,")\n")
+#                                      refsite <- siteselprev
+#                                  }
+#                              }
+#                          }
                       }
 
                       # scale all data with values returned by scaleFun
