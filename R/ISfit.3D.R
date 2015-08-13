@@ -219,10 +219,10 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
                           # just pick the first available site and warn the user
                           if(length(refsite) != 1){
                               if(length(refsite)==0){
-                                  cat("Could not find a monostatic site, using the first bistatic\n")
+                                  cat("Could not find a monostatic site, using the first bistatic as reference\n")
                                   refsite <- which(!is.na(rowSums(sites)))[1] #sometimes eiscat data contains NaNs as coordinates...
                               }else{
-                                  cat("Found several monostatic sites, using the first one\n")
+                                  cat("Found several monostatic sites, using the first one as reference\n")
                                   refsite < refsite[1]
                               }
                               

@@ -126,7 +126,7 @@ calibrate.eiscat.dynasonde <- function( dataDir , beginTime=c(1970,1,1,0,0,0) , 
 
   cat("Calibrating with",length(necompar[,1]),"data points\n")
   
-  maxne <- max(necompar[,2:3])
+  maxne <- max(necompar[,2:3],na.rm=TRUE)
 
   fitvar <- 1/sum(necompar[,2]**2/necompar[,4],na.rm=T)
   fitres <- sum(necompar[,2]*necompar[,3]/necompar[,4],na.rm=T)*fitvar
