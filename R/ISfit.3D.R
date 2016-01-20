@@ -223,7 +223,7 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
                                   refsite <- which(!is.na(rowSums(sites)))[1] #sometimes eiscat data contains NaNs as coordinates...
                               }else{
                                   cat("Found several monostatic sites, using the first one as reference\n")
-                                  refsite < refsite[1]
+                                  refsite <- refsite[1]
                               }
                               
                           }
