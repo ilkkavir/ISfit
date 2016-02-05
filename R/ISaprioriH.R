@@ -79,7 +79,9 @@ ISaprioriH <- function( aprioriParam ,  nIon , absCalib=FALSE , TiIsotropic=FALS
             if(!is.matrix(siteScales)) siteScales <- matrix(siteScales,nrow=1)
             ssinds <- which(!is.na(rowSums(siteScales)))
             aprioriMeas[ssinds+nIon+9] <- siteScales[ssinds,1]  # user-given scaling factors
-            aprioriStd[ssinds+nIon+9] <- siteScales[ssinds,2]
+            if(absCalib){
+                aprioriStd[ssinds+nIon+9] <- siteScales[ssinds,2]
+            }
         }
 
         aprioriStd[nIon+9+refSite]     <- 1e-3                 # do not allow scaling at the reference site

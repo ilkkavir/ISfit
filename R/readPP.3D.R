@@ -138,24 +138,34 @@ readPP.3D <- function(dpath,measuredOnly=T,recursive=F,...){
                 # ..ignored the additional terms from the above reference...
                 # could perhaps use the full Geary-Hinkley transformation but will leave it like this
                 # now. The different approximations could be validated by means of MCMC fits
-                param[r,nPar+4,k] <- PP$param[r,3]/PP$param[r,2] #+
-#                    PP$covar[[r]][2,2]*PP$param[r,3]/PP$param[r,2]**3 -
-#                        PP$covar[[r]][2,3]/PP$param[r,2]**2
-                # electron perpendicular/parallel temperature ratio
-                param[r,nPar+5,k] <- PP$param[r,5]/PP$param[r,4] #+
-#                    PP$covar[[r]][4,4]*PP$param[r,5]/PP$param[r,4]**3 -
-#                        PP$covar[[r]][4,5]/PP$param[r,4]**2
+#                param[r,nPar+4,k] <- PP$param[r,3]/PP$param[r,2] #+
+##                    PP$covar[[r]][2,2]*PP$param[r,3]/PP$param[r,2]**3 -
+##                        PP$covar[[r]][2,3]/PP$param[r,2]**2
+                # replaced the ratio with temperature difference, 2016-01-28
+                param[r,nPar+4,k] <- PP$param[r,3] - PP$param[r,2]
+                
+#                # electron perpendicular/parallel temperature ratio
+#                param[r,nPar+5,k] <- PP$param[r,5]/PP$param[r,4] #+
+##                    PP$covar[[r]][4,4]*PP$param[r,5]/PP$param[r,4]**3 -
+##                        PP$covar[[r]][4,5]/PP$param[r,4]**2
+
+                # electron temperature difference
+                param[r,nPar+5,k] <- PP$param[r,5] - PP$param[r,4]
+
+
                 std[r,nPar+1,k] <- sqrt(c(1,2)%*%PP$covar[[r]][2:3,2:3]%*%c(1,2)/9)
                 std[r,nPar+2,k] <- sqrt(c(1,2)%*%PP$covar[[r]][4:5,4:5]%*%c(1,2)/9)
                 std[r,nPar+3,k] <- sqrt(PP$B[r,]%*%PP$covar[[r]][7:9,7:9]%*%PP$B[r,]/sum(PP$B[r,]**2))
-                std[r,nPar+4,k] <- sqrt( PP$covar[[r]][2,2]*PP$param[r,3]**2/PP$param[r,2]**4 +
-                                        PP$covar[[r]][3,3]/PP$param[r,2]**2 #-
-#                                        2*PP$covar[[r]][2,3]*PP$param[r,3]/PP$param[r,2]**3
-                                        )
-                std[r,nPar+5,k] <- sqrt( PP$covar[[r]][4,4]*PP$param[r,5]**2/PP$param[r,4]**4 +
-                                        PP$covar[[r]][5,5]/PP$param[r,4]**2 #-
+#                std[r,nPar+4,k] <- sqrt( PP$covar[[r]][2,2]*PP$param[r,3]**2/PP$param[r,2]**4 +
+#                                        PP$covar[[r]][3,3]/PP$param[r,2]**2 #-
+##                                        2*PP$covar[[r]][2,3]*PP$param[r,3]/PP$param[r,2]**3
+#                                        )
+                std[r,nPar+4,k] <- sqrt(PP$covar[[r]][2,2]+PP$covar[[r]][3,3]+2*PP$covar[[r]][2,3])#
+#                std[r,nPar+5,k] <- sqrt( PP$covar[[r]][4,4]*PP$param[r,5]**2/PP$param[r,4]**4 +
+##                                        PP$covar[[r]][5,5]/PP$param[r,4]**2 #-
 #                                        2*PP$covar[[r]][4,5]*PP$param[r,5]/PP$param[r,4]**3
-                                        )
+#                                        )
+                std[r,nPar+5,k] <- sqrt(PP$covar[[r]][4,4]+PP$covar[[r]][5,5]+2*PP$covar[[r]][4,5])
                 # ion velocity components perpendicular to the magnetic field..
                 # geomagnetic north
                 Bhor <- c(PP$B[r,1:2],0)
@@ -212,7 +222,7 @@ readPP.3D <- function(dpath,measuredOnly=T,recursive=F,...){
                 if(measuredOnly){
                     nsitesr <- length(PP$contribSites[[r]])
                     #if(nsitesr>1) nsitesr <- dim(unique(floor(t(t(PP$sites[PP$contribSites[[r]],])*c(0,100,10,10,1,1,1,10,10,1,1,1)))))[1]
-                    if(nsitesr>1) nsitesr <- dim(unique(floor(t(t(PP$sites[PP$contribSites[[r]],])*c(0,0,10,10,0,0,0,10,10,0,0,0)))))[1]
+                    if(nsitesr>1) nsitesr <- dim(unique(floor(t(t(PP$sites[PP$contribSites[[r]],])*c(0,0,10,10,0,1,1,10,10,0,0,0)))))[1]
                     # if there is only one site, remove all but the projections to that receiver
                     if(nsitesr==1){
                         param[r,c(2,3,4,5,7,8,9,nPar+1,nPar+2,nPar+3,nPar+4,nPar+5,nPar+6,nPar+7),k] <- NA
@@ -228,10 +238,10 @@ readPP.3D <- function(dpath,measuredOnly=T,recursive=F,...){
         }
     }
 
-    dimnames(param) <- list(dimnames(PP[["param"]])[[1]],c(dimnames(PP[["param"]])[[2]][1:12],paste('Site',seq(nSites),sep=''),'Ti','Te','ViB','Tiratio','Teratio','ViBx','ViBy', paste('ViR',paste(rep(seq(nSites),each=2),c('','hor'),sep=''),sep=''),paste('TiR',seq(nSites),sep=''),paste('TeR',seq(nSites),sep='')),paste(seq(nFile)))
-    dimnames(std) <- list(dimnames(PP[["param"]])[[1]],c(dimnames(PP[["param"]])[[2]][1:12],paste('Site',seq(nSites),sep=''),'Ti','Te','ViB','Tiratio','Teratio','ViBx','ViBy', paste('ViR',paste(rep(seq(nSites),each=2),c('','hor'),sep=''),sep=''),paste('TiR',seq(nSites),sep=''),paste('TeR',seq(nSites),sep='')),paste(seq(nFile)))
-    dimnames(model) <- list(dimnames(PP[["param"]])[[1]],c(dimnames(PP[["param"]])[[2]][1:12],paste('Site',seq(nSites),sep=''),'Ti','Te','ViB','Tiratio','Teratio','ViBx','ViBy', paste('ViR',paste(rep(seq(nSites),each=2),c('','hor'),sep=''),sep=''),paste('TiR',seq(nSites),sep=''),paste('TeR',seq(nSites),sep='')),paste(seq(nFile)))
-    dimnames(covar) <- c(list(paste(seq(nHeight))),lapply(dimnames(PP[["covar"]][[1]]),FUN=function(x,nSites){c(x[1:12],paste('Site',seq(nSites),sep=''),'Ti','Te','ViB','Tiratio','Teratio','ViBx','ViBy', paste('ViR',paste(rep(seq(nSites),each=2),c('','hor'),sep=''),sep=''),paste('TiR',seq(nSites),sep=''),paste('TeR',seq(nSites),sep=''))},nSites=nSites),list(paste(seq(nFile))))
+    dimnames(param) <- list(dimnames(PP[["param"]])[[1]],c(dimnames(PP[["param"]])[[2]][1:12],paste('Site',seq(nSites),sep=''),'Ti','Te','ViB','Tidiff','Tediff','ViBx','ViBy', paste('ViR',paste(rep(seq(nSites),each=2),c('','hor'),sep=''),sep=''),paste('TiR',seq(nSites),sep=''),paste('TeR',seq(nSites),sep='')),paste(seq(nFile)))
+    dimnames(std) <- list(dimnames(PP[["param"]])[[1]],c(dimnames(PP[["param"]])[[2]][1:12],paste('Site',seq(nSites),sep=''),'Ti','Te','ViB','Tidiff','Tediff','ViBx','ViBy', paste('ViR',paste(rep(seq(nSites),each=2),c('','hor'),sep=''),sep=''),paste('TiR',seq(nSites),sep=''),paste('TeR',seq(nSites),sep='')),paste(seq(nFile)))
+    dimnames(model) <- list(dimnames(PP[["param"]])[[1]],c(dimnames(PP[["param"]])[[2]][1:12],paste('Site',seq(nSites),sep=''),'Ti','Te','ViB','Tidiff','Tediff','ViBx','ViBy', paste('ViR',paste(rep(seq(nSites),each=2),c('','hor'),sep=''),sep=''),paste('TiR',seq(nSites),sep=''),paste('TeR',seq(nSites),sep='')),paste(seq(nFile)))
+    dimnames(covar) <- c(list(paste(seq(nHeight))),lapply(dimnames(PP[["covar"]][[1]]),FUN=function(x,nSites){c(x[1:12],paste('Site',seq(nSites),sep=''),'Ti','Te','ViB','Tidiff','Tediff','ViBx','ViBy', paste('ViR',paste(rep(seq(nSites),each=2),c('','hor'),sep=''),sep=''),paste('TiR',seq(nSites),sep=''),paste('TeR',seq(nSites),sep=''))},nSites=nSites),list(paste(seq(nFile))))
 
     if(!measuredOnly) warning("Returning also parameters that are based solely on the prior model.")
 
