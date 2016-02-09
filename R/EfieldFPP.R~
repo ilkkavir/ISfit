@@ -1,0 +1,8 @@
+EfieldFPP <- function(PP,hmin=200,hmax=400){
+    # F-region electric field with ISfit output list
+    # as input
+
+
+
+
+}

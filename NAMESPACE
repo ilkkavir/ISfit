@@ -40,7 +40,9 @@ export(
     ISmcmc,
     sumxy,
     readPP.MCMC,
-    plotMarginalDistribution
+    plotMarginalDistribution,
+    ElectricFieldsF,
+    plotEfieldF
     )
 
 useDynLib(ISfit)

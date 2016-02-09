@@ -1,0 +1,16 @@
+ElectricFieldsF <- function(dpath,hmin=200,hmax=400){
+    #
+    # Electric field from multistatic F-region velocity measurements.
+    # 
+    # I. Virtanen 2016
+    # 
+
+
+    if(is.dir(dpath)){
+        dfiles <- dir(dpath,pattern='PP.Rdata',full.names=T)
+    }else{
+        dfiles <- dpath
+    }
+    dfiles <- dfiles[grep('PP.Rdata',files)]
+
+}
