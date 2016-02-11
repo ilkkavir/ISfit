@@ -42,7 +42,9 @@ export(
     readPP.MCMC,
     plotMarginalDistribution,
     ElectricFieldsF,
-    plotEfieldF
+    plotEfieldF,
+    NeutralWinds,
+    plotNwind
     )
 
 useDynLib(ISfit)
