@@ -1,0 +1,21 @@
+NeutralWinds <- function(dpath,timeRes=600,hlimsE=c(80,150),hlimsF=c(200,400),recursive=FALSE){
+    #
+    # Neutral winds from multistatic velocity measurements. 
+    #
+    # Electric field is first estimated from F region observations with time resolution of
+    # the original ISfit run.
+    # 
+    # Neutral winds from the E-region gates are then estimated with the same time resolution,
+    # and postintegrated to resolution timeRes (in seconds)
+    # 
+    # 
+
+    
+
+
+    
+
+
+
+
+}

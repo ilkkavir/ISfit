@@ -1,0 +1,16 @@
+Nwind <- function(E,Ecov,vi,vicov,h,B,time,...){
+    # neutral wind estimates
+    #
+    # INPUT:
+    #  E     Electric field [V/m] in cartesian coordinates with x-axis to magnetic east and
+    #        y-axis to magnetic north, perpendicular to B.
+    #  Ecov  Covariance matrix of the electric field.
+    #  vi    a nh x 3 matrix of plasma velocity estimates [m/s]. In geographic ENU coordinates.
+    #  vicov covariance matrices of the velocity estimates (an nh x 3 x 3 array)
+    #  h     heights [km]
+    #  B     magnetic fields in each height gate [nT] (nh x 3 array)
+    #  time  unix time [s]
+    #
+
+
+}

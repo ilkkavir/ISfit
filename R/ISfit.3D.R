@@ -444,7 +444,7 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
 
                                   # an approximation for NO+-neutral colllision frequency (Schunk & Walker, Planet. Space Sci., 1971)
                                   # This is approximately true for all ions, because ion density is much smaller than neutral density
-                                  # the densities in outfmsis are in cm^-3
+                                  # the densities in outfmsis are in cm^-3 ... no they are not, I convert them in iri!!!
                                   ioncoll        <- sum( ionNeutralCollisionFrequency(ptmp[,1])['NO+',] )
 
 

@@ -46,13 +46,13 @@ plotEfieldF <- function( Elist,xlim=NULL,ylim=c(-1,1)*max(abs(Elist[["E"]]),na.r
 
     
     # plot the data as lines
-    plot(time,EmV[,1],xlim=tLim,xaxt='n',xlab='',ylab=expression(paste("E"[E]^{}," [mVm]"[]^{-1})),ylim=ylim,type='n',cex.axis=cex,cex.lab=cex)
+    plot(time,EmV[,1],xlim=tLim,xaxt='n',xlab='',ylab=expression(paste("E"[E]^{}," [mVm"[]^{-1},"]")),ylim=ylim,type='n',cex.axis=cex,cex.lab=cex)
     abline(h=0,lwd=2)
     arrows(time,errLims1[,1],time,errLims2[,1],code=3,length=0,col='red',lwd=2)
     lines(time,EmV[,1],lwd=2)
     axis(1,at=ticks$tick,labels=ticks$string,cex=cex,cex.lab=cex,cex.axis=cex)
     
-    plot(time,EmV[,2],xlim=tLim,xaxt='n',xlab='UTC',ylab=expression(paste("E"[N]^{}," [mVm]"[]^{-1})),ylim=ylim,type='n',cex.axis=cex,cex.lab=cex)
+    plot(time,EmV[,2],xlim=tLim,xaxt='n',xlab='UTC',ylab=expression(paste("E"[N]^{}," [mVm"[]^{-1},"]")),ylim=ylim,type='n',cex.axis=cex,cex.lab=cex)
     abline(h=0,lwd=2)
     arrows(time,errLims1[,2],time,errLims2[,2],code=3,length=0,col='red',lwd=2)
     lines(time,EmV[,2],lwd=2)
