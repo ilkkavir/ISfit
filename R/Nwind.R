@@ -37,8 +37,7 @@ Nwind <- function(E,Ecov,vi,vicov,h,B,time,lat,lon){
     nWindCov <- array(dim=c(nh,3,3))
     for(hh in seq(nh)){
         # the coordinate system will be different in each gate
-
-        ### NOTE! this was copied from EfieldF could be a separete function
+        # we will have x-axis to east, y-axis to south, and z-axis parallel with B
         
         # horizontal component of B
         Bhor <- c(B[hh,c(1,2)],0)
@@ -47,12 +46,12 @@ Nwind <- function(E,Ecov,vi,vicov,h,B,time,lat,lon){
         Bx <- radarPointings:::vectorProduct.cartesian(B[hh,],Bhor)
         Bx <- Bx/sqrt(sum(Bx**2))
         names(Bx) <- c('x','y','z')
-        # geomagnetic north, perpendicular to B
-        By <- radarPointings:::vectorProduct.cartesian(Bx,B[hh,])
+        # geomagnetic south, perpendicular to B
+        By <- -radarPointings:::vectorProduct.cartesian(Bx,B[hh,])
         By <- By/sqrt(sum(By**2))
         names(By) <- c('x','y','z')
-        # a unit vector parallel with B, but upwards
-        Bz <- -B[hh,]/sqrt(sum(B[hh,]**2))
+        # a unit vector parallel with B
+        Bz <- B[hh,]/sqrt(sum(B[hh,]**2))
         names(Bz) <- c('x','y','z')
         # field intensity (the input  is in nT)
         Bstrength <- sqrt(sum(B[hh,]**2)) * 1e-9
