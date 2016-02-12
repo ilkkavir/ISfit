@@ -1,9 +1,10 @@
-plotNwind <- function(nWind,xlim=NULL,ylim=NULL,zlimE=c(-1,1)*500,zlimN=c(-1,1)*500,zlimU=c(-1,1)*100,plotEfield=TRUE,ylimEfield=NULL,pdf=NULL,figNum=NULL,width=8.27,height=2.9225,paper='special',tickRes=NULL,bg='white',fg='black',cex=1.0,col.regions=guisdap.colors,...){
+plotNwind <- function(nWind,timeRes=NULL,xlim=NULL,ylim=NULL,zlimE=c(-1,1)*500,zlimN=c(-1,1)*500,zlimU=c(-1,1)*100,plotEfield=TRUE,ylimEfield=NULL,pdf=NULL,figNum=NULL,width=8.27,height=2.9225,paper='special',tickRes=NULL,bg='white',fg='black',cex=1.0,col.regions=guisdap.colors,...){
     #
     # Plot the electric field and neutral wind returned by NeutralWinds
     # 
     # INPUT:
     #  nWind   output list from NeutralWinds
+    #  timeRes time resolution to which we will integrate the neutral wind [s]
     #  xlim    x axis limits, UT hours counted from 00 UT on the day of the first data point
     #  ylim    y axis limits [UT]
     #  zlimE   z axis limits for the East velocity component
@@ -24,18 +25,25 @@ plotNwind <- function(nWind,xlim=NULL,ylim=NULL,zlimE=c(-1,1)*500,zlimN=c(-1,1)*
     #  col.regions col.regions to use in the color plots
     #  
     # I. Virtanen 2016
-    # 
+    #
+
+    # optional integration in time
+    if(!is.null(timeRes)){
+        nWindF <- filterNwind( nWind , timeRes , ... )
+    }else{
+        nWindF <- nWind
+    }
 
 
     # time limits
     if(is.null(xlim)){
-        tLim <- range(nWind[["time"]])
+        tLim <- range(nWindF[["time"]])
     }else{
-        tLim <- (floor(nWind[["time"]][1] / 3600 / 24) * 24 + xlim) * 3600
+        tLim <- (floor(nWindF[["time"]][1] / 3600 / 24) * 24 + xlim) * 3600
     }
     
     # data points within tLim
-    tInds <- which(nWind[["time"]]>=tLim[1] & nWind[["time"]]<=tLim[2])
+    tInds <- which(nWindF[["time"]]>=tLim[1] & nWindF[["time"]]<=tLim[2])
     
     if( length(tInds)==0){
         warning("No data from the given time period")
@@ -44,7 +52,7 @@ plotNwind <- function(nWind,xlim=NULL,ylim=NULL,zlimE=c(-1,1)*500,zlimN=c(-1,1)*
     
     # height limits
     if(is.null(ylim)){
-        hLim <- range( nWind[["height"]] , na.rm=TRUE )
+        hLim <- range( nWindF[["height"]] , na.rm=TRUE )
     }else{
         hLim <- ylim
     }
@@ -80,45 +88,52 @@ plotNwind <- function(nWind,xlim=NULL,ylim=NULL,zlimE=c(-1,1)*500,zlimN=c(-1,1)*
         errLims1 <- EmV-stdmV
         errLims2 <- EmV + stdmV
 
-        plot(nWind[["time"]],EmV[,1],xlim=tLim,xaxt='n',xlab='',ylab=expression(paste("E"[E]^{}," [mVm"[]^{-1},"]")),ylim=ylimEfield,type='n',cex.axis=cex,cex.lab=cex)
+        # adjustment to time axis for plotting
+        ttE <- nWind[["time"]] - median(diff(nWind[["time"]]))/2
+        
+        plot(ttE,EmV[,1],xlim=tLim,xaxt='n',xlab='',ylab=expression(paste("E"[E]^{}," [mVm"[]^{-1},"]")),ylim=ylimEfield,type='n',cex.axis=cex,cex.lab=cex)
         abline(h=0,lwd=2)
-        arrows(nWind[["time"]],errLims1[,1],nWind[["time"]],errLims2[,1],code=3,length=0,col='red',lwd=2)
-        lines(nWind[["time"]],EmV[,1],lwd=2)
+        arrows(ttE,errLims1[,1],ttE,errLims2[,1],code=3,length=0,col='red',lwd=2)
+        lines(ttE,EmV[,1],lwd=2)
         axis(1,at=ticks$tick,labels=ticks$string,cex=cex,cex.lab=cex,cex.axis=cex)
 
         plot.new()
         
-        plot(nWind[["time"]],EmV[,2],xlim=tLim,xaxt='n',xlab='',ylab=expression(paste("E"[N]^{}," [mVm"[]^{-1},"]")),ylim=ylimEfield,type='n',cex.axis=cex,cex.lab=cex)
+        plot(ttE,EmV[,2],xlim=tLim,xaxt='n',xlab='',ylab=expression(paste("E"[N]^{}," [mVm"[]^{-1},"]")),ylim=ylimEfield,type='n',cex.axis=cex,cex.lab=cex)
         abline(h=0,lwd=2)
-        arrows(nWind[["time"]],errLims1[,2],nWind[["time"]],errLims2[,2],code=3,length=0,col='red',lwd=2)
-        lines(nWind[["time"]],EmV[,2],lwd=2)
+        arrows(ttE,errLims1[,2],ttE,errLims2[,2],code=3,length=0,col='red',lwd=2)
+        lines(ttE,EmV[,2],lwd=2)
         axis(1,at=ticks$tick,labels=ticks$string,cex=cex,cex.lab=cex,cex.axis=cex)
 
         plot.new()
     }
 
+
+    tt <- nWindF[["time"]] - median(diff(nWindF[["time"]]))/2
+    
     # East velocity component
-    image(nWind[["time"]][tInds],nWind[["height"]],nWind[["nWind"]][tInds,,1],xlim=tLim,ylim=hLim,zlim=zlimE,col=col.regions(1000),xaxt='n',ylab='Height [km]',xlab='',cex=cex,cex.lab=cex,cex.axis=cex)
+    image(tt[tInds],nWindF[["height"]],nWindF[["nWind"]][tInds,,1],xlim=tLim,ylim=hLim,zlim=zlimE,col=col.regions(1000),xaxt='n',ylab='Height [km]',xlab='',cex=cex,cex.lab=cex,cex.axis=cex)
     axis(1,at=ticks$tick,labels=ticks$string,cex=cex,cex.lab=cex,cex.axis=cex)
     image(c(0,1),seq(zlimE[1],zlimE[2],length.out=1000),t(matrix(rep(seq(zlimE[1],zlimE[2],length.out=1000),2),ncol=2)),col=col.regions(1000),ylab=expression(paste("V"[n]," East [ms"[]^{-1},"]")),xaxt='n',xlab='',cex=cex,cex.lab=cex,cex.axis=cex)
 
     # North velocity component
-    image(nWind[["time"]][tInds],nWind[["height"]],nWind[["nWind"]][tInds,,2],xlim=tLim,ylim=hLim,zlim=zlimN,col=col.regions(1000),xaxt='n',ylab='Height [km]',xlab='',cex=cex,cex.lab=cex,cex.axis=cex)
+    image(tt[tInds],nWindF[["height"]],nWindF[["nWind"]][tInds,,2],xlim=tLim,ylim=hLim,zlim=zlimN,col=col.regions(1000),xaxt='n',ylab='Height [km]',xlab='',cex=cex,cex.lab=cex,cex.axis=cex)
     axis(1,at=ticks$tick,labels=ticks$string,cex=cex,cex.lab=cex,cex.axis=cex)
     image(c(0,1),seq(zlimN[1],zlimN[2],length.out=1000),t(matrix(rep(seq(zlimE[1],zlimE[2],length.out=1000),2),ncol=2)),col=col.regions(1000),ylab=expression(paste("V"[n]," North [ms"[]^{-1},"]")),xaxt='n',xlab='',cex=cex,cex.lab=cex,cex.axis=cex)
 
     # Up velocity component
-    image(nWind[["time"]][tInds],nWind[["height"]],nWind[["nWind"]][tInds,,3],xlim=tLim,ylim=hLim,zlim=zlimU,col=col.regions(1000),xaxt='n',ylab='Height [km]',xlab='UTC',cex=cex,cex.lab=cex,cex.axis=cex)
+    image(tt[tInds],nWindF[["height"]],nWindF[["nWind"]][tInds,,3],xlim=tLim,ylim=hLim,zlim=zlimU,col=col.regions(1000),xaxt='n',ylab='Height [km]',xlab='UTC',cex=cex,cex.lab=cex,cex.axis=cex)
     axis(1,at=ticks$tick,labels=ticks$string,cex=cex,cex.lab=cex,cex.axis=cex)
     image(c(0,1),seq(zlimU[1],zlimU[2],length.out=1000),t(matrix(rep(seq(zlimE[1],zlimE[2],length.out=1000),2),ncol=2)),col=col.regions(1000),ylab=expression(paste("V"[n]," Up [ms"[]^{-1},"]")),xaxt='n',xlab='',cex=cex,cex.lab=cex,cex.axis=cex)
 
     if(plotEfield){
-        mtext( paste("Electric field and neutral wind ",substr( as.character( as.POSIXlt(nWind[["time"]][tInds[1]],origin='1970-01-01',tz='utc') ) , 1 , 10 )) , side = 3, line = -1.5, outer = TRUE , cex = cex )
+        mtext( paste("Electric field and neutral wind ",substr( as.character( as.POSIXlt(nWindF[["time"]][tInds[1]],origin='1970-01-01',tz='utc') ) , 1 , 10 )) , side = 3, line = -1.5, outer = TRUE , cex = cex )
     }else{
-        mtext( paste("Neutral wind ",substr( as.character( as.POSIXlt(nWind[["time"]][tInds[1]],origin='1970-01-01',tz='utc') ) , 1 , 10 )) , side = 3, line = -1.5, outer = TRUE , cex = cex )
+        mtext( paste("Neutral wind ",substr( as.character( as.POSIXlt(nWindF[["time"]][tInds[1]],origin='1970-01-01',tz='utc') ) , 1 , 10 )) , side = 3, line = -1.5, outer = TRUE , cex = cex )
     }
     
     # if we did not plot on an x11 device, we must close the device properly
     if((sum(figList)==1)&is.null(figNum)) dev.off()
 
+    return(invisible(nWindF))
 }

@@ -1,0 +1,15 @@
+filterNwind <- function( nWind , tres=600 , startTime=NULL ){
+    #
+    # Post-integrate neutral wind estimates from NeutralWinds to time resolution tres.
+    #
+    # INPUT:
+    #  nWind output list from NeutralWinds
+    #  tres  decimated time resolution in seconds
+    #  startTime c(hour,minute,second) of the start time of the first integration period.
+    #        the default is to start from 00:00 UT on the day of first data point
+    # 
+    # 
+    # 
+
+
+}

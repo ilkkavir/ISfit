@@ -1,4 +1,4 @@
-NeutralWinds <- function(dpath,timeRes=600,hlimsE=c(80,150),hlimsF=c(200,400),recursive=FALSE){
+NeutralWinds <- function(dpath,hlimsE=c(80,150),hlimsF=c(200,400),recursive=FALSE){
     #
     # Neutral winds from multistatic velocity measurements. 
     #
@@ -11,7 +11,6 @@ NeutralWinds <- function(dpath,timeRes=600,hlimsE=c(80,150),hlimsF=c(200,400),re
     #
     # INPUT:
     #   dpath     data path(s)
-    #   timeRes   time resolution for the neutral wind estimation [s]
     #   hlimsE    minimum and maximum height [km] considered as E region 
     #   hlimsF    minimum and maximum height [km] considered as F region
     #   recursive logical, if TRUE, dpath is searched recursively
@@ -80,29 +79,8 @@ NeutralWinds <- function(dpath,timeRes=600,hlimsE=c(80,150),hlimsF=c(200,400),re
     }
 
 
-    # filter nWind and nWcov
-    nWindF <- array(dim=c(nf,nEgates,3))
-    nWcovF <- array(dim=c(nf,nEgates,3,3))
-    for(k in seq(nf)){
-        for(hh in seq(nEgates)){
-            Q <- matrix(0,ncol=3,nrow=3)
-            Mtmp <- c(0,0,0)
-            for(n in seq(k)){
-                if( (time[k]-time[n]) <= timeRes){
-                    Qn <- tryCatch( solve(nWcov[n,hh,,]) , error=function(e){matrix(0,ncol=3,nrow=3)})
-                    if((!(any(is.na(Qn))))&(!any(is.na(nWind[n,hh,])))){
-                        Q <- Q + Qn
-                        Mtmp <- Mtmp + Qn%*%nWind[n,hh,]
-                    }
-                }
-            }
-            nWcovF[k,hh,,] <- tryCatch( solve(Q) , error=function(e){matrix(0,ncol=3,nrow=3)})
-            nWindF[k,hh,] <- nWcovF[k,hh,,]%*%Mtmp
-        }
-    }
-    
 
-    return(list(nWind=nWindF,cov=nWcovF,E=E,Ecov=Ecov,time=time,nWindHres=nWind,covHres=nWcov,height=hE))
+    return(list(nWind=nWind,cov=nWcov,E=E,Ecov=Ecov,time=time,height=hE))
 
 
 }
