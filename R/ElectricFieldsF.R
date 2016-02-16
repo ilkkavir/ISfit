@@ -1,4 +1,4 @@
-ElectricFieldsF <- function(dpath,hmin=200,hmax=400,recursive=FALSE){
+ElectricFieldsF <- function(dpath,hmin=200,hmax=400,vipar0=FALSE,recursive=FALSE){
     #
     # Electric field from multistatic F-region velocity measurements.
     # 
@@ -32,7 +32,7 @@ ElectricFieldsF <- function(dpath,hmin=200,hmax=400,recursive=FALSE){
 
     for(k in seq(nf)){
         load(dfiles[k])
-        tmp <- EfieldFPP(PP,hmin=hmin,hmax=hmax)
+        tmp <- EfieldFPP(PP,hmin=hmin,hmax=hmax,vipar0=vipar0)
         E[k,] <- tmp[["E"]]
         Ecov[k,,] <- tmp[["cov"]]
         time[k] <- as.numeric(PP[["POSIXtime"]])

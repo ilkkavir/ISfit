@@ -131,6 +131,12 @@ plotNwind <- function(nWind,timeRes=NULL,xlim=NULL,ylim=NULL,zlimE=c(-1,1)*500,z
     }else{
         mtext( paste("Neutral wind ",substr( as.character( as.POSIXlt(nWindF[["time"]][tInds[1]],origin='1970-01-01',tz='utc') ) , 1 , 10 )) , side = 3, line = -1.5, outer = TRUE , cex = cex )
     }
+
+
+    # THE X AXES OF E FIELD AND NEUTRAL WIND PLOTS DO NOT MATCH, AND THE XLIM ARGUMENT OF IMAGE DOES NOT SEEM TO WORK AS EXPECTED...+
+
+
+    
     
     # if we did not plot on an x11 device, we must close the device properly
     if((sum(figList)==1)&is.null(figNum)) dev.off()

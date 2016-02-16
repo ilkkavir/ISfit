@@ -1,4 +1,4 @@
-ISaprioriH <- function( aprioriParam ,  nIon , absCalib=FALSE , TiIsotropic=FALSE , TeIsotropic=FALSE, refSite=1 , siteScales=NULL , h=300 , hTeTi=120 , hTi=100 , hVi=100, hColl=c(0,0) , ... )
+ISaprioriH <- function( aprioriParam ,  nIon , absCalib=FALSE , TiIsotropic=FALSE , TeIsotropic=FALSE, refSite=1 , siteScales=NULL , h=300 , hTeTi=120 , hTi=100 , hVi=100, hColl=c(0,0) , B=c(0,0,0) , ViPar0=FALSE , ... )
     {
         #
         #
@@ -14,6 +14,12 @@ ISaprioriH <- function( aprioriParam ,  nIon , absCalib=FALSE , TiIsotropic=FALS
         #  refSite         reference site, whose scale is fixed to unity with small variance
         #  siteScales      a matrix of site scales and their variances or NULL
         #  h               height in km
+        #  hTeTi           Te=Ti below hTeTi [km]
+        #  hTi             Ti fixed to prior (model) value below hTi [km]
+        #  hVi             Vi standard deviation reduced from 10 to 0.1 (km/s??) below hVi
+        #  hColl           ion-neutral collision frequency is fitted at heights hColl[1]->hColl[2]
+        #  B               magnetic field (direction). The default is considered as missing value
+        #  ViPar0          logical, force field-aligned ion velocity to zero
         #
         #  ...             arbitrary parameters to be passed forward to other functions, mainly for compatability reasons
         #
@@ -34,7 +40,7 @@ ISaprioriH <- function( aprioriParam ,  nIon , absCalib=FALSE , TiIsotropic=FALS
         nPar                         <- length(aprioriParam)
 
         # number of imaginary apriori "measurements"
-        nApriori                     <- ( nPar + 4 )
+        nApriori                     <- ( nPar + 5 )
 
         # apriori theory matrix
         aprioriTheory                <- matrix( 0 , nrow=nApriori , ncol=nPar )
@@ -124,6 +130,13 @@ ISaprioriH <- function( aprioriParam ,  nIon , absCalib=FALSE , TiIsotropic=FALS
             aprioriTheory[5,] <- 0
             aprioriMeas[c(4,5)] <- 0
         }
+
+        # optional ViPar=0
+        curRow                         <- curRow + 1
+        aprioriTheory[curRow,c(7,8,9)] <- B/sum(sqrt(B^2))
+        aprioriMeas[curRow] <- 0
+        aprioriStd[curRow] <- ifelse(ViPar0&all(B!=0),1e-3,10)
+        
 
 
         return(list(aprioriTheory=aprioriTheory,invAprioriCovar=diag(1/aprioriStd**2),aprioriMeas=aprioriMeas))

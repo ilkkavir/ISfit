@@ -1,4 +1,4 @@
-NeutralWinds <- function(dpath,hlimsE=c(80,150),hlimsF=c(200,400),recursive=FALSE){
+NeutralWinds <- function(dpath,hlimsE=c(80,150),hlimsF=c(200,400),vipar0=FALSE,recursive=FALSE){
     #
     # Neutral winds from multistatic velocity measurements. 
     #
@@ -13,6 +13,7 @@ NeutralWinds <- function(dpath,hlimsE=c(80,150),hlimsF=c(200,400),recursive=FALS
     #   dpath     data path(s)
     #   hlimsE    minimum and maximum height [km] considered as E region 
     #   hlimsF    minimum and maximum height [km] considered as F region
+    #   vipar0    logical, should ion velocity parallel with B forced to zero? default FALSE
     #   recursive logical, if TRUE, dpath is searched recursively
     #
     # OUTPUT
@@ -60,7 +61,7 @@ NeutralWinds <- function(dpath,hlimsE=c(80,150),hlimsF=c(200,400),recursive=FALS
         load(dfiles[k])
 
         # Electric field from F region
-        tmpE <- EfieldFPP(PP,hmin=hlimsF[1],hmax=hlimsF[2])
+        tmpE <- EfieldFPP(PP,hmin=hlimsF[1],hmax=hlimsF[2],vipar0=vipar0)
         E[k,] <- tmpE[["E"]]
         Ecov[k,,] <- tmpE[["cov"]]
         time[k] <- as.numeric(PP[["POSIXtime"]])

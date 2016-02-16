@@ -1,4 +1,4 @@
-EfieldFPP <- function(PP,hmin=200,hmax=400){
+EfieldFPP <- function(PP,hmin=200,hmax=400,vipar0=FALSE){
     # F-region electric field with ISfit output list
     # as input
 
@@ -8,5 +8,5 @@ EfieldFPP <- function(PP,hmin=200,hmax=400){
     vicov <- lapply(PP[["covar"]][hh],FUN=function(x){return(x[c('Vix','Viy','Viz'),c('Vix','Viy','Viz')])})
     B <- PP[["B"]][hh,]
 
-    return(EfieldF(vi,vicov,B))
+    return(EfieldF(vi,vicov,B,vipar0))
 }

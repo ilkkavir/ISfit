@@ -1,4 +1,4 @@
-EfieldF <- function(vi,vicov,B){
+EfieldF <- function(vi,vicov,B,vipar0=FALSE){
     #
     # Calculate F-region electric field from
     # ion velocity measurement(s).
@@ -12,6 +12,7 @@ EfieldF <- function(vi,vicov,B){
     #             length(vicov) == dim(vi)[1]
     #   B         magnetic field [nT] in the same coordinate system
     #             with vi. Either a vector, or a list of vectors
+    #   vipar0    logical If true, field-parallel ion velocity is forced to zero with a prior. 
     #
     #  output
     #   E         Electric field estimate
@@ -68,6 +69,21 @@ EfieldF <- function(vi,vicov,B){
         # Covariance
         ViBxyzCov <- rotMat%*%vicov[[hh]]%*%t(rotMat)
         dimnames(ViBxyzCov) <- NULL
+        # optional Vi parallel = 0
+        if(vipar0){
+            Apar <- matrix(0,ncol=3,nrow=4)
+            diag(Apar) <- 1
+            Apar[4,3] <- 1
+            Cparprior <- matrix(0,ncol=4,nrow=4)
+            Cparprior[1:3,1:3] <- ViBxyzCov
+            Cparprior[4,4] <- 1e-3
+            Qparprior <- tryCatch(solve(Cparprior), error=function(e){matrix(0,ncol=3,nrow=3)})
+            Cparpost <- tryCatch(solve(t(Apar)%*%Qparprior%*%Apar), error=function(e){matrix(0,ncol=3,nrow=3)})
+            Vipost <- Cparpost%*%t(Apar)%*%Qparprior%*%c(ViBxyz,0)
+
+            ViBxyz <- Vipost
+            ViBxyzCov <- Cparpost
+        }
         # The E-field components and their covariances
         rotMat2 <- matrix(c(0,1,-1,0),byrow=TRUE,ncol=2)
         Efields[hh,] <- rotMat2%*%ViBxyz[c(1,2)] * Bstrength

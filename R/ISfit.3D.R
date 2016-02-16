@@ -506,7 +506,7 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
                                   limitParam[2,] <- scaleParams(parLimits[2,] , parScales , inverse=F)
 
                                   # apriori information
-                                  apriori[[h]]   <- aprioriFunction( initParam , nIon=3 , absCalib=absCalib , TiIsotropic=TiIsotropic , TeIsotropic=TeIsotropic , refSite=refsite , siteScales=sScales[,c((h+12),(h+12+nh))] , h=height[h] , ...)
+                                  apriori[[h]]   <- aprioriFunction( initParam , nIon=3 , absCalib=absCalib , TiIsotropic=TiIsotropic , TeIsotropic=TeIsotropic , refSite=refsite , siteScales=sScales[,c((h+12),(h+12+nh))] , h=height[h] , B=B[h,] , ...)
 
                                   model[h,]      <- parInit
 
