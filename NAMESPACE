@@ -44,7 +44,8 @@ export(
     ElectricFieldsF,
     plotEfieldF,
     NeutralWinds,
-    plotNwind
+    plotNwind,
+    filterEfield
     )
 
 useDynLib(ISfit)

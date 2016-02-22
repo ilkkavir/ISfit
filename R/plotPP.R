@@ -39,14 +39,14 @@
 ##
 
 
-plotPP <- function(data,par=list(Ne=c(10,12),TeR1=c(0,4000),TiR1=c(0,3000),ViR1=c(-400,400)),xlim=NULL,ylim=NULL,pdf=NULL,jpg=NULL,figNum=NULL,width=8.27,height=2.9225,paper='a4',tickRes=NULL,model=F,stdThreshold=.5,NeMin=1e9,chisqrLim=10,bg='white',fg='black',res=300,cex=1.0,col.regions=guisdap.colors,multistatic=TRUE,trellis=FALSE,cutgaps=TRUE,main=NA,measuredOnly=T)
+plotPP <- function(data,par=list(Ne=c(10,12),TeR1=c(0,4000),TiR1=c(0,3000),ViR1=c(-400,400)),xlim=NULL,ylim=NULL,pdf=NULL,jpg=NULL,figNum=NULL,width=8.27,height=2.9225,paper='a4',tickRes=NULL,model=F,stdThreshold=.5,NeMin=1e9,chisqrLim=10,bg='white',fg='black',res=300,cex=1.0,col.regions=guisdap.colors,multistatic=TRUE,trellis=FALSE,cutgaps=TRUE,main=NA,title=NA,measuredOnly=T)
     {
 
         UseMethod("plotPP")
 
     }
 
-plotPP.character <- function(data,par=list(Ne=c(10,12),TeR1=c(0,4000),TiR1=c(0,3000),ViR1=c(-400,400)),xlim=NULL,ylim=NULL,pdf=NULL,jpg=NULL,figNum=NULL,width=8.27,height=2.9225,paper='a4',tickRes=NULL,model=F,stdThreshold=.5,NeMin=1e9,chisqrLim=10,bg='white',fg='black',res=300,cex=1.0,col.regions=guisdap.colors,multistatic=TRUE,trellis=FALSE,cutgaps=TRUE,main=NA,measuredOnly=T)
+plotPP.character <- function(data,par=list(Ne=c(10,12),TeR1=c(0,4000),TiR1=c(0,3000),ViR1=c(-400,400)),xlim=NULL,ylim=NULL,pdf=NULL,jpg=NULL,figNum=NULL,width=8.27,height=2.9225,paper='a4',tickRes=NULL,model=F,stdThreshold=.5,NeMin=1e9,chisqrLim=10,bg='white',fg='black',res=300,cex=1.0,col.regions=guisdap.colors,multistatic=TRUE,trellis=FALSE,cutgaps=TRUE,main=NA,title=NA,measuredOnly=T)
     {
 
         # read all data
@@ -66,7 +66,7 @@ plotPP.character <- function(data,par=list(Ne=c(10,12),TeR1=c(0,4000),TiR1=c(0,3
     }
 
 
-plotPP.list <- function(data,par=list(Ne=c(10,12),TeR1=c(0,4000),TiR1=c(0,3000),ViR1=c(-400,400)),xlim=NULL,ylim=NULL,pdf=NULL,jpg=NULL,figNum=NULL,width=8.27,height=2.9225,paper='a4',tickRes=NULL,model=F,stdThreshold=.5,NeMin=1e9,chisqrLim=10,bg='white',fg='black',res=300,cex=1.0,col.regions=guisdap.colors,multistatic=TRUE,trellis=FALSE,cutgaps=TRUE,main=NA,...)
+plotPP.list <- function(data,par=list(Ne=c(10,12),TeR1=c(0,4000),TiR1=c(0,3000),ViR1=c(-400,400)),xlim=NULL,ylim=NULL,pdf=NULL,jpg=NULL,figNum=NULL,width=8.27,height=2.9225,paper='a4',tickRes=NULL,model=F,stdThreshold=.5,NeMin=1e9,chisqrLim=10,bg='white',fg='black',res=300,cex=1.0,col.regions=guisdap.colors,multistatic=TRUE,trellis=FALSE,cutgaps=TRUE,main=NA,title=NA,...)
     {
         # take a copy that will be returned
         data2 <- data
@@ -429,10 +429,14 @@ plotPP.list <- function(data,par=list(Ne=c(10,12),TeR1=c(0,4000),TiR1=c(0,3000),
             }
         }
         if(!trellis){
-            if(length(tInds)==1){
-                mtext( paste( as.character( data[["POSIXtime"]][[tInds]] ) , "UTC" ), side = 3, line = -2, outer = TRUE , cex = cex )
+            if(is.na(title)){
+                if(length(tInds)==1){
+                    mtext( paste( as.character( data[["POSIXtime"]][[tInds]] ) , "UTC" ), side = 3, line = -2, outer = TRUE , cex = cex )
+                }else{
+                    mtext( substr( as.character( data[["POSIXtime"]][[tInds[1]]] ) , 1 , 10 ) , side = 3, line = -1.5, outer = TRUE , cex = cex )
+                }
             }else{
-                mtext( substr( as.character( data[["POSIXtime"]][[tInds[1]]] ) , 1 , 10 ) , side = 3, line = -1.5, outer = TRUE , cex = cex )
+                mtext( title , side = 3, line = -1.5, outer = TRUE , cex = cex )
             }
         }
         # if we did not plot on an x11 device, we must close the device properly

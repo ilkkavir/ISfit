@@ -1,4 +1,4 @@
-plotEfieldF <- function( Elist,xlim=NULL,ylim=c(-1,1)*max(abs(Elist[["E"]]),na.rm=T)*1000, cex=1 , pdf=NULL , figNum=NULL , width=8.27, height=5.845,paper='special',tickRes=NULL,bg='white',fg='black',main='NA',...){
+plotEfieldF <- function( Elist,xlim=NULL,ylim=c(-1,1)*max(abs(Elist[["E"]]),na.rm=T)*1000, cex=1 , pdf=NULL , figNum=NULL , width=8.27, height=5.845,paper='special',tickRes=NULL,bg='white',fg='black',title='NA',...){
     #
     # Plot the F-region electric field components returned by ElectricFieldsF
     #
@@ -57,8 +57,12 @@ plotEfieldF <- function( Elist,xlim=NULL,ylim=c(-1,1)*max(abs(Elist[["E"]]),na.r
     arrows(time,errLims1[,2],time,errLims2[,2],code=3,length=0,col='red',lwd=2)
     lines(time,EmV[,2],lwd=2)
     axis(1,at=ticks$tick,labels=ticks$string,cex=cex,cex.lab=cex,cex.axis=cex)
-    
-    mtext( paste("F region electric field ",substr( as.character( as.POSIXlt(Elist[["time"]][tInds[1]],origin='1970-01-01',tz='utc') ) , 1 , 10 )) , side = 3, line = -1.5, outer = TRUE , cex = cex )
+
+    if(is.na(title)){
+        mtext( paste("F region electric field ",substr( as.character( as.POSIXlt(Elist[["time"]][tInds[1]],origin='1970-01-01',tz='utc') ) , 1 , 10 )) , side = 3, line = -1.5, outer = TRUE , cex = cex )
+    }else{
+        mtext( title , side = 3, line = -1.5, outer = TRUE , cex = cex )
+    }
 
 
     if((sum(figList)==1)&is.null(figNum)) dev.off()
