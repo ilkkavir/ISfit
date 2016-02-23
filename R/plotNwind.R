@@ -90,7 +90,7 @@ plotNwind <- function(nWind,timeRes=NULL,xlim=NULL,ylim=NULL,zlimE=c(-1,1)*500,z
 
         # adjustment to time axis for plotting
         ttE <- nWind[["time"]] - median(diff(nWind[["time"]]))/2
-        
+        par(xaxs='i')
         plot(ttE,EmV[,1],xlim=tLim,xaxt='n',xlab='',ylab=expression(paste("E"[E]^{}," [mVm"[]^{-1},"]")),ylim=ylimEfield,type='n',cex.axis=cex,cex.lab=cex)
         abline(h=0,lwd=2)
         arrows(ttE,errLims1[,1],ttE,errLims2[,1],code=3,length=0,col='red',lwd=2)
@@ -98,7 +98,7 @@ plotNwind <- function(nWind,timeRes=NULL,xlim=NULL,ylim=NULL,zlimE=c(-1,1)*500,z
         axis(1,at=ticks$tick,labels=ticks$string,cex=cex,cex.lab=cex,cex.axis=cex)
 
         plot.new()
-        
+        par(xaxs='i')        
         plot(ttE,EmV[,2],xlim=tLim,xaxt='n',xlab='',ylab=expression(paste("E"[N]^{}," [mVm"[]^{-1},"]")),ylim=ylimEfield,type='n',cex.axis=cex,cex.lab=cex)
         abline(h=0,lwd=2)
         arrows(ttE,errLims1[,2],ttE,errLims2[,2],code=3,length=0,col='red',lwd=2)

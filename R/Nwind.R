@@ -23,7 +23,6 @@ Nwind <- function(E,Ecov,vi,vicov,h,B,time,lat,lon){
 
     date <- c(time[["year"]]+1900,time[["mon"]]+1,time[["mday"]],time[["hour"]],time[["min"]],time[["sec"]])
     echarge <- 1.60217662e-19
-    #mion <- 30.5
     mion <- c( 'i1'=30.5 , 'i2'=16 )
     u <- 1.66053904e-27
 
@@ -32,19 +31,12 @@ Nwind <- function(E,Ecov,vi,vicov,h,B,time,lat,lon){
     Ecov2 <- matrix(0,ncol=3,nrow=3)
     Ecov2[1:2,1:2] <- Ecov
 
-    # the eletric field is in magnetic east-north-up coordinates, we will use
-    # east-south-down
-    rotMatE <- matrix(c(1,0,0,0,-1,0,0,0,-1),byrow=TRUE,ncol=3)
-    E2 <- rotMatE%*%E2
-    Ecov2 <- rotMatE%*%Ecov2%*%t(rotMatE)
-
     nh <- length(h)
     nWind <- matrix(nrow=nh,ncol=3)
     nWindCov <- array(dim=c(nh,3,3))
     
     for(hh in seq(nh)){
         # the coordinate system will be different in each gate
-        # we will have x-axis to east, y-axis to south, and z-axis parallel with B
         
         # horizontal component of B
         Bhor <- c(B[hh,c(1,2)],0)
@@ -53,12 +45,12 @@ Nwind <- function(E,Ecov,vi,vicov,h,B,time,lat,lon){
         Bx <- radarPointings:::vectorProduct.cartesian(B[hh,],Bhor)
         Bx <- Bx/sqrt(sum(Bx**2))
         names(Bx) <- c('x','y','z')
-        # geomagnetic south, perpendicular to B
-        By <- -radarPointings:::vectorProduct.cartesian(Bx,B[hh,])
+        # geomagnetic north, perpendicular to B
+        By <- radarPointings:::vectorProduct.cartesian(Bx,B[hh,])
         By <- By/sqrt(sum(By**2))
         names(By) <- c('x','y','z')
-        # a unit vector parallel with B
-        Bz <- B[hh,]/sqrt(sum(B[hh,]**2))
+        # up along B
+        Bz <- -B[hh,]/sqrt(sum(B[hh,]**2))
         names(Bz) <- c('x','y','z')
         # field intensity (the input  is in nT)
         Bstrength <- sqrt(sum(B[hh,]**2)) * 1e-9
@@ -71,25 +63,8 @@ Nwind <- function(E,Ecov,vi,vicov,h,B,time,lat,lon){
         ViBxyzCov <- rotMat%*%vicov[[hh]]%*%t(rotMat)
         dimnames(ViBxyzCov) <- NULL
 
-        ### end of note...
-
         # compositions etc. 
         ptmp <- iriParams( time=date ,latitude=lat[hh],longitude=lon[hh],heights=h[hh])
-
-#        # this was with collision frequencies from Banks et al.  and only heavy ions..
-#        if(FALSE){
-#        # ion-neutral collision frequency
-#        ioncoll <- sum( ionNeutralCollisionFrequency(ptmp[,1])['NO+',] )
-#        # ion gyro-frequency
-#        iongyro <- echarge*Bstrength/( mion*u)
-#        # pedersen conductivity
-#        kp <- (iongyro*ioncoll)/(echarge*Bstrength*(iongyro**2+ioncoll**2))
-#        # hall conductivity
-#        kh <- (iongyro**2)/(echarge*Bstrength*(iongyro**2+ioncoll**2))
-#        # parallel conductivity
-#        kb <- 1/(mion*u*ioncoll)
-#        }
-
 
         # better collision frequencies and two ions
         ioncoll <- ionNeutralCollisionFrequency2(ptmp[,1])
@@ -116,10 +91,11 @@ Nwind <- function(E,Ecov,vi,vicov,h,B,time,lat,lon){
         kh <- sum( comp * kh1 )
         kb <- sum( comp * kb1)
         
-        # inverse of ion mobility tensor
+        # inverse of ion mobility tensor, this is differenct from some
+        # textbooks since we have z axis upwards
         mobi <- matrix(0,ncol=3,nrow=3)
         mobi[1,1] <- kp/(kh**2+kp**2)
-        mobi[2,1] <- kh/(kh**2+kp**2)
+        mobi[2,1] <- -kh/(kh**2+kp**2)
         mobi[1,2] <- -mobi[2,1]
         mobi[2,2] <- mobi[1,1]
         mobi[3,3] <- 1/kb
@@ -130,10 +106,6 @@ Nwind <- function(E,Ecov,vi,vicov,h,B,time,lat,lon){
         VimobCov <- mobi%*%ViBxyzCov%*%t(mobi)
 
         # subtract the electric field contribution and divide by mion*u*ioncoll
-#        if(FALSE){
-#        nWind[hh,] <- ( Vimob - echarge*E2 ) / (mion*u*ioncoll)
-#        nWindCov[hh,,] <- ( VimobCov + echarge**2*Ecov2 ) / (mion*u*ioncoll)**2
-#        }
         nWind[hh,] <- ( Vimob - echarge*E2 ) / sum( comp * mion[c('i1','i2')] * u * ioncoll[c('i1','i2')])
         nWindCov[hh,,] <- ( VimobCov + echarge**2*Ecov2 ) /
             sum( comp * mion[c('i1','i2')] * u * ioncoll[c('i1','i2')] )**2
