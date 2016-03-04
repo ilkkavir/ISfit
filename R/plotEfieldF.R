@@ -1,4 +1,4 @@
-plotEfieldF <- function( Elist,xlim=NULL,ylim=c(-1,1)*max(abs(Elist[["E"]]),na.rm=T)*1000, cex=1 , pdf=NULL , figNum=NULL , width=8.27, height=5.845,paper='special',tickRes=NULL,bg='white',fg='black',title='NA',...){
+plotEfieldF <- function( Elist,xlim=NULL,ylim=c(-1,1)*max(abs(Elist[["E"]]),na.rm=T)*1000, cex=1 , pdf=NULL , figNum=NULL , width=8.27, height=5.845,paper='special',tickRes=NULL,bg='white',fg='black',title=NA,...){
     #
     # Plot the F-region electric field components returned by ElectricFieldsF
     #

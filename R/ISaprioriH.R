@@ -95,6 +95,13 @@ ISaprioriH <- function( aprioriParam ,  nIon , absCalib=FALSE , TiIsotropic=FALS
         # force certain parameter differences close to zero
         curRow                         <- nPar + 1
 
+
+
+        # the temperature ansitropies somewhat diffcult this way,
+        # it would perhaps be better to fit the field-aligned temperature
+        # and the difference Tperp - Tpar. This will require changes in a number
+        # of places but could be worth it...
+
         # electron temperature anisotropy
         aprioriTheory[curRow,c(4,5)]   <- c(1,-1)
         aprioriMeas[curRow]            <- 0
