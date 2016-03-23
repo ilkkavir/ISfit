@@ -77,6 +77,27 @@ plotPP.list <- function(data,par=list(Ne=c(10,12),TeR1=c(0,4000),TiR1=c(0,3000),
             return(invisible(NULL))
         }
 
+        # if the data matrices have only one row, we add NA rows above and below to allow plotting as usual
+        if(dim(data[["param"]])[1] == 1 ){
+            tmparr <- array(dim=dim(data[["param"]])+c(2,0,0))
+            tmparr[2,,] <- data[["param"]]
+            dimnames(tmparr) <- list(c('gate1','gate2','gate3'),dimnames(data[["param"]])[[2]],dimnames(data[["param"]])[[3]])
+            data[["param"]] <- tmparr
+            tmparr <- array(dim=dim(data[["std"]])+c(2,0,0))
+            tmparr[2,,] <- data[["std"]]
+            dimnames(tmparr) <- list(c('gate1','gate2','gate3'),dimnames(data[["std"]])[[2]],dimnames(data[["std"]])[[3]])
+            data[["std"]] <- tmparr
+            tmparr <- array(dim=dim(data[["model"]])+c(2,0,0))
+            tmparr[2,,] <- data[["model"]]
+            dimnames(tmparr) <- list(c('gate1','gate2','gate3'),dimnames(data[["model"]])[[2]],dimnames(data[["model"]])[[3]])
+            data[["model"]] <- tmparr
+            tmparr <- array(dim=dim(data[["height"]])+c(2,0))
+            tmparr[2,] <- data[["height"]]
+            tmparr[1,] <- data[["height"]] - 30
+            tmparr[3,] <- data[["height"]] + 30
+            data[["height"]] <- tmparr
+        }
+
         # cut off large variances (only Ne is studied)
         if(!is.null(stdThreshold)){
             thrInds <- (data$std[,1,] / data$param[,1,]) >  stdThreshold
