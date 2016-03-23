@@ -405,6 +405,8 @@ plotPP.list <- function(data,par=list(Ne=c(10,12),TeR1=c(0,4000),TiR1=c(0,3000),
                     }else{
                         d[data[["std"]][,names(par[p]),tInds]>par[[p]][3]] <- NA
                     }
+                    d[d<par[[p]][1]] <- par[[p]][1]
+                    d[d>par[[p]][2]] <- par[[p]][2]
                     if(trellis){
                         curFig <- addPPcolorPlot(
                             d = d,
