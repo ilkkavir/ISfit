@@ -1,4 +1,4 @@
-plotEvectorsF <- function( Elist,xlim=NULL,tmV=1000, cex=1 , pdf=NULL , figNum=NULL , width=8.27, height=2.9225,paper='special',tickRes=NULL,bg='white',fg='black',title=NA,...){
+plotEvectorsF <- function( Elist,xlim=NULL,tmV=1000, cex=1 , pdf=NULL , figNum=NULL , width=8.27, height=2.9225,paper='special',tickRes=NULL,bg='white',fg='black',title=NA,opendev=TRUE,closedev=TRUE,...){
     #
     # Plot the F-region electric fields as arrows
     #
@@ -23,16 +23,17 @@ plotEvectorsF <- function( Elist,xlim=NULL,tmV=1000, cex=1 , pdf=NULL , figNum=N
         return(invisible(data2))
     }
 
-    # open the  proper device
-    figList <- c(is.null(figNum),is.null(pdf))
-    if(sum(figList) < 1 ) stop('Only one output device can be selected at a time')
-    # a new x11 by defaul
-    if(sum(figList) == 2) x11(width=width,height=height)
-    # new plot to an existing x11 window
-    if(!is.null(figNum)) {dev.set(figNum);plot.new()}
-    # a new pdf file
-    if(!is.null(pdf)) pdf(file=paste(pdf,'.pdf',sep=''),paper=paper,width=width,height=height)
-
+    if(opendev){
+        # open the  proper device
+        figList <- c(is.null(figNum),is.null(pdf))
+        if(sum(figList) < 1 ) stop('Only one output device can be selected at a time')
+        # a new x11 by defaul
+        if(sum(figList) == 2) x11(width=width,height=height)
+        # new plot to an existing x11 window
+        if(!is.null(figNum)) {dev.set(figNum);plot.new()}
+        # a new pdf file
+        if(!is.null(pdf)) pdf(file=paste(pdf,'.pdf',sep=''),paper=paper,width=width,height=height)
+    }
 
     par(mar=c(3,1,2,1)*cex,mgp=c(1.5,.5,0)*cex)
 
@@ -70,8 +71,9 @@ plotEvectorsF <- function( Elist,xlim=NULL,tmV=1000, cex=1 , pdf=NULL , figNum=N
         mtext( title , side = 3, line = -1.5, outer = TRUE , cex = cex )
     }
 
-
-    if((sum(figList)==1)&is.null(figNum)) dev.off()
+    if(closedev){
+        if((!is.null(pdf))&is.null(figNum)) dev.off()
+    }
 
 } # plotEfieldF
 
