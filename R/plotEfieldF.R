@@ -39,7 +39,7 @@ plotEfieldF <- function( Elist,xlim=NULL,ylim=c(-1,1)*max(abs(Elist[["E"]]),na.r
         # a new pdf file
         if(!is.null(pdf)) pdf(file=paste(pdf,'.pdf',sep=''),paper=paper,width=width,height=height)
     }
-        
+
 
     layout(matrix(seq(2),ncol=1,byrow=T))
     par(mar=c(3,3,2,1)*cex,mgp=c(1.5,.5,0)*cex)
@@ -67,7 +67,7 @@ plotEfieldF <- function( Elist,xlim=NULL,ylim=c(-1,1)*max(abs(Elist[["E"]]),na.r
     }
 
     if(closedev){
-        if((!is.null(pdf))&is.null(figNum)) dev.off()
+        if( ((!is.null(pdf))&is.null(figNum)) | (!opendev)) dev.off()
     }
 
 } # plotEfieldF

@@ -72,7 +72,7 @@ plotEvectorsF <- function( Elist,xlim=NULL,tmV=1000, cex=1 , pdf=NULL , figNum=N
     }
 
     if(closedev){
-        if((!is.null(pdf))&is.null(figNum)) dev.off()
+        if( ((!is.null(pdf))&is.null(figNum)) | (!opendev)) dev.off()
     }
 
 } # plotEfieldF
