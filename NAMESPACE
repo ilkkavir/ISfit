@@ -46,7 +46,8 @@ export(
     NeutralWinds,
     plotNwind,
     filterEfield,
-    plotEvectorsF
+    plotEvectorsF,
+    writeEascii
     )
 
 useDynLib(ISfit)

@@ -1,0 +1,14 @@
+writeEascii <- function(Elist){
+    #
+    # Write electric field estimates and their covariances in ascii files
+    #
+    #
+    #
+    #
+    # IV 2016
+    #
+
+    
+
+
+}
