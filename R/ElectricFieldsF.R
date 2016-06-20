@@ -1,9 +1,9 @@
 ElectricFieldsF <- function(dpath,hmin=200,hmax=400,vipar0=FALSE,recursive=FALSE){
     #
     # Electric field from multistatic F-region velocity measurements.
-    # 
+    #
     # I. Virtanen 2016
-    # 
+    #
 
     if(is.null(dpath)) return(NULL)
     if(length(dpath)==0) return(NULL)
@@ -29,6 +29,7 @@ ElectricFieldsF <- function(dpath,hmin=200,hmax=400,vipar0=FALSE,recursive=FALSE
     E <- matrix(ncol=2,nrow=nf)
     Ecov <- array(dim=c(nf,2,2))
     time <- rep(NA,nf)
+    tres <- rep(NA,nf)
 
     for(k in seq(nf)){
         load(dfiles[k])
@@ -36,8 +37,9 @@ ElectricFieldsF <- function(dpath,hmin=200,hmax=400,vipar0=FALSE,recursive=FALSE
         E[k,] <- tmp[["E"]]
         Ecov[k,,] <- tmp[["cov"]]
         time[k] <- as.numeric(PP[["POSIXtime"]])
+        tres[k] <- diff(PP[["timeLimits.s"]])
     }
 
-    return(list(E=E,Ecov=Ecov,time=time))
+    return(list(E=E,Ecov=Ecov,time=time,tres=tres))
 
 }
