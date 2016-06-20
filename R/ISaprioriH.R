@@ -1,4 +1,4 @@
-ISaprioriH <- function( aprioriParam ,  nIon , absCalib=FALSE , TiIsotropic=FALSE , TeIsotropic=FALSE, refSite=1 , siteScales=NULL , h=300 , hTeTi=120 , hTi=100 , hVi=100, hColl=c(0,0) , B=c(0,0,0) , ViPar0=FALSE , ... )
+ISaprioriH <- function( aprioriParam ,  nIon , absCalib=FALSE , TiIsotropic=FALSE , TeIsotropic=FALSE, refSite=1 , siteScales=NULL , h=300 , hTeTi=100 , hTi=80 , hVi=90, hColl=c(0,0) , B=c(0,0,0) , ViPar0=FALSE , ... )
     {
         #
         #
@@ -34,8 +34,8 @@ ISaprioriH <- function( aprioriParam ,  nIon , absCalib=FALSE , TiIsotropic=FALS
 #        # height limits, these could be optional input arguments as well
 #        hTi <- 100     # Ti from model below this height
 #        hTeTi <- 120   # Te=Ti below this height
-            
-        
+
+
         # length of the parameter vector
         nPar                         <- length(aprioriParam)
 
@@ -143,7 +143,7 @@ ISaprioriH <- function( aprioriParam ,  nIon , absCalib=FALSE , TiIsotropic=FALS
         aprioriTheory[curRow,c(7,8,9)] <- B/sum(sqrt(B^2))
         aprioriMeas[curRow] <- 0
         aprioriStd[curRow] <- ifelse(ViPar0&all(B!=0),1e-3,10)
-        
+
 
 
         return(list(aprioriTheory=aprioriTheory,invAprioriCovar=diag(1/aprioriStd**2),aprioriMeas=aprioriMeas))
