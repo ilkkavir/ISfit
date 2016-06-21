@@ -30,16 +30,45 @@ ElectricFieldsF <- function(dpath,hmin=200,hmax=400,vipar0=FALSE,recursive=FALSE
     Ecov <- array(dim=c(nf,2,2))
     time <- rep(NA,nf)
     tres <- rep(NA,nf)
+    latitudes <- list()
+    longitudes <- list()
+    heights <- list()
+    B <- list()
+    date <- list()
+    sites <- list()
+    POSIXtime <- list()
 
     for(k in seq(nf)){
         load(dfiles[k])
         tmp <- EfieldFPP(PP,hmin=hmin,hmax=hmax,vipar0=vipar0)
         E[k,] <- tmp[["E"]]
         Ecov[k,,] <- tmp[["cov"]]
-        time[k] <- as.numeric(PP[["POSIXtime"]])
-        tres[k] <- diff(PP[["timeLimits.s"]])
+        time[k] <- tmp[["time"]]
+        tres[k] <- tmp[["tres"]]
+        latitudes[[k]] <- tmp[["latitudes"]]
+        longitudes[[k]] <- tmp[["longitudes"]]
+        heights[[k]] <- tmp[["heights"]]
+        B[[k]] <- tmp[["B"]]
+        date[[k]] <- tmp[["date"]]
+        sites[[k]] <- tmp[["sites"]]
+        POSIXtime[[k]] <- tmp[["POSIXtime"]]
     }
 
-    return(list(E=E,Ecov=Ecov,time=time,tres=tres))
+    latmin <- sapply(latitudes,FUN=min)
+    latmax <- sapply(latitudes,FUN=max)
+    lonmin <- sapply(longitudes,FUN=min)
+    lonmax <- sapply(longitudes,FUN=max)
+    hmin <- sapply(heights,FUN=min)
+    hmax <- sapply(heights,FUN=max)
+
+
+
+    return(list(E=E,Ecov=Ecov,time=time,tres=tres,
+                latitudes=latitudes , longitudes=longitudes ,
+                heights=heights, B=B , date=date , sites=sites ,
+                latmin=latmin , latmax=latmax ,
+                lonmin=lonmin , lonmax=lonmax ,
+                hmin=hmin , hmax=hmax , POSIXtime=POSIXtime)
+           )
 
 }
