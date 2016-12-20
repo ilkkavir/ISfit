@@ -1,15 +1,18 @@
-plotNwind <- function(nWind,timeRes=NULL,xlim=NULL,ylim=NULL,zlimE=c(-1,1)*500,zlimN=c(-1,1)*500,zlimU=c(-1,1)*100,plotEfield=TRUE,ylimEfield=NULL,pdf=NULL,figNum=NULL,width=8.27,height=2.9225,paper='special',tickRes=NULL,bg='white',fg='black',cex=1.0,col.regions=guisdap.colors,...){
+plotNwind <- function(nWind,coordinates='geodetic',timeRes=NULL,xlim=NULL,ylim=NULL,zlimE=c(-1,1)*500,zlimN=c(-1,1)*500,zlimU=c(-1,1)*100,stdLim=1000,plotEfield=TRUE,ylimEfield=NULL,pdf=NULL,figNum=NULL,width=8.27,height=2.9225,paper='special',tickRes=NULL,bg='white',fg='black',cex=1.0,col.regions=guisdap.colors,...){
     #
     # Plot the electric field and neutral wind returned by NeutralWinds
-    # 
+    #
     # INPUT:
     #  nWind   output list from NeutralWinds
+    #  coordinates coordinate system, either 'geodetic' (ENU) or 'magnetic'
     #  timeRes time resolution to which we will integrate the neutral wind [s]
     #  xlim    x axis limits, UT hours counted from 00 UT on the day of the first data point
     #  ylim    y axis limits [UT]
     #  zlimE   z axis limits for the East velocity component
     #  zlimN   z axis limits for the North component
     #  zlimU   z axis limits for the upward velocity component
+    #  stdLim  standard deviation limit [m/s]. If standard deviation of any component of a
+    #          (time-integrated) neutral wind is larger than stdLim, the point is not plotted.
     #  plotEfield logical, should the electric field be plotted?
     #  ylimEfield y axis limits for the electric field plot [mV/m]
     #
@@ -23,7 +26,7 @@ plotNwind <- function(nWind,timeRes=NULL,xlim=NULL,ylim=NULL,zlimE=c(-1,1)*500,z
     #  fg      figure foreground color
     #  cex     text scaling factor
     #  col.regions col.regions to use in the color plots
-    #  
+    #
     # I. Virtanen 2016
     #
 
@@ -34,6 +37,36 @@ plotNwind <- function(nWind,timeRes=NULL,xlim=NULL,ylim=NULL,zlimE=c(-1,1)*500,z
         nWindF <- nWind
     }
 
+    # select coordinate system
+    if(tolower(coordinates)=='geodetic'){
+        cc <- "cov"
+        nw <- "nWind"
+        ylabx <- expression(paste("V"[n]," East [ms"[]^{-1},"]"))
+        ylaby <- expression(paste("V"[n]," North [ms"[]^{-1},"]"))
+        ylabz <- expression(paste("V"[n]," Up [ms"[]^{-1},"]"))
+        zdirection <- 1
+    }else if(tolower(coordinates)=='magnetic'){
+        cc <- "covB"
+        nw <- "nWindB"
+        ylabx <- expression(paste("V"[paste("n",symbol("\136"))]^{}," East [ms"[]^{-1},"]"))
+        ylaby <- expression(paste("V"[paste("n",symbol("\136"))]^{}," North [ms"[]^{-1},"]"))
+        ylabz <- expression(paste("V"["n||"]^{}," [ms"[]^{-1},"]"))
+        zdirection <- -1
+    }else{
+        stop("Unknown coordinate system ",coordinates,". Must be either 'geodetic' or 'magnetic'.")
+    }
+
+    # check the errors
+    varLim <- stdLim^2
+    xerr <- nWindF[[cc]][,,1,1] > varLim
+    yerr <- nWindF[[cc]][,,2,2] > varLim
+    zerr <- nWindF[[cc]][,,3,3] > varLim
+    ierr <- xerr | yerr | zerr
+
+    nWindF[[nw]][,,1][ierr] <- NA
+    nWindF[[nw]][,,2][ierr] <- NA
+    nWindF[[nw]][,,3][ierr] <- NA
+
 
     # time limits
     if(is.null(xlim)){
@@ -41,22 +74,22 @@ plotNwind <- function(nWind,timeRes=NULL,xlim=NULL,ylim=NULL,zlimE=c(-1,1)*500,z
     }else{
         tLim <- (floor(nWindF[["time"]][1] / 3600 / 24) * 24 + xlim) * 3600
     }
-    
+
     # data points within tLim
     tInds <- which(nWindF[["time"]]>=tLim[1] & nWindF[["time"]]<=tLim[2])
-    
+
     if( length(tInds)==0){
         warning("No data from the given time period")
         return()
     }
-    
+
     # height limits
     if(is.null(ylim)){
         hLim <- range( nWindF[["height"]] , na.rm=TRUE )
     }else{
         hLim <- ylim
     }
-    
+
 
     # number of figure panels (3 velocity components, plus the optional Efield)
     nFig <- ifelse(plotEfield,5,3)
@@ -98,7 +131,7 @@ plotNwind <- function(nWind,timeRes=NULL,xlim=NULL,ylim=NULL,zlimE=c(-1,1)*500,z
         axis(1,at=ticks$tick,labels=ticks$string,cex=cex,cex.lab=cex,cex.axis=cex)
 
         plot.new()
-        par(xaxs='i')        
+        par(xaxs='i')
         plot(ttE,EmV[,2],xlim=tLim,xaxt='n',xlab='',ylab=expression(paste("E"[N]^{}," [mVm"[]^{-1},"]")),ylim=ylimEfield,type='n',cex.axis=cex,cex.lab=cex)
         abline(h=0,lwd=2)
         arrows(ttE,errLims1[,2],ttE,errLims2[,2],code=3,length=0,col='red',lwd=2)
@@ -110,21 +143,33 @@ plotNwind <- function(nWind,timeRes=NULL,xlim=NULL,ylim=NULL,zlimE=c(-1,1)*500,z
 
 
     tt <- nWindF[["time"]] - median(diff(nWindF[["time"]]))/2
-    
+
+    # large values will be plotted as the limit value
+    ddx <- nWindF[[nw]][tInds,,1]
+    ddy <- nWindF[[nw]][tInds,,2]
+    ddz <- zdirection*nWindF[[nw]][tInds,,3]
+    ddx[ddx<zlimE[1]] <- zlimE[1]
+    ddx[ddx>zlimE[2]] <- zlimE[2]
+    ddy[ddy<zlimN[1]] <- zlimN[1]
+    ddy[ddy>zlimN[2]] <- zlimN[2]
+    ddz[ddz<zlimU[1]] <- zlimU[1]
+    ddz[ddz>zlimU[2]] <- zlimU[2]
+
     # East velocity component
-    image(tt[tInds],nWindF[["height"]],nWindF[["nWind"]][tInds,,1],xlim=tLim,ylim=hLim,zlim=zlimE,col=col.regions(1000),xaxt='n',ylab='Height [km]',xlab='',cex=cex,cex.lab=cex,cex.axis=cex)
+    image(tt[tInds],nWindF[["height"]],ddx,xlim=tLim,ylim=hLim,zlim=zlimE,col=col.regions(1000),xaxt='n',ylab='Height [km]',xlab='',cex=cex,cex.lab=cex,cex.axis=cex)
     axis(1,at=ticks$tick,labels=ticks$string,cex=cex,cex.lab=cex,cex.axis=cex)
-    image(c(0,1),seq(zlimE[1],zlimE[2],length.out=1000),t(matrix(rep(seq(zlimE[1],zlimE[2],length.out=1000),2),ncol=2)),col=col.regions(1000),ylab=expression(paste("V"[n]," East [ms"[]^{-1},"]")),xaxt='n',xlab='',cex=cex,cex.lab=cex,cex.axis=cex)
+    image(c(0,1),seq(zlimE[1],zlimE[2],length.out=1000),t(matrix(rep(seq(zlimE[1],zlimE[2],length.out=1000),2),ncol=2)),col=col.regions(1000),ylab=ylabx,xaxt='n',xlab='',cex=cex,cex.lab=cex,cex.axis=cex)
 
     # North velocity component
-    image(tt[tInds],nWindF[["height"]],nWindF[["nWind"]][tInds,,2],xlim=tLim,ylim=hLim,zlim=zlimN,col=col.regions(1000),xaxt='n',ylab='Height [km]',xlab='',cex=cex,cex.lab=cex,cex.axis=cex)
+    image(tt[tInds],nWindF[["height"]],ddy,xlim=tLim,ylim=hLim,zlim=zlimN,col=col.regions(1000),xaxt='n',ylab='Height [km]',xlab='',cex=cex,cex.lab=cex,cex.axis=cex)
     axis(1,at=ticks$tick,labels=ticks$string,cex=cex,cex.lab=cex,cex.axis=cex)
-    image(c(0,1),seq(zlimN[1],zlimN[2],length.out=1000),t(matrix(rep(seq(zlimE[1],zlimE[2],length.out=1000),2),ncol=2)),col=col.regions(1000),ylab=expression(paste("V"[n]," North [ms"[]^{-1},"]")),xaxt='n',xlab='',cex=cex,cex.lab=cex,cex.axis=cex)
+    image(c(0,1),seq(zlimN[1],zlimN[2],length.out=1000),t(matrix(rep(seq(zlimE[1],zlimE[2],length.out=1000),2),ncol=2)),col=col.regions(1000),ylab=ylaby,xaxt='n',xlab='',cex=cex,cex.lab=cex,cex.axis=cex)
 
-    # Up velocity component
-    image(tt[tInds],nWindF[["height"]],nWindF[["nWind"]][tInds,,3],xlim=tLim,ylim=hLim,zlim=zlimU,col=col.regions(1000),xaxt='n',ylab='Height [km]',xlab='UTC',cex=cex,cex.lab=cex,cex.axis=cex)
+    # Up/down along B velocity component
+    # reverse z if magnetic coordinates
+    image(tt[tInds],nWindF[["height"]],ddz,xlim=tLim,ylim=hLim,zlim=zlimU,col=col.regions(1000),xaxt='n',ylab='Height [km]',xlab='UTC',cex=cex,cex.lab=cex,cex.axis=cex)
     axis(1,at=ticks$tick,labels=ticks$string,cex=cex,cex.lab=cex,cex.axis=cex)
-    image(c(0,1),seq(zlimU[1],zlimU[2],length.out=1000),t(matrix(rep(seq(zlimE[1],zlimE[2],length.out=1000),2),ncol=2)),col=col.regions(1000),ylab=expression(paste("V"[n]," Up [ms"[]^{-1},"]")),xaxt='n',xlab='',cex=cex,cex.lab=cex,cex.axis=cex)
+    image(c(0,1),seq(zlimU[1],zlimU[2],length.out=1000),t(matrix(rep(seq(zlimE[1],zlimE[2],length.out=1000),2),ncol=2)),col=col.regions(1000),ylab=ylabz,xaxt='n',xlab='',cex=cex,cex.lab=cex,cex.axis=cex)
 
     if(plotEfield){
         mtext( paste("Electric field and neutral wind ",substr( as.character( as.POSIXlt(nWindF[["time"]][tInds[1]],origin='1970-01-01',tz='utc') ) , 1 , 10 )) , side = 3, line = -1.5, outer = TRUE , cex = cex )
@@ -136,8 +181,8 @@ plotNwind <- function(nWind,timeRes=NULL,xlim=NULL,ylim=NULL,zlimE=c(-1,1)*500,z
     # THE X AXES OF E FIELD AND NEUTRAL WIND PLOTS DO NOT MATCH, AND THE XLIM ARGUMENT OF IMAGE DOES NOT SEEM TO WORK AS EXPECTED...+
 
 
-    
-    
+
+
     # if we did not plot on an x11 device, we must close the device properly
     if((sum(figList)==1)&is.null(figNum)) dev.off()
 

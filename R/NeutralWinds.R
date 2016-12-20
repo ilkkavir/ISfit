@@ -1,28 +1,32 @@
 NeutralWinds <- function(dpath,hlimsE=c(80,150),hlimsF=c(200,400),vipar0=FALSE,recursive=FALSE){
     #
-    # Neutral winds from multistatic velocity measurements. 
+    # Neutral winds from multistatic velocity measurements.
     #
     # Electric field is first estimated from F region observations with time resolution of
     # the original ISfit run.
-    # 
+    #
     # Neutral winds from the E-region gates are then estimated with the same time resolution,
     # and postintegrated to resolution timeRes (in seconds)
     #
     #
     # INPUT:
     #   dpath     data path(s)
-    #   hlimsE    minimum and maximum height [km] considered as E region 
+    #   hlimsE    minimum and maximum height [km] considered as E region
     #   hlimsF    minimum and maximum height [km] considered as F region
     #   vipar0    logical, should ion velocity parallel with B forced to zero? default FALSE
     #   recursive logical, if TRUE, dpath is searched recursively
     #
     # OUTPUT
     #  a list with elements
-    #   nWind     a matrix of neutral wind estimates
-    #   std       a matrix of neutral wind standard deviations
+    #   nWind     an array of neutral wind estimates in geodetic ENU coordinates
+    #   cov       an array of covariance estimates for nWind
+    #   nWindB    an array of neutral wind estimates in geomagnetic coordinates
+    #   covB      an array of covariance estimates for nWindB
+    #   E         a matrix of electric field estimates
+    #   Ecov      an array of covariance matrices of E
     #   time      timestamps [s]
     #   height    height gate centres [km]
-    #   
+    #
     #  I. Virtanen 2016
     #
 
@@ -54,7 +58,9 @@ NeutralWinds <- function(dpath,hlimsE=c(80,150),hlimsF=c(200,400),vipar0=FALSE,r
     nEgates <- length(Egates)
     nWind <- array(dim=c(nf,nEgates,3))
     nWcov <- array(dim=c(nf,nEgates,3,3))
-    
+    nWindB <- nWind
+    nWcovB <- nWcov
+
     for(k in seq(nf)){
 
         # load the file
@@ -76,12 +82,14 @@ NeutralWinds <- function(dpath,hlimsE=c(80,150),hlimsF=c(200,400),vipar0=FALSE,r
         tmpN <- Nwind(E[k,],Ecov[k,,],viE,vicovE,hE,BE,PP[["POSIXtime"]],latE,lonE)
         nWind[k,,] <- tmpN[["nWind"]]
         nWcov[k,,,] <- tmpN[["cov"]]
+        nWindB[k,,] <- tmpN[["nWindB"]]
+        nWcovB[k,,,] <- tmpN[["covB"]]
         cat('\r',k,'/',nf)
     }
 
 
 
-    return(list(nWind=nWind,cov=nWcov,E=E,Ecov=Ecov,time=time,height=hE))
+    return(list(nWind=nWind,cov=nWcov,nWindB=nWindB,covB=nWcovB,E=E,Ecov=Ecov,time=time,height=hE))
 
 
 }

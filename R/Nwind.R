@@ -15,8 +15,10 @@ Nwind <- function(E,Ecov,vi,vicov,h,B,time,lat,lon){
     #
     # OUTPUT:
     #  a list with elements
-    #    nWind neutral wind estimates
+    #    nWind neutral wind estimates in geodetic ENU coordinates
     #    cov   covariance matrices for each 3D estimate
+    #    nWindB neutral wind in geomagnetic coordinates
+    #    covB   covariance matrices for each 3D estimate in geomagnetic coordinates
     #
     # I. Virtanen 2016
 
@@ -34,10 +36,12 @@ Nwind <- function(E,Ecov,vi,vicov,h,B,time,lat,lon){
     nh <- length(h)
     nWind <- matrix(nrow=nh,ncol=3)
     nWindCov <- array(dim=c(nh,3,3))
-    
+    nWindB <- nWind
+    nWindCovB <- nWindCov
+
     for(hh in seq(nh)){
         # the coordinate system will be different in each gate
-        
+
         # horizontal component of B
         Bhor <- c(B[hh,c(1,2)],0)
         names(Bhor) <- c('x','y','z')
@@ -63,7 +67,7 @@ Nwind <- function(E,Ecov,vi,vicov,h,B,time,lat,lon){
         ViBxyzCov <- rotMat%*%vicov[[hh]]%*%t(rotMat)
         dimnames(ViBxyzCov) <- NULL
 
-        # compositions etc. 
+        # compositions etc.
         ptmp <- iriParams( time=date ,latitude=lat[hh],longitude=lon[hh],heights=h[hh])
 
         # better collision frequencies and two ions
@@ -73,7 +77,7 @@ Nwind <- function(E,Ecov,vi,vicov,h,B,time,lat,lon){
         iongyro <- echarge * Bstrength / ( mion * u )
         # pedersen mobilities, use the element names to make sure that everything is in correct order
         kp1 <- ( iongyro[c('i1','i2')] * ioncoll[c('i1','i2')] ) /
-            ( echarge * Bstrength * ( iongyro[c('i2','i2')]**2 + ioncoll[c('i1','i2')]**2 ) ) 
+            ( echarge * Bstrength * ( iongyro[c('i2','i2')]**2 + ioncoll[c('i1','i2')]**2 ) )
         # hall mobilities
         kh1 <- ( iongyro[c('i1','i2')]**2 ) /
             ( echarge * Bstrength * ( iongyro[c('i1','i2')]**2 + ioncoll[c('i1','i2')]**2 ) )
@@ -90,7 +94,7 @@ Nwind <- function(E,Ecov,vi,vicov,h,B,time,lat,lon){
         kp <- sum( comp * kp1 )
         kh <- sum( comp * kh1 )
         kb <- sum( comp * kb1)
-        
+
         # inverse of ion mobility tensor, this is differenct from some
         # textbooks since we have z axis upwards
         mobi <- matrix(0,ncol=3,nrow=3)
@@ -106,18 +110,18 @@ Nwind <- function(E,Ecov,vi,vicov,h,B,time,lat,lon){
         VimobCov <- mobi%*%ViBxyzCov%*%t(mobi)
 
         # subtract the electric field contribution and divide by mion*u*ioncoll
-        nWind[hh,] <- ( Vimob - echarge*E2 ) / sum( comp * mion[c('i1','i2')] * u * ioncoll[c('i1','i2')])
-        nWindCov[hh,,] <- ( VimobCov + echarge**2*Ecov2 ) /
+        nWindB[hh,] <- ( Vimob - echarge*E2 ) / sum( comp * mion[c('i1','i2')] * u * ioncoll[c('i1','i2')])
+        nWindCovB[hh,,] <- ( VimobCov + echarge**2*Ecov2 ) /
             sum( comp * mion[c('i1','i2')] * u * ioncoll[c('i1','i2')] )**2
 
         # rotate to ENU coordinates
         rotMati <- solve(rotMat)
-        nWind[hh,] <- rotMati%*%nWind[hh,]
-        nWindCov[hh,,] <- rotMati%*%nWindCov[hh,,]%*%t(rotMati)
+        nWind[hh,] <- rotMati%*%nWindB[hh,]
+        nWindCov[hh,,] <- rotMati%*%nWindCovB[hh,,]%*%t(rotMati)
 
     }
 
 
-    return(list(nWind=nWind,cov=nWindCov))
-    
+    return(list(nWind=nWind,cov=nWindCov,nWindB=nWindB,covB=nWindCovB))
+
 }
