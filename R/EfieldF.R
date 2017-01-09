@@ -1,4 +1,4 @@
-EfieldF <- function(vi,vicov,B,vipar0=FALSE){
+EfieldF <- function(vi,vicov,B,vipar0=FALSE,averageVi=FALSE){
     #
     # Calculate F-region electric field from
     # ion velocity measurement(s).
@@ -12,14 +12,15 @@ EfieldF <- function(vi,vicov,B,vipar0=FALSE){
     #             length(vicov) == dim(vi)[1]
     #   B         magnetic field [nT] in the same coordinate system
     #             with vi. Either a vector, or a list of vectors
-    #   vipar0    logical If true, field-parallel ion velocity is forced to zero with a prior. 
+    #   vipar0    logical If true, field-parallel ion velocity is forced to zero with a prior.
+    #   avarageVi logical. Should we average electric fields or ion velocities? default FALSE
     #
     #  output
     #   E         Electric field estimate
     #             a 2D-vector in a coordinate system where
     #             x-axis points toward magnetic east, and
     #             y-axis toward magnetic north. Both perpendicular
-    #                    to B. 
+    #                    to B.
     #
     #
     # I. Virtanen 2016
@@ -34,13 +35,16 @@ EfieldF <- function(vi,vicov,B,vipar0=FALSE){
 
     # we will not need the parallel components, but I am keeping
     # them for testing purposes
-    
+
     # a matrix for electric fields
     Efields <- matrix(nrow=dim(vi)[1],ncol=2)
     # an array for E-field covariances
     Ecov <- array(dim=c(dim(vi)[1],2,2))
 
-    
+    ViBxyz <- matrix(nrow=dim(vi)[1],ncol=3)
+    ViBxyzCov <- array(dim=c(dim(vi)[1],3,3))
+    Bstrength <- rep(0,dim(vi)[1])
+
     # fields and covariances in each gate
     # there must be a faster way to do this, but this is
     # easy to understand and fast enough for me
@@ -60,14 +64,14 @@ EfieldF <- function(vi,vicov,B,vipar0=FALSE){
         Bz <- -B[hh,]/sqrt(sum(B[hh,]**2))
         names(Bz) <- c('x','y','z')
         # field intensity (the input  is in nT)
-        Bstrength <- sqrt(sum(B[hh,]**2)) * 1e-9
+        Bstrength[hh] <- sqrt(sum(B[hh,]**2)) * 1e-9
         names(Bstrength) <- NULL
         # Ion velocity projection to Bx, By, Bz coordinates
         rotMat <- matrix(c(Bx,By,Bz),ncol=3,byrow=TRUE)
-        ViBxyz <- rotMat%*%vi[hh,]
-        names(ViBxyz) <- NULL
+        ViBxyz[hh,] <- rotMat%*%vi[hh,]
+        dimnames(ViBxyz) <- NULL
         # Covariance
-        ViBxyzCov <- rotMat%*%vicov[[hh]]%*%t(rotMat)
+        ViBxyzCov[hh,,] <- rotMat%*%vicov[[hh]]%*%t(rotMat)
         dimnames(ViBxyzCov) <- NULL
         # optional Vi parallel = 0
         if(vipar0){
@@ -75,20 +79,20 @@ EfieldF <- function(vi,vicov,B,vipar0=FALSE){
             diag(Apar) <- 1
             Apar[4,3] <- 1
             Cparprior <- matrix(0,ncol=4,nrow=4)
-            Cparprior[1:3,1:3] <- ViBxyzCov
+            Cparprior[1:3,1:3] <- ViBxyzCov[hh,,]
             Cparprior[4,4] <- 1e-3
             Qparprior <- tryCatch(solve(Cparprior), error=function(e){matrix(0,ncol=3,nrow=3)})
             Cparpost <- tryCatch(solve(t(Apar)%*%Qparprior%*%Apar), error=function(e){matrix(0,ncol=3,nrow=3)})
-            Vipost <- Cparpost%*%t(Apar)%*%Qparprior%*%c(ViBxyz,0)
+            Vipost <- Cparpost%*%t(Apar)%*%Qparprior%*%c(ViBxyz[hh,],0)
 
-            ViBxyz <- Vipost
-            ViBxyzCov <- Cparpost
+            ViBxyz[hh,] <- Vipost
+            ViBxyzCov[hh,,] <- Cparpost
         }
         # The E-field components and their covariances
         rotMat2 <- matrix(c(0,1,-1,0),byrow=TRUE,ncol=2)
-        Efields[hh,] <- rotMat2%*%ViBxyz[c(1,2)] * Bstrength
-        Ecov[hh,,] <- rotMat2%*%ViBxyzCov[1:2,1:2]%*%t(rotMat2) * Bstrength**2
-        
+        Efields[hh,] <- rotMat2%*%ViBxyz[hh,c(1,2)] * Bstrength[hh]
+        Ecov[hh,,] <- rotMat2%*%ViBxyzCov[hh,1:2,1:2]%*%t(rotMat2) * Bstrength[hh]**2
+
     }
 
     # average over all heights. This could be part of the
@@ -103,11 +107,28 @@ EfieldF <- function(vi,vicov,B,vipar0=FALSE){
 
     Ecov <- tryCatch( solve(Q) , error=function(e){matrix(0,ncol=2,nrow=2)})
     E <- Ecov%*%Mtmp
-        
+
+    # average Vi instead of E
+    if(averageVi){
+        Mtmp <- c(0,0,0)
+        Q <- matrix(0,ncol=3,nrow=3)
+        for(hh in seq(1,dim(vi)[1])){
+            Qh <- tryCatch( solve(ViBxyzCov[hh,,]), error=function(e){matrix(0,ncol=3,nrow=3)})
+            Q <- Q + Qh
+            Mtmp <- Mtmp + Qh%*%ViBxyz[hh,]
+        }
+
+        ViAveCov <- tryCatch( solve(Q) , error=function(e){matrix(0,ncol=3,nrow=3)})
+        ViAve <- ViAveCov%*%Mtmp
+
+        rotMat2 <- matrix(c(0,1,-1,0),byrow=TRUE,ncol=2)
+        E <- rotMat2%*%ViAve[1:2] * mean(Bstrength)
+        Ecov <- rotMat2%*%ViAveCov[1:2,1:2]%*%t(rotMat2) * mean(Bstrength)**2
+    }
 
     return(list(E=E,cov=Ecov))
-    
 
-    
+
+
 }
-    
+

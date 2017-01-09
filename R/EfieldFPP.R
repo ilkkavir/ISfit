@@ -1,4 +1,4 @@
-EfieldFPP <- function(PP,hmin=200,hmax=400,vipar0=FALSE){
+EfieldFPP <- function(PP,hmin=200,hmax=400,vipar0=FALSE,...){
     # F-region electric field with ISfit output list
     # as input
 
@@ -15,7 +15,7 @@ EfieldFPP <- function(PP,hmin=200,hmax=400,vipar0=FALSE){
     longitudes <- PP[["longitude"]][hh]
     heights <- PP[["height"]][hh]
 
-    return( c( EfieldF(vi,vicov,B,vipar0) , list( time=time , tres=tres ,
+    return( c( EfieldF(vi,vicov,B,vipar0,...) , list( time=time , tres=tres ,
               latitudes=latitudes , longitudes=longitudes , heights=heights,
               B=B , date=PP[["date"]] , sites=PP[["sites"]] , POSIXtime=PP[["POSIXtime"]]
                                                  )

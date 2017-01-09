@@ -25,7 +25,7 @@ filterEfield <- function( Efield , tres=600 , startTime=NULL , ...){
     # number of integration periods
     niper <- ceiling( ( max(Efield[["time"]]) - firstTime ) / tres )
 
-    
+
     # filter Efield and Ecov
     EfieldF <- array(dim=c(niper,2))
     EcovF <- array(dim=c(niper,2,2))
@@ -46,8 +46,8 @@ filterEfield <- function( Efield , tres=600 , startTime=NULL , ...){
         EfieldF[k,] <- EcovF[k,,]%*%Mtmp
         timeF[k] <- Efield[["time"]][max(dinds)]
     }
-    
-    return(list(E=EfieldF,Ecov=EcovF,time=timeF))
+
+    return(list(E=EfieldF,Ecov=EcovF,time=timeF,tres=tres))
 
 
 }
