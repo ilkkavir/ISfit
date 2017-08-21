@@ -47,6 +47,7 @@ readPP <- function(dpath,recursive=F,...){
   status    <- array(NA,dim=c(nHeight,nFile))
   chisqr    <- array(NA,dim=c(nHeight,nFile))
   time_sec  <- vector(length=nFile,mode='numeric')
+  timeLimits <- array(NA,dim=c(2,nFile))
   date      <- vector(length=nFile,mode='list')
   POSIXtime <- vector(length=nFile,mode='list')
 
@@ -77,6 +78,7 @@ readPP <- function(dpath,recursive=F,...){
     chisqr[1:nhk,k]   <- PP$chisqr
     status[1:nhk,k]   <- PP$status
     time_sec[k]  <- PP$time_sec
+    timeLimits[,k]      <- PP$time_limits
     date[[k]]    <- PP$date
     POSIXtime[[k]]<- PP$POSIXtime
     height[1:nhk,k]   <- PP$height
@@ -89,7 +91,7 @@ readPP <- function(dpath,recursive=F,...){
   # warn the user about dangers of this function..
   warning("This function does not make any checks about data reliability, use readPP.3D instead if you are not sure what you are doing.")
 
-  return(list(param=param,std=std,model=model,chisqr=chisqr,status=status,height=height,time_sec=time_sec,date=date,POSIXtime=POSIXtime, n=nFile,nPar=nPar,nHeight=nHeight))
+  return(list(param=param,std=std,model=model,chisqr=chisqr,status=status,height=height,time_sec=time_sec,timeLimits=timeLimits,date=date,POSIXtime=POSIXtime, n=nFile,nPar=nPar,nHeight=nHeight))
 
 } # readPP
 

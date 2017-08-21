@@ -50,6 +50,7 @@ readPP.3D <- function(dpath,measuredOnly=T,recursive=F,...){
     chisqr    <- array(NA,dim=c(nHeight,nFile))
     sites     <- array(NA,dim=c(dim(PP$sites),nFile))
     time_sec  <- vector(length=nFile,mode='numeric')
+    timeLimits <- array(NA,dim=c(2,nFile))
     date      <- vector(length=nFile,mode='list')
     POSIXtime <- vector(length=nFile,mode='list')
     llhT      <- PP$llhT
@@ -116,6 +117,7 @@ readPP.3D <- function(dpath,measuredOnly=T,recursive=F,...){
         chisqr[,k]          <- PP$chisqr
         status[,k]          <- PP$status
         time_sec[k]         <- PP$time_sec
+        timeLimits[,k]      <- PP$timeLimits.s
         date[[k]]           <- PP$date
         POSIXtime[[k]]      <- PP$POSIXtime
         height[,k]          <- PP$height
@@ -143,7 +145,7 @@ readPP.3D <- function(dpath,measuredOnly=T,recursive=F,...){
 ##                        PP$covar[[r]][2,3]/PP$param[r,2]**2
                 # replaced the ratio with temperature difference, 2016-01-28
                 param[r,nPar+4,k] <- PP$param[r,3] - PP$param[r,2]
-                
+
 #                # electron perpendicular/parallel temperature ratio
 #                param[r,nPar+5,k] <- PP$param[r,5]/PP$param[r,4] #+
 ##                    PP$covar[[r]][4,4]*PP$param[r,5]/PP$param[r,4]**3 -
@@ -247,7 +249,7 @@ readPP.3D <- function(dpath,measuredOnly=T,recursive=F,...){
 
     if(!measuredOnly) warning("Returning also parameters that are based solely on the prior model.")
 
-    return(list(param=param,std=std,model=model,chisqr=chisqr,status=status,height=height,time_sec=time_sec,date=date,POSIXtime=POSIXtime,sites=sites,n=nFile,nPar=nPar,nHeight=nHeight,mIon=mIon,covar=covar))
+    return(list(param=param,std=std,model=model,chisqr=chisqr,status=status,height=height,time_sec=time_sec,timeLimits=timeLimits,date=date,POSIXtime=POSIXtime,sites=sites,n=nFile,nPar=nPar,nHeight=nHeight,mIon=mIon,covar=covar))
 
 }
 

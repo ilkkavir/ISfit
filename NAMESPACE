@@ -47,7 +47,8 @@ export(
     plotNwind,
     filterEfield,
     plotEvectorsF,
-    writeEascii
+    writeEascii,
+    ISfit.NeVi
     )
 
 useDynLib(ISfit)

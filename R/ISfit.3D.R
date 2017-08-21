@@ -300,6 +300,11 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
                       }else{
                           hlims <- unique( heightLimits.km )*1000
                       }
+
+                      # IRI does not work above 70 km
+                      hlims <- hlims[hlims>=70000]
+
+
                       nh <- length( hlims ) - 1
 
                       covar <- intersect <- list()
@@ -594,7 +599,7 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
 
 
                       time_sec <- iperLimits[k+1]
-                      POSIXtime <- as.POSIXlt(time_sec,origin='1970-01-01',tz='ut')
+                      POSIXtime <- as.POSIXlt(time_sec,origin='1970-01-01',tz='utc')
                       std[is.na(std)] <- Inf
 
 

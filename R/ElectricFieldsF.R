@@ -1,4 +1,4 @@
-ElectricFieldsF <- function(dpath,hmin=200,hmax=400,vipar0=FALSE,recursive=FALSE,...){
+ElectricFieldsF <- function(dpath,hmin=200,hmax=400,vipar0=FALSE,recursive=FALSE,chisqrLim=10,...){
     #
     # Electric field from multistatic F-region velocity measurements.
     #
@@ -40,6 +40,21 @@ ElectricFieldsF <- function(dpath,hmin=200,hmax=400,vipar0=FALSE,recursive=FALSE
 
     for(k in seq(nf)){
         load(dfiles[k])
+
+        # cut off all failed iterations and large residuals
+        rminds <- PP[["status"]]!=0 | PP[["chisqr"]]>chisqrLim
+
+        if (any(rminds)){
+            for (irm in which(rminds)){
+                PP[["covar"]][[irm]][,] <- Inf
+            }
+        }
+
+        #PP[["param"]][PP[["status"]]!=0,] <- NA
+
+        # cut off very large chi-squared values
+        #PP[["param"]][PP[["chisqr"]]>chisqrLim,] <- NA
+
         tmp <- EfieldFPP(PP,hmin=hmin,hmax=hmax,vipar0=vipar0,...)
         E[k,] <- tmp[["E"]]
         Ecov[k,,] <- tmp[["cov"]]

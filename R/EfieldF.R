@@ -101,6 +101,7 @@ EfieldF <- function(vi,vicov,B,vipar0=FALSE,averageVi=FALSE){
     Q <- matrix(0,ncol=2,nrow=2)
     for(hh in seq(1,dim(vi)[1])){
         Qh <- tryCatch( solve(Ecov[hh,,]), error=function(e){matrix(0,ncol=2,nrow=2)})
+        if(any(is.na(Qh))) Qh <- matrix(0,ncol=2,nrow=2)
         Q <- Q + Qh
         Mtmp <- Mtmp + Qh%*%Efields[hh,]
     }
