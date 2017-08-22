@@ -1,0 +1,26 @@
+projectParams <- function( par , , llhT , azelT , llhR , azelR ){
+    #
+    # Project vector parameters (Ion velocity and temperatures) to a(n) (imaginary) site
+    # located at llhR, pointed to azelR, which receives signal scattered from transmission from a site located
+    # at llhT, pointed to azelT. The site is added to the input list as an additional
+    # site "Rproj", which can be subsequently handled in the same way as the other receivers.
+    #
+    # INPUT:
+    #   par    a parameter list from readPP.3D
+    #   llhT   latitude (deg), longitude (deg) and ellipsoid height (m), with respect to the WGS84 ellipsoid
+    #   azelT  azimuth (deg east) and elevation (deg) of the receiver beam
+    #   llhR   latitude (deg), longitude (deg) and ellipsoid height (m), with respect to the WGS84 ellipsoid
+    #   azelR  azimuth (deg east) and elevation (deg) of the receiver beam
+    # OUTPUT:
+    #   parout modified parameters list, with the site Rproj added
+    #
+    #
+    # Details:
+    #   The system
+    #
+    # IV 2017
+    #
+
+
+
+}

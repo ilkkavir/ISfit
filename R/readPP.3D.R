@@ -53,9 +53,8 @@ readPP.3D <- function(dpath,measuredOnly=T,recursive=F,...){
     timeLimits <- array(NA,dim=c(2,nFile))
     date      <- vector(length=nFile,mode='list')
     POSIXtime <- vector(length=nFile,mode='list')
-    llhT      <- PP$llhT
-    llhR      <- PP$llhR
     covar     <- array(NA,dim=c(nHeight,nPar+4*nSites+7,nPar+4*nSites+7,nFile))
+    B         <- array(NA,dim=c(nHeight,3,nFile))
 
     # read the data from files
     for (k in seq(nFile)){
@@ -122,6 +121,7 @@ readPP.3D <- function(dpath,measuredOnly=T,recursive=F,...){
         POSIXtime[[k]]      <- PP$POSIXtime
         height[,k]          <- PP$height
         sites[1:nSitesk,,k] <- PP$sites
+        B[,,k]              <- PP$B
 
         for(r in seq(nHeight)){
             # if there will be only NA's there is no need to proceed
@@ -249,7 +249,7 @@ readPP.3D <- function(dpath,measuredOnly=T,recursive=F,...){
 
     if(!measuredOnly) warning("Returning also parameters that are based solely on the prior model.")
 
-    return(list(param=param,std=std,model=model,chisqr=chisqr,status=status,height=height,time_sec=time_sec,timeLimits=timeLimits,date=date,POSIXtime=POSIXtime,sites=sites,n=nFile,nPar=nPar,nHeight=nHeight,mIon=mIon,covar=covar))
+    return(list(param=param,std=std,model=model,chisqr=chisqr,status=status,height=height,time_sec=time_sec,timeLimits=timeLimits,date=date,POSIXtime=POSIXtime,sites=sites,n=nFile,nPar=nPar,nHeight=nHeight,mIon=mIon,covar=covar,B=B))
 
 }
 
