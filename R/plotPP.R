@@ -172,7 +172,7 @@ plotPP.list <- function(data,par=list(Ne=c(10,12),TeR1=c(0,4000),TiR1=c(0,3000),
         figList <- c(is.null(figNum),is.null(pdf),is.null(jpg))
         if(sum(figList) < 2 ) stop('Only one output device can be selected at a time')
         # a new x11 by defaul
-        if(sum(figList) == 3) x11(width=width,height=wHeight)
+        if(sum(figList) == 3) dev.new(width=width,height=wHeight)
         # new plot to an existing x11 window
         if(!is.null(figNum)) {dev.set(figNum);plot.new()}
         # a new pdf file
@@ -207,11 +207,15 @@ plotPP.list <- function(data,par=list(Ne=c(10,12),TeR1=c(0,4000),TiR1=c(0,3000),
                 trenew$layout.heights$key.axis.padding<-1
                 trellis.par.set(list(background=trenew$background,layout.heights=trenew$layout.heights,layout.widths=trenew$layout.widths))
             }else{
-                layout(matrix(seq(2*length(par)),ncol=2,byrow=T),widths=rep(c(.9/sqrt(cex),.1*sqrt(cex)),2*length(par)))
-                par(mar=c(2,3,2,1)*cex,mgp=c(1.5,.5,0)*cex)
+                layout(matrix(seq(2*length(par)+4),ncol=2,byrow=T),widths=c(.9/sqrt(cex),.1*sqrt(cex)),heights=c(.2,rep(1,length(par)),.4))
+                par(mar=c(0,3,0,1)*cex,mgp=c(1.5,.5,0)*cex)
+                plot.new()
+                plot.new()
             }
             # tick marks in the time axis
             ticks <- timeTicks(tLim,tickRes)
+            # tick marks for the height axis
+            hticks <- heightTicks(hLim)
 
         }
 
@@ -444,14 +448,26 @@ plotPP.list <- function(data,par=list(Ne=c(10,12),TeR1=c(0,4000),TiR1=c(0,3000),
                             col.regions = col.regions
                             )
                     }else{
-                        image(colMeans(data$timeLimits[,tInds]),data$height[,tInds[1]],t(d),xlim=tLim,ylim=hLim,zlim=par[[p]][1:2],col=col.regions(1000),xaxt='n',ylab='Height [km]',xlab='',cex=cex,cex.lab=cex,cex.axis=cex)
-                        axis(1,at=ticks$tick,labels=ticks$string,cex=cex,cex.lab=cex,cex.axis=cex)
+                        if (p==length(par)){
+                            tickstr <- ticks$string
+                        }else{
+                            tickstr <- rep('',length(ticks$tick))
+                        }
+                        image(colMeans(data$timeLimits[,tInds]),data$height[,tInds[1]],t(d),xlim=tLim,ylim=hLim,zlim=par[[p]][1:2],col=col.regions(1000),xlab='',xaxt='n',ylab='Height [km]',cex=cex,cex.lab=cex,cex.axis=cex,yaxt='n')
+                        axis(1,at=ticks$tick,labels=tickstr,cex=cex,cex.lab=cex,cex.axis=cex)
+                        axis(2,at=hticks$tick,labels=hticks$tick,cex=cex,cex.lab=cex,cex.axis=cex)
+                        marold <- par()$mar
+                        par(mar=c(1,3,1,1)*cex)
                         image(c(0,1),seq(par[[p]][1],par[[p]][2],length.out=1000),t(matrix(rep(seq(par[[p]][1],par[[p]][2],length.out=1000),2),ncol=2)),col=col.regions(1000),ylab=main[[1]],xaxt='n',xlab='',cex=cex,cex.lab=cex,cex.axis=cex)
+                        par(mar=marold)
                     }
                 }
             }
         }
         if(!trellis){
+            plot.new()
+            title(xlab=list("UTC",cex=cex),line=-2,outer=FALSE)
+            plot.new()
             if(is.na(title)){
                 if(length(tInds)==1){
                     mtext( paste( as.character( data[["POSIXtime"]][[tInds]] ) , "UTC" ), side = 3, line = -2, outer = TRUE , cex = cex )

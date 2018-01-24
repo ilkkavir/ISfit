@@ -1,11 +1,12 @@
-writeVNeasciiVHFKAIRA <- function( PPlist , fname='Vi.dat' ){
+writeVNeasciiVKSKAIRA <- function( PPlist , fname='Vi.dat' ){
     #
     # Write ion velocity components and electron densities to ascii files
     #
-    # This version is for bistatic VHF + KAIRA measurements, pick the vertical velocity from
+    # This version is for 4-static VHF + KIR + SOD + KAIRA measurements,
+    # pick the vertical velocity from
     # projections along the VHF beam, and the horizontal component towards KAIRA
     #
-    # The VHF must be at first row of PPlist$sites
+    # The VHF must be at first row of PPlist$sites, KIR at the second row, and SOD at the third row
     #
     #
     # IV 2016, 2017
@@ -42,7 +43,7 @@ writeVNeasciiVHFKAIRA <- function( PPlist , fname='Vi.dat' ){
 
 
     # list of dimension names for horizontal components toward kaira.
-    nkvhor <- c('ViR2hor','ViR3hor','ViR4hor','ViR5hor','ViR6hor','ViR7hor','ViR8hor','ViR9hor','ViR10hor')
+    nkvhor <- c('ViR4hor','ViR5hor','ViR6hor','ViR7hor','ViR8hor','ViR9hor','ViR10hor','ViR11hor','ViR12hor')
 
     for( t in seq(nt) ){
         for( h in seq(nh) ){
