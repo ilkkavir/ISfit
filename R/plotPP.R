@@ -465,9 +465,11 @@ plotPP.list <- function(data,par=list(Ne=c(10,12),TeR1=c(0,4000),TiR1=c(0,3000),
             }
         }
         if(!trellis){
-            plot.new()
-            title(xlab=list("UTC",cex=cex),line=-2,outer=FALSE)
-            plot.new()
+            if(length(tInds)>1){
+                plot.new()
+                title(xlab=list("UTC",cex=cex),line=-2,outer=FALSE)
+                plot.new()
+            }
             if(is.na(title)){
                 if(length(tInds)==1){
                     mtext( paste( as.character( data[["POSIXtime"]][[tInds]] ) , "UTC" ), side = 3, line = -2, outer = TRUE , cex = cex )
