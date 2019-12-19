@@ -62,7 +62,7 @@ ISaprioriH <- function( aprioriParam ,  nIon , absCalib=FALSE , TiIsotropic=FALS
         aprioriStd[3]                <- 2                                          # perpendicular ion temperature
         aprioriStd[4]                <- 2                                          # parallel electron temperature
         aprioriStd[5]                <- 2                                          # perpendicular electron temperature
-        aprioriStd[6]                <- ifelse((h>hColl[1])&(h<hColl[2]),.1,1e-3)  # ion-neutral collision frequency
+        aprioriStd[6]                <- ifelse((h>hColl[1])&(h<hColl[2]),1,1e-3)   # ion-neutral collision frequency
         aprioriStd[7]                <- ifelse(h<hVi,.1,10)                        # ion velocity, x-component
         aprioriStd[8]                <- ifelse(h<hVi,.1,10)                        # ion velocity, y-component
         aprioriStd[9]                <- ifelse(h<hVi,.1,10)                        # ion velocity, z-component
