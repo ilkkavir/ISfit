@@ -1,4 +1,4 @@
-readPP.3D <- function(dpath,measuredOnly=T,recursive=F,...){
+readPP.3D <- function(dpath,measuredOnly=T,nSiteVi=3,recursive=F,...){
 #
 #
 # read plasma parameters from files
@@ -232,7 +232,7 @@ readPP.3D <- function(dpath,measuredOnly=T,recursive=F,...){
                         covar[r,c(2,3,4,5,7,8,9,nPar+1,nPar+2,nPar+3,nPar+4,nPar+5,nPar+6,nPar+7),c(2,3,4,5,7,8,9,nPar+1,nPar+2,nPar+3,nPar+4,nPar+5,nPar+6,nPar+7),k] <- NA
                     }
                     # if there are two sites we can accept also the temperature anisotropy estimates
-                    if(nsitesr==2){
+                    if(nsitesr==2 & nSiteVi>2){
                         param[r,c(7,8,9,nPar+3,nPar+6,nPar+7),k] <- NA
                         std[r,c(7,8,9,nPar+3,nPar+6,nPar+7),k] <- NA
                         covar[r,c(7,8,9,nPar+3,nPar+6,nPar+7),c(7,8,9,nPar+3,nPar+6,nPar+7),k] <- NA

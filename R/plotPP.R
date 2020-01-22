@@ -39,19 +39,19 @@
 ##
 
 
-plotPP <- function(data,par=list(Ne=c(10,12),TeR1=c(0,4000),TiR1=c(0,3000),ViR1=c(-400,400)),xlim=NULL,ylim=NULL,pdf=NULL,jpg=NULL,figNum=NULL,width=8.27,height=2.9225,paper='a4',tickRes=NULL,model=F,stdThreshold=.5,NeMin=1e9,chisqrLim=10,bg='white',fg='black',res=300,cex=1.0,col.regions=guisdap.colors,multistatic=TRUE,trellis=FALSE,cutgaps=TRUE,main=NA,title=NA,measuredOnly=T)
+plotPP <- function(data,par=list(Ne=c(10,12),TeR1=c(0,4000),TiR1=c(0,3000),ViR1=c(-400,400)),xlim=NULL,ylim=NULL,pdf=NULL,jpg=NULL,figNum=NULL,width=8.27,height=2.9225,paper='a4',tickRes=NULL,model=F,stdThreshold=.5,NeMin=1e9,chisqrLim=10,bg='white',fg='black',res=300,cex=1.0,col.regions=guisdap.colors,multistatic=TRUE,trellis=FALSE,cutgaps=TRUE,main=NA,title=NA,measuredOnly=T,nSiteVi=3)
     {
 
         UseMethod("plotPP")
 
     }
 
-plotPP.character <- function(data,par=list(Ne=c(10,12),TeR1=c(0,4000),TiR1=c(0,3000),ViR1=c(-400,400)),xlim=NULL,ylim=NULL,pdf=NULL,jpg=NULL,figNum=NULL,width=8.27,height=2.9225,paper='a4',tickRes=NULL,model=F,stdThreshold=.5,NeMin=1e9,chisqrLim=10,bg='white',fg='black',res=300,cex=1.0,col.regions=guisdap.colors,multistatic=TRUE,trellis=FALSE,cutgaps=TRUE,main=NA,title=NA,measuredOnly=T)
+plotPP.character <- function(data,par=list(Ne=c(10,12),TeR1=c(0,4000),TiR1=c(0,3000),ViR1=c(-400,400)),xlim=NULL,ylim=NULL,pdf=NULL,jpg=NULL,figNum=NULL,width=8.27,height=2.9225,paper='a4',tickRes=NULL,model=F,stdThreshold=.5,NeMin=1e9,chisqrLim=10,bg='white',fg='black',res=300,cex=1.0,col.regions=guisdap.colors,multistatic=TRUE,trellis=FALSE,cutgaps=TRUE,main=NA,title=NA,measuredOnly=T,nSiteVi=3)
     {
 
         # read all data
         if(multistatic){
-            data <- readPP.3D(data,measuredOnly)
+            data <- readPP.3D(data,measuredOnly,nSiteVi)
         }else{
             data <- readPP(data)
         }
@@ -176,7 +176,7 @@ plotPP.list <- function(data,par=list(Ne=c(10,12),TeR1=c(0,4000),TiR1=c(0,3000),
         # new plot to an existing x11 window
         if(!is.null(figNum)) {dev.set(figNum);plot.new()}
         # a new pdf file
-        if(!is.null(pdf)) pdf(file=paste(pdf,'.pdf',sep=''),paper=paper,width=width,height=wHeight)
+        if(!is.null(pdf)) pdf(file=paste(pdf,'.pdf',sep=''),paper=paper,width=width,height=wHeight,bg=bg)
         # a new jpeg file
         if(!is.null(jpg)){
             jpeg(file=paste(jpg,'.jpg',sep=''),width=width,height=wHeight,units='in',res=res)
