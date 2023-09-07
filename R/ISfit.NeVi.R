@@ -1,5 +1,5 @@
-ISfit.NeVi <- function(ddir='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=1 , beginTime=c(1970,1,1,0,0,0) , endTime=c(2100,1,1,0,0,0) , absLimit=5 , diffLimit=1e-2 , maxLambda=1e30 , maxIter=10 , plotFit=FALSE , recursive=TRUE , calScale=5e-20, nCores=1 ){
-      #
+ISfit.NeVi <- function(ddir='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=1 , beginTime=c(1970,1,1,0,0,0) , endTime=c(2100,1,1,0,0,0) , absLimit=5 , diffLimit=1e-2 , maxLambda=1e30 , maxIter=10 , plotFit=FALSE , recursive=TRUE , calScale=5e-20, nCores=1 )
+{
       # A simple fit of Ne and Vi on monostatic E-region data. This function calls ISfit.3D, which is the more general multistatic
       # fitting tool.
       #
@@ -31,5 +31,4 @@ ISfit.NeVi <- function(ddir='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=1 ,
     ISfit.3D( ddirs=ddir , odir=odir ,  heightLimits.km=heightLimits.km , timeRes.s=timeRes.s , beginTime=beginTime , endTime=endTime , fitFun=leastSquare.lvmrq , absLimit=absLimit , diffLimit=diffLimit , maxLambda=maxLambda , maxIter=maxIter , plotTest=FALSE , plotFit=plotFit , absCalib=FALSE , TiIsotropic=TRUE , TeIsotropic=TRUE , recursive=recursive , aprioriFunction=ISaprioriH , scaleFun=acfscales , siteScales=NULL, calScale=calScale , nCores=nCores , hVi=80 , hTeTi=Inf , hTi=Inf )
 
 
-
-}
+    }
