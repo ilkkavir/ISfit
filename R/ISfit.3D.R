@@ -1,4 +1,4 @@
-ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 , beginTime=c(1970,1,1,0,0,0) , endTime=c(2100,1,1,0,0,0) , fitFun=leastSquare.lvmrq , absLimit=5 , diffLimit=1e-2 , maxLambda=1e30 , maxIter=10 , plotTest=FALSE , plotFit=FALSE , absCalib=FALSE , TiIsotropic=TRUE , TeIsotropic=TRUE , recursive=TRUE , aprioriFunction=ISaprioriH , scaleFun=acfscales , siteScales=NULL, calScale=1, MCMCsettings=list( niter=10000 , updatecov=100 , burninlength=5000 , outputlength=5000 ) , maxdev=2 , trueHessian=FALSE , nCores=1 , plotSpectra=FALSE, ... )
+ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 , beginTime=c(1970,1,1,0,0,0) , endTime=c(2100,1,1,0,0,0) , fitFun=leastSquare.lvmrq , absLimit=5 , diffLimit=1e-2 , maxLambda=1e30 , maxIter=10 , absCalib=FALSE , TiIsotropic=TRUE , TeIsotropic=TRUE , recursive=TRUE , aprioriFunction=ISaprioriH , scaleFun=acfscales , siteScales=NULL, calScale=1, MCMCsettings=list( niter=10000 , updatecov=100 , burninlength=5000 , outputlength=5000 ) , maxdev=2 , trueHessian=FALSE , nCores=1 , ... )
   {
 
       # 3D incoherent scatter plasma parameter fit using LPI output files in ddirs
@@ -19,7 +19,6 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
       #   diffLimit       Upper limit for fractional change in residual in an iteration step.
       #   maxLambda       maximum Lambda value in Levenberg-Marquardt iteration
       #   maxIter         maximum number of iterations
-      #   plotTest        if TRUE, the direct theory and measurements are plotted at every single iteration step
       #   absCalib        TRUE if the remotes are absolutely calibrated, FALSE to allow for scaling of their calibration coefficients
       #   TiIsotropic     TRUE if ion thermal velocity distribution is modeled as isotropic, FALSE if bi-maxwellian
       #   recursive       logical, should the data directories be searched recursively
@@ -32,36 +31,32 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
       #   maxdev          maximum angular deviation from the beam centre intersection
       #   trueHessian     logical, calculate the Hessian from finite differences of cost function instead of the direct theory approximation?
       #   nCores          number of parallel processes
-      #   plotSpectra     logical, plot the fitted spectra from each site
       #
       # OUTPUT:
       #   None, the results are written to files in odir.
       #
 
-      if(nCores>1){
-          if(plotTest) warning("Cannot use graphics with nCores > 1, setting plotTest=FALSE")
-          if(plotFit) warning("Cannot use graphics with nCores > 1, setting plotFit=FALSE")
-          if(plotSpectra) warning("Cannot use graphics with nCores > 1, setting plotSpectra=FALSE")
-          plotTest <- FALSE
-          plotFit <- FALSE
-          plotSpectra <- FALSE
-      }
 
-      if(plotTest|plotFit){
-          dev.new()
-          figFit <- dev.cur()
-      }
-      if(plotSpectra){
-          dev.new()
-          figSpec <- dev.cur()
-      }
 
+      
+      
       # create the output directory
       dir.create( odir , recursive=TRUE , showWarnings=FALSE)
 
       # copy the original function call, it will be stored in each data files
+# should also explicitly store every single input argument, as those with default values are not returned by  match.call
       functionCall <- match.call(expand.dots=TRUE)
 
+
+
+
+
+
+
+
+
+
+      
       # list all data files
       dfiles <- list()
       ddirs <- unique(ddirs)
@@ -69,7 +64,7 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
       for( n in seq(nd) ){
           dfiles[[n]] <- dir( ddirs[n] , full.names=T , recursive=recursive , pattern="[[:digit:]]*LP.Rdata")
       }
-
+      
       # stop if there is no data
       if ( sum( sapply( dfiles , length ) ) == 0 ) stop( "Could not find any data files." )
 
@@ -83,7 +78,7 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
       if(length(timeRes.s)==1){
           # first integration period from which we actually have data
           iperFirst <- max( 1, floor( ( min( sapply( tstamps , min ) ) - bTime ) / timeRes.s ) )
-
+          
           # last integration period
           iperLast <- ceiling( ( min( max( sapply( tstamps , max ) ) , eTime ) - bTime ) / timeRes.s )
 
@@ -97,6 +92,21 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
           iperLimits <- timeRes.s
       }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+      
+
       # number of integration periods
       nIper <- length(iperLimits) - 1
 
@@ -105,532 +115,483 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
 
       # walk through all integration periods
       for( k in seq( nIper ) ){
-          runcmd <- expression(
-              {
-                  # look for data files from the current integration period
-                  iperFiles <- lapply( tstamps , function(x,l1,l2){ which( ( x > l1 ) & ( x <= l2 ) ) } , l1=iperLimits[k] , l2=iperLimits[k+1] )
 
-                  # load all data and collect it in a list
-                  nFiles <- sum( sapply( iperFiles , length ) )
-                  if( nFiles > 0 ){
+          
+          # look for data files from the current integration period
+          iperFiles <- lapply( tstamps , function(x,l1,l2){ which( ( x > l1 ) & ( x <= l2 ) ) } , l1=iperLimits[k] , l2=iperLimits[k+1] )
 
-                      dlist <- vector( mode='list', length=nd)
-
-                      for( n in seq( nd ) ){
-                          if( length(iperFiles[[n]]) > 0 ){
-                              dlist[[n]] <- readACF( dfiles[[n]][ iperFiles[[n]] ] )
-                              if(length(dlist[[n]][["nGates"]])!=length(dlist[[n]][["lag.us"]])){
-                                  dlist[[n]][["nGates"]] <- rep(length(dlist[[n]][["range.km"]]),length(dlist[[n]][["lag.us"]]))
-                              }
-                              # some sanity checks
-                              if( (dlist[[n]][['azelT']][2]<0) | (dlist[[n]][['azelR']][2]<0) | (dlist[[n]][['radarFreq']]<0) ){
-                                  dlist[[n]] <- list()
-                                  dlist[[n]][["ACF"]] <- matrix(NA)
-                                  dlist[[n]][["var"]] <- matrix(NA)
-                                  dlist[[n]][["lag.us"]] <- NA
-                                  dlist[[n]][["nGates"]] <- 1
-                                  dlist[[n]][["range.km"]] <- NA
-                                  dlist[[n]][["azelT"]] <- c(NA,NA)
-                                  dlist[[n]][["azelR"]] <- c(NA,NA)
-                                  dlist[[n]][["llhT"]] <- c(NA,NA,NA)
-                                  dlist[[n]][["llhR"]] <- c(NA,NA,NA)
-                                  dlist[[n]][["radarFreq"]] <- NA
-                              }
-                          }else{
-                              dlist[[n]] <- list()
-                              dlist[[n]][["ACF"]] <- matrix(NA)
-                              dlist[[n]][["var"]] <- matrix(NA)
-                              dlist[[n]][["lag.us"]] <- NA
-                              dlist[[n]][["nGates"]] <- 1
-                              dlist[[n]][["range.km"]] <- NA
-                              dlist[[n]][["azelT"]] <- c(NA,NA)
-                              dlist[[n]][["azelR"]] <- c(NA,NA)
-                              dlist[[n]][["llhT"]] <- c(NA,NA,NA)
-                              dlist[[n]][["llhR"]] <- c(NA,NA,NA)
-                              dlist[[n]][["radarFreq"]] <- NA
-                          }
+          # load all data and collect it in a list
+          nFiles <- sum( sapply( iperFiles , length ) )
+          if( nFiles > 0 ){
+              
+              dlist <- vector( mode='list', length=nd)
+              
+              for( n in seq( nd ) ){
+                  if( length(iperFiles[[n]]) > 0 ){
+                      dlist[[n]] <- readACF( dfiles[[n]][ iperFiles[[n]] ] )
+                      if(length(dlist[[n]][["nGates"]])!=length(dlist[[n]][["lag.us"]])){
+                          dlist[[n]][["nGates"]] <- rep(length(dlist[[n]][["range.km"]]),length(dlist[[n]][["lag.us"]]))
                       }
-
-                      # read acf, variance, lag, range, pointing directions, and TX / RX location of each data point
-                      acf   <- calScale * unlist( lapply( dlist , function(x){ return( unlist( lapply( seq( ncol( x[["ACF"]] ) ) , function( i , n , x ){ return( x[ 1 : n[i] , i ] ) } , x=x[["ACF"]] , n=x[["nGates"]] ) ) ) } ) )
-                      var   <- calScale**2 * unlist( lapply( dlist , function(x){ return( unlist( lapply( seq( ncol( x[["ACF"]] ) ) , function( i , n , x ){ return( x[ 1 : n[i] , i ] ) } , x=x[["var"]] , n=x[["nGates"]] ) ) ) } ) )
-                      lag   <- 1e-6*unlist( lapply( dlist , function(x){ return( rep( x[["lag.us"]] , times=x[["nGates"]] ) ) } ) )
-                      ran   <- 1000*unlist( lapply( dlist , function(x){ return( unlist( lapply( seq( ncol( x[["ACF"]] ) ) , function( i , n , x ){ return( x[ 1 : n[i] ] ) } , x=x[["range.km"]] , n=x[["nGates"]] ) ) ) } ) )
-                      sinds <- unlist( lapply( seq(nd) , function( i , x ){ return( rep( i , sum( x[[i]][["nGates"]] ) ) ) } , x=dlist ) )
-
-                      # number of sites is equal to number of data directories, create a matrix with position and pointing direction information for each site
-                      sites <- matrix( nrow=nd , ncol=12 )
-                      for(n in seq(nd)){
-                          sites[n,1]     <- n
-                          sites[n,2]     <- dlist[[n]][["radarFreq"]]
-                          sites[n,3:5]   <- dlist[[n]][["llhT"]]
-                          sites[n,6:7]   <- dlist[[n]][["azelT"]]
-                          sites[n,8:10]  <- dlist[[n]][["llhR"]]
-                          sites[n,11:12] <- dlist[[n]][["azelR"]]
+                      # some sanity checks
+                      if( (dlist[[n]][['azelT']][2]<0) | (dlist[[n]][['azelR']][2]<0) | (dlist[[n]][['radarFreq']]<0) ){
+                          dlist[[n]] <- list()
+                          dlist[[n]][["ACF"]] <- matrix(NA)
+                          dlist[[n]][["var"]] <- matrix(NA)
+                          dlist[[n]][["lag.us"]] <- NA
+                          dlist[[n]][["nGates"]] <- 1
+                          dlist[[n]][["range.km"]] <- NA
+                          dlist[[n]][["azelT"]] <- c(NA,NA)
+                          dlist[[n]][["azelR"]] <- c(NA,NA)
+                          dlist[[n]][["llhT"]] <- c(NA,NA,NA)
+                          dlist[[n]][["llhR"]] <- c(NA,NA,NA)
+                          dlist[[n]][["radarFreq"]] <- NA
                       }
-
-                      # if siteScales is null, we will give NULL to ISapriori that will
-                      # then allow scaling for all others but the reference site
-                      if(is.null(siteScales)){
-                          sScales <- NULL
-                      }else{
-                          # if siteScales was given, we need to pick correct rows from it
-                          sScales <- matrix(nrow=nd,ncol=dim(siteScales)[2])
-                          for(n in seq(nd)){
-                              # select the site that is closest to site n
-                              # it must be reasonably close, since the calibration
-                              # was done with ISfit.3D results from identical data.
-                              # There are small differences because siteCalib rounds the
-                              # site information to reasonably accuracy before site
-                              # identification
-                              sdiffs <- apply( siteScales[,2:12] , FUN=function(x,y){sum(abs(x-y)**2)},MARGIN=1,y=sites[n,2:12])
-                              if(!all(is.na(sdiffs))){
-                                  sScales[n,] <- siteScales[which(sdiffs==min(sdiffs)),]
-                                  sScales[n,1] <- n
-                              }
-                          }
-                      }
-
-                      # select the reference site
-                      # if there is data for only one site this is trivial
-                      # if absCalib==TRUE we can just pick any site
-                      if( nd==1 | absCalib | sum(!is.na(rowSums(sites)))==1 ){
-                          refsite <- which(!is.na(rowSums(sites)))[1]
-                      }else{ # otherwise look for a monostatic site
-
-                          refsite <- which( apply( sites[,3:7] == sites[,8:12] , FUN=all , MARGIN=1 ) )
-
-                          # if there are more than one candidate we will first check if the antenna was
-                          # just moving slightly during the integration
-                          # (this was left from an earlier, slightly different, version. Should never happen the present version...)
-                          if(length(refsite)>1){
-                              # largest variation in azimuth / elevation
-                              maxPointDiff <- max( apply( sites[refsite,c(6,7,11,12)] ,
-                                                         FUN=function(x){diff(range(x))} ,
-                                                         MARGIN=2) )
-                              # this should not be too common in well-designed experiments
-                              # simply proceed by picking the first candidate
-                              if(maxPointDiff < .1 ){
-                                  refsite <- refsite[1]
-                              }
-
-                          }
-
-                          # just pick the first available site and warn the user
-                          if(length(refsite) != 1){
-                              if(length(refsite)==0){
-                                  cat("Could not find a monostatic site, using the first bistatic as reference\n")
-                                  refsite <- which(!is.na(rowSums(sites)))[1] #sometimes eiscat data contains NaNs as coordinates...
-                              }else{
-                                  cat("Found more than one monostatic site, using the first one as reference\n")
-                                  refsite <- refsite[1]
-                              }
-
-                          }
-
-# do not ask the user, he does not want to answer...
-#                          # if there are none or several candidates we will need to ask the user
-#                          if( length(refsite) != 1){
-#                              if( length(refsite)==0){
-#                                  if(!siteselprev){
-#                                      cat('Could not find a monostatic site,\n')
-#                                      cat('available sites are:\n')
-#                                      cat('Site        TXfreq       TXlat       TXlon    TXheight        TXaz       TXele       RXlat       RXlon    RXheight        RXaz       RXele\n')
-#                                      for(s in seq(nd)){
-#                                          cat(sprintf("[%2i]",s),sprintf(" %10.2f",sites[s,2:12]),sprintf("\n"))
-#                                      }
-#                                      refsite <- as.numeric(readline("Please select number of the reference site: "))
-#                                      testnum <- as.numeric( readline("Use the same selection in all intgration periods? (1=yes, 0=no) :  ") )
-#                                      if(testnum) siteselprev <- refsite
-#                                  }else{
-#                                      cat('Could not find a monostatic site,\n')
-#                                      cat('available sites are:\n')
-#                                      cat('Site        TXfreq       TXlat       TXlon    TXheight        TXaz       TXele       RXlat       RXlon    RXheight        RXaz       RXele\n')
-#                                      for(s in seq(nd)){
-#                                          cat(sprintf("[%2i]",s),sprintf(" %10.2f",sites[s,2:12]),sprintf("\n"))
-#                                      }
-#                                      cat("Using previous selection (",siteselprev,")\n")
-#                                      refsite <- siteselprev
-#                                  }
-#                              }else{
-#                                  if(!siteselprev){
-#                                      cat('Found several monostatic sites,\n')
-#                                      cat('available sites are:\n')
-#                                      cat('Site        TXfreq       TXlat       TXlon    TXheight        TXaz       TXele       RXlat       RXlon    RXheight        RXaz       RXele\n')
-#                                      for(s in refsite){
-#                                          cat(sprintf("[%2i]",s),sprintf(" %10.2f",sites[s,2:12]),sprintf("\n"))
-#                                      }
-#                                      refsite <- as.numeric(readline("Please select number of the reference site: "))
-#                                      siteselprev <- refsite
-#                                  }else{
-#                                      cat('Found several monostatic sites,\n')
-#                                      cat('available sites are:\n')
-#                                      cat('Site        TXfreq       TXlat       TXlon    TXheight        TXaz       TXele       RXlat       RXlon    RXheight        RXaz       RXele\n')
-#                                      for(s in refsite){
-#                                          cat(sprintf("[%2i]",s),sprintf(" %10.2f",sites[s,2:12]),sprintf("\n"))
-#                                      }
-#                                      cat("Using previous selection (",siteselprev,")\n")
-#                                      refsite <- siteselprev
-#                                  }
-#                              }
-#                          }
-                      }
-
-                      # scale all data with values returned by scaleFun
-                      dscales <- scaleFun( sites )
-                      for( n in seq( nd ) ){
-                          spoints <- which(sinds==n)
-                          acf[spoints] <- acf[spoints] * dscales[n,6]
-                          if(!is.na(dscales[n,5])){
-                              if( dscales[n,5] ) acf[spoints] <- Conj(acf[spoints])
-                          }
-                  var[spoints] <- var[spoints] * dscales[n,6]**2
-                      }
-
-                      # a time vector converted from iperLimits
-                      t <- as.POSIXlt( iperLimits[k+1] , origin='1970-01-01' , tz='utc')
-                      date <- c(t$year+1900,t$mon+1,t$mday,t$hour,t$min,t$sec)
-
-                      # height gate limits
-                      if( all( is.na( heightLimits.km ) ) ){
-                          rlims <- sort( unique( ran[ which( sinds==refsite ) ] ) )
-                          rlims <- c( rlims , max(rlims) + 1)
-                          hlims <- rlims
-                          for( h in seq(length(hlims))) hlims[h] <- range2llh(r=rlims[h],llhT=sites[refsite,3:5],llhR=sites[refsite,8:10],azelT=sites[refsite,6:7])['h']
-                      }else{
-                          hlims <- unique( heightLimits.km )*1000
-                      }
-
-                      # IRI does not work above 70 km
-                      hlims <- hlims[hlims>=70000]
-
-
-                      nh <- length( hlims ) - 1
-
-                      covar <- intersect <- list()
-                      for(h in seq(nh)) covar[[h]] <- matrix(ncol=12+nd,nrow=12+nd)
-
-                      model <- std <- param <- matrix(ncol=12+nd,nrow=nh)
-                      latitude <- longitude <- height <- status <- chisqr <- rep(-1,nh)
-                      B <- matrix(ncol=3,nrow=nh)
-                      MCMC <- vector(length=nh,mode='list')
-
-                      # convert all ranges to latitude, longitude, height
-                      llh <- matrix(nrow=length(ran),ncol=3)
-                      for( dind in seq(length(ran))){
-                          if(!is.na(ran[dind])) llh[dind,] <- range2llh( r=ran[dind] , llhT=sites[sinds[dind],3:5] , llhR=sites[sinds[dind],8:10] , azelT=sites[sinds[dind],6:7])
-                      }
-
-                      # a list for site indices contributing at each height
-                      contribSites <- apriori <- list()
-
-                      for( h in seq( nh ) ){
-
-                          # Initial values, these will be immediately updated if any data is found
-                          height[h]      <- sum(hlims[h:(h+1)])/2000
-                          latitude[h]    <- sites[refsite,3]
-                          longitude[h]   <- sites[refsite,4]
-                          Btmp           <- igrf(date=date[1:3],lat=latitude[h],lon=longitude[h],height=height[h],isv=0,itype=1)
-                          B[h,]          <- c(Btmp$y,Btmp$x,-Btmp$z) # the model has y-axis to east and z-axis downwards, we have x towards east,
-                          dimnames(covar[[h]])   <- list(c('Ne','Tipar','Tiperp','Tepar','Teperp','Coll','Vix','Viy','Viz',paste('Ion',seq(3),sep=''),paste('Site',seq(nd),sep='')),c('Ne','Tipar','Tiperp','Tepar','Teperp','Coll','Vix','Viy','Viz',paste('Ion',seq(3),sep=''),paste('Site',seq(nd),sep='')))
-
-                          # if there are actual data, all initializations will be updated
-
-                          gateinds       <- which( ( llh[,3] >= hlims[h] ) & (llh[,3] < hlims[h+1]) )
-
-                          acf.gate       <- acf[ gateinds ]
-                          var.gate       <- var[ gateinds ]
-                          lag.gate       <- lag[ gateinds ]
-                          ran.gate       <- ran[ gateinds ]
-                          llh.gate       <- llh[ gateinds , ]
-                          sites.gate     <- sites[ sinds[gateinds] , ]
-
-                          if(!is.matrix(llh.gate)) llh.gate <- matrix(llh.gate,nrow=1)
-                          if(!is.matrix(sites.gate)) sites.gate <- matrix(sites.gate,nrow=1)
-
-                          # remove NA values
-                          nainds         <- is.na(acf.gate) | is.na(var.gate)
-
-                          if(any(!nainds)){
-
-                              acf.gate       <- acf.gate[ !nainds ]
-                              var.gate       <- var.gate[ !nainds ]
-                              lag.gate       <- lag.gate[ !nainds ]
-                              llh.gate       <- llh.gate[ !nainds , ]
-                              sites.gate     <- sites.gate[ !nainds , ]
-
-                              if(!is.matrix(llh.gate)) llh.gate <- matrix(llh.gate,nrow=1)
-                              if(!is.matrix(sites.gate)) sites.gate <- matrix(sites.gate,nrow=1)
-
-                              # coordinates of the measurement volume
-                              llhTarget      <- colMeans( llh.gate )
-                              height[h]      <- llhTarget[3] / 1000
-                              latitude[h]    <- llhTarget[1]
-                              longitude[h]   <- llhTarget[2]
-
-
-                             # beam intersections
-                              intersect[[h]] <- list()
-                              gainR <- aSite <- nlags.site <-  rep(NA,nd)
-                              kSite <- list()
-                              lag.site <- list()
-                              acf.site <- list()
-                              var.site <- list()
-                              ind.site <- list()
-                              for( s in seq(nd) ){
-
-                                  if(any(is.na(sites[s,]))){
-                                      gainR[s] <- NA
-                                      aSite[s] <- NA
-                                      kSite[[s]] <- c(NA,NA,NA)
-                                  }else{
-                                      # the beam widths and antenna types are stored in dscales
-                                      intersect[[h]][[s]] <- beamIntersection( llhT=sites[s,3:5] , llhR=sites[s,8:10] , azelT=sites[s,6:7] , azelR=sites[s,11:12] , fwhmT=dscales[s,1] , fwhmR=dscales[s,3] , phArrT=dscales[s,2]>0 , phArrR=dscales[s,4]>0 , freq.Hz=sites[s,2] )
-
-                                      # conversion from lat, lon, height to range in this gate
-                                      rs1 <- height2range( llhT=sites[s,3:5] , azelT=sites[s,6:7] , llhR=sites[s,8:10] , h=hlims[h] )
-                                      rs2 <- height2range( llhT=sites[s,3:5] , azelT=sites[s,6:7] , llhR=sites[s,8:10] , h=hlims[h+1] )
-
-                                      # gain integral
-                                      gainR[s] <- gategain( intersect[[h]][[s]] , c(rs1,rs2) , maxdev=maxdev)
-
-                                      # scattering angle
-                                      aSite[s] <- intersect[[h]][[s]][["phi"]]
-
-                                      # scattering wave vector
-                                      kSite[[s]] <- intersect[[h]][[s]][["k.ENU"]]
-                                  }
-                                  if(is.na(gainR[s])){
-                                      lag.site[[s]] <- c()
-                                      nlags.site[[s]] <- 0
-                                      acf.site[[s]] <- c()
-                                      var.site[[s]] <- c()
-                                      ind.site[[s]] <- c()
-                                  }else{
-
-                                      # data points from this site
-                                      data.site <- which(sites.gate[,1]==s)
-
-                                      # lags measured at this site
-                                      lag.site[[s]] <- unique(lag.gate[data.site])
-
-                                      nlags.site[s] <- length(lag.site[[s]])
-
-                                      # average data points from each lag value
-                                      acf.site[[s]] <- rep(0+0i,nlags.site[s])
-                                      var.site[[s]] <- rep(0,nlags.site[s])
-                                      for( l in seq(nlags.site[s])){
-                                          lagind <- which(lag.site[[s]][l]==lag.gate[data.site])
-                                          for( lind in lagind ){
-                                              acf.site[[s]][l] <- acf.site[[s]][l] + acf.gate[data.site][lind]/var.gate[data.site][lind]
-                                              var.site[[s]][l] <- var.site[[s]][l] + 1/var.gate[data.site][lind]
-                                          }
-                                      }
-                                      var.site[[s]] <- 1/var.site[[s]]
-                                      acf.site[[s]] <- acf.site[[s]] * var.site[[s]]
-
-                                      acf.site[[s]] <- acf.site[[s]] / gainR[s]
-                                      var.site[[s]] <- var.site[[s]] / gainR[s]**2
-
-                                      ind.site[[s]] <- rep(s,nlags.site[s])
-                                  }
-
-                              }
-
-                              if(sum(nlags.site)>0){
-
-                                  # magnetic field direction
-                                  Btmp           <- igrf(date=date[1:3],lat=latitude[h],lon=longitude[h],height=height[h],isv=0,itype=1)
-                                  # the model has y-axis to east and z-axis downwards, we have x towards east and z upwards
-                                  B[h,]          <- c(Btmp$y,Btmp$x,-Btmp$z)
-
-                                  # parameters from iri model
-                                  ptmp           <- iriParams( time=date ,latitude=latitude[h],longitude=longitude[h],heights=height[h])
-
-                                  # an approximation for NO+-neutral colllision frequency (Schunk & Walker, Planet. Space Sci., 1971)
-                                  # This is approximately true for all ions, because ion density is much smaller than neutral density
-                                  # the densities in outfmsis are in cm^-3 ... no they are not, I convert them in iri!!!
-                                  ioncoll        <- sum( ionNeutralCollisionFrequency(ptmp[,1])['NO+',] )
-
-
-                                  # initial plasma parameter values, there should not be negative ones, as ion velocity is set to zero
-                                  # Also heavier clusters are included in ion mass 30.5, H+ is used as is and the rest is given to O+
-                                  ###parInit        <- pmax( c( ptmp['e-',1] , ptmp['Ti',1] , ptmp['Ti',1], ptmp['Te',1] , ptmp['Te',1] , ioncoll , 0 , 0 , 0 , sum(ptmp[c('O2+','NO+','cluster'),1])/ptmp['e-',1] , 0 , ptmp['H+',1]/ptmp['e-',1] , rep(1,nd) ) , 0 )
-                                  ###parInit[c(10,12)] <- pmax( 0, parInit[c(10,12)])
-                                  ###parInit[c(10,12)] <- pmin( 1, parInit[c(10,12)])
-                                  ###if(sum(parInit[c(10,12)])>1) parInit[c(10,12)] <- parInit[c(10,12)] / sum(parInit[c(10,12)])
-                                  ###parInit[11] <- 1 - sum( parInit[c(10,12)] )
-                                  ## switched to estimating the molecular ion abundance as 1 - O+ - H+. The above estimation has larger error at low altitudes where heavier ions actually exists
-                                  ##parInit        <- pmax( c( ptmp['e-',1] , ptmp['Ti',1] , ptmp['Ti',1], ptmp['Te',1] , ptmp['Te',1] , ioncoll , 0 , 0 , 0 , ifelse( (sum(ptmp[c('H+','O+'),1])/ptmp['e-',1]>=1) , 0 , 1-sum(ptmp[c('H+','O+'),1])/ptmp['e-',1]) , ifelse( (ptmp['O+',1]<0) , 0 , ptmp['O+',1]/ptmp['e-',1]) , ifelse( (ptmp['H+',1]<0) , 0 , ptmp['H+',1]/ptmp['e-',1] ) , rep(1,nd) ) , 0 )
-
-                                  # one more version..
-                                  cH <- max(ptmp['H+',1],0)
-                                  cO <- max(ptmp['O+',1],0)
-                                  cM <- max(sum(ptmp[c('NO+','O2+','cluster'),1]),0)
-                                  cTot <- cH + cO + cM
-                                  if(cTot<1e7){
-                                      if(h<150){
-                                          cH <- 0
-                                          cO <- 0
-                                          cM <- 1
-                                          cTot <- 1
-                                      }else{
-                                          cM <- 0
-                                          cTot <- cO + cH
-                                      }
-                                  }
-
-                                  parInit <- pmax( c( ptmp['e-',1] , ptmp['Ti',1] , ptmp['Ti',1], ptmp['Te',1] , ptmp['Te',1] , ioncoll , 0 , 0 , 0 , cM/cTot , cO/cTot , cH/cTot , rep(1,nd) ) , 0 )
-
-
-                                  ### the division with electron density fails if all densities are close to zero, which happens somewhere in the D region, perhaps also somewhere very high up
-                                  ##if( ptmp['e-',1] < 1e7 ){
-                                  ##    if(height[h]<150){
-                                  ##        parInit[c(10,11,12)] <- c(1,0,0)
-                                  ##    }else{
-                                  ##        parInit[c(10,11,12)] <- c(0,ptmp['O+',1]/sum(ptmp[c('H+','O+'),1]),ptmp['H+',1]/sum(ptmp[c('H+','O+'),1]))
-                                  ##    }
-                                  ##}
-
-                                  parInit[1]     <- max(parInit[1],1e9)
-
-                                  mIon <- c(30.5,16.0,1)
-
-                                  # parameter scaling factors
-                                  parScales      <- ISparamScales(parInit,3)
-
-                                  # scale the initial parameter values
-                                  initParam      <- scaleParams( parInit , parScales , inverse=F)
-
-                                  # parameter value limits
-                                  parLimits      <- ISparamLimits(3,nd)
-
-                                  # scale the parameter limits
-                                  limitParam     <- parLimits
-                                  limitParam[1,] <- scaleParams(parLimits[1,] , parScales , inverse=F)
-                                  limitParam[2,] <- scaleParams(parLimits[2,] , parScales , inverse=F)
-
-                                  # apriori information
-                                  apriori[[h]]   <- aprioriFunction( initParam , nIon=3 , absCalib=absCalib , TiIsotropic=TiIsotropic , TeIsotropic=TeIsotropic , refSite=refsite , siteScales=sScales[,c((h+12),(h+12+nh))] , h=height[h] , B=B[h,] , ...)
-
-                                  model[h,]      <- parInit
-
-                                  if(plotTest|plotFit) dev.set(figFit)
-
-                                  fitpar   <- ISparamfit(
-                                      acf             = unlist(acf.site),
-                                      var             = unlist(var.site),
-                                      lags            = unlist(lag.site),
-                                      nData           = sum(nlags.site),
-                                      fSite           = sites[,2],
-                                      aSite           = aSite,
-                                      kSite           = kSite,
-                                      iSite           = unlist(ind.site),
-                                      B               = B[h,],
-                                      initParam       = initParam,
-                                      invAprioriCovar = apriori[[h]]$invAprioriCovar,
-                                      aprioriTheory   = apriori[[h]]$aprioriTheory,
-                                      aprioriMeas     = apriori[[h]]$aprioriMeas,
-                                      mIon            = mIon,
-                                      nIon            = 3,
-                                      paramLimits     = limitParam,
-                                      directTheory    = ISdirectTheory,
-                                      absLimit        = absLimit,
-                                      diffLimit       = diffLimit,
-                                      scaleFun        = scaleParams,
-                                      scale           = parScales,
-                                      plotTest        = plotTest,
-                                      plotFit         = plotFit,
-                                      maxLambda       = maxLambda,
-                                      maxIter         = maxIter,
-                                      fitFun          = fitFun,
-                                      MCMCsettings    = MCMCsettings,
-                                      trueHessian     = trueHessian,
-                                      h = height[h]
-                                      )
-
-                                  if(plotSpectra){
-                                      if(!fitpar[["fitStatus"]]){
-                                          dev.set(figSpec)
-                                          nSites <- length(fitpar[["xSite"]])
-                                          layout(matrix(seq(nSites),nrow=nSites))
-                                          for(kk in seq(nSites)){
-
-                                              # scale parameters
-                                              sparam <- scaleParams( fitpar$param , scale=parScales , inverse=T)
-
-                                              # Conversion to parameter list
-                                              parlist <- ISparamVec2List( sparam , mIon )
-
-                                              # spectra at each site
-                                              nf <- length(fitpar[["xSite"]][[kk]])
-                                              if(nf>0){
-                                                  sSite <- ISspectrum.3D( ele=parlist[["ele"]] , ion=parlist[["ion"]] , Bdir=B[h,] , kdir=kSite[[kk]] , fradar=sites[kk,2] , scattAngle=aSite[[kk]] , freq=fitpar[["xSite"]][[kk]] )
-                                                  plot(fitpar[["xSite"]][[kk]],sSite,main=paste("Site",kk,round(height[h]),'km'),xlab='Frequency [Hz]',ylab='Power')
-
-
-                                              }
-                                          }
-                                      }
-                                  }
-
-
-
-                                  # scale back to physical units
-                                  param[h,] <- scaleParams( fitpar$param , scale=parScales , inverse=TRUE )
-                                  covar[[h]] <- scaleCovar( fitpar$covar , scale=parScales , inverse=TRUE)
-                                  std[h,]   <- sqrt(diag(covar[[h]]))
-                                  chisqr[h] <- fitpar[["chisqr"]]
-                                  status[h] <- fitpar[["fitStatus"]]
-                                  dimnames(covar[[h]])   <- list(c('Ne','Tipar','Tiperp','Tepar','Teperp','Coll','Vix','Viy','Viz',paste('Ion',seq(3),sep=''),paste('Site',seq(nd),sep='')),c('Ne','Tipar','Tiperp','Tepar','Teperp','Coll','Vix','Viy','Viz',paste('Ion',seq(3),sep=''),paste('Site',seq(nd),sep='')))
-
-                                  contribSites[[h]] <- unique(unlist(ind.site))
-                                  if(!is.null(fitpar$MCMC)){
-                                      MCMC[[h]] <- fitpar$MCMC
-                                      for( sr in seq(dim(MCMC[[h]][["pars"]][1]))) MCMC[[h]][["pars"]][k,] <-  scaleParams( MCMC[[h]][["pars"]][k,] , parScales , inverse=T )
-                                      MCMC[[h]][["bestpar"]] <- scaleParams( MCMC[[h]][["bestpar"]] , parScales , inverse=TRUE )
-                                      MCMC[[h]][["pars"]] <- t( apply( MCMC[[h]][["pars"]] , FUN=scaleParams , MARGIN=1  , scale=parScales , inverse=TRUE) )
-                                      dimnames(MCMC[[h]][["pars"]]) <- list( NULL , c('Ne','Tipar','Tiperp','Tepar','Teperp','Coll','Vix','Viy','Viz',paste('Ion',seq(3),sep=''),paste('Site',seq(nd),sep='')) )
-                                      names(MCMC[[h]][["bestpar"]]) <- c('Ne','Tipar','Tiperp','Tepar','Teperp','Coll','Vix','Viy','Viz',paste('Ion',seq(3),sep=''),paste('Site',seq(nd),sep=''))
-                                  }
-                              }
-                          }
-                      }
-
-
-                      time_sec <- iperLimits[k+1]
-                      POSIXtime <- as.POSIXlt(time_sec,origin='1970-01-01',tz='utc')
-                      std[is.na(std)] <- Inf
-
-
-                      dimnames(param) <- list(paste('gate',seq(nh),sep=''),c('Ne','Tipar','Tiperp','Tepar','Teperp','Coll','Vix','Viy','Viz',paste('Ion',seq(3),sep=''),paste('Site',seq(nd),sep='')))
-                      dimnames(std)   <- list(paste('gate',seq(nh),sep=''),c('Ne','Tipar','Tiperp','Tepar','Teperp','Coll','Vix','Viy','Viz',paste('Ion',seq(3),sep=''),paste('Site',seq(nd),sep='')))
-                      dimnames(model)   <- list(paste('gate',seq(nh),sep=''),c('Ne','Tipar','Tiperp','Tepar','Teperp','Coll','Vix','Viy','Viz',paste('Ion',seq(3),sep=''),paste('Site',seq(nd),sep='')))
-                      names(height) <- paste('gate',seq(nh),sep='')
-                      names(latitude) <- paste('gate',seq(nh),sep='')
-                      names(longitude) <- paste('gate',seq(nh),sep='')
-                      dimnames(B) <- list(paste('gate',seq(nh),sep=''),c('x','y','z'))
-
-
-                      # save the results to file
-                      PP <- list(param=param,std=std,model=model,chisqr=chisqr,status=status,time_sec=time_sec,date=date,POSIXtime=POSIXtime,height=height,latitude=latitude,longitude=longitude,sites=sites,intersect=intersect,covar=covar,B=B,heightLimits.km=hlims/1000,contribSites=contribSites,mIon=c(30.5,16.0,1.0),MCMC=MCMC,timeLimits.s=iperLimits[k:(k+1)],functionCall=functionCall,apriori=apriori)
-                      resFile <- file.path( odir , paste( sprintf( '%13.0f' , trunc( iperLimits[k+1]  * 1000 ) ) , "PP.Rdata" , sep=''))
-                      save( PP , file=resFile )
-
-                      cat(iperLimits[k+1],'\n')
-
-
+                  }else{
+                      dlist[[n]] <- list()
+                      dlist[[n]][["ACF"]] <- matrix(NA)
+                      dlist[[n]][["var"]] <- matrix(NA)
+                      dlist[[n]][["lag.us"]] <- NA
+                      dlist[[n]][["nGates"]] <- 1
+                      dlist[[n]][["range.km"]] <- NA
+                      dlist[[n]][["azelT"]] <- c(NA,NA)
+                      dlist[[n]][["azelR"]] <- c(NA,NA)
+                      dlist[[n]][["llhT"]] <- c(NA,NA,NA)
+                      dlist[[n]][["llhR"]] <- c(NA,NA,NA)
+                      dlist[[n]][["radarFreq"]] <- NA
                   }
               }
-              )
-          if(nCores>1){
-              mcparallel(runcmd)
-              if( (k%%nCores == 0) | k==nIper ) mccollect(wait=TRUE)
-          }else{
-              eval( runcmd )
-          }
 
+
+              # read acf, variance, lag, range, pointing directions, and TX / RX location of each data point
+              acf   <- calScale * unlist( lapply( dlist , function(x){ return( unlist( lapply( seq( ncol( x[["ACF"]] ) ) , function( i , n , x ){ return( x[ 1 : n[i] , i ] ) } , x=x[["ACF"]] , n=x[["nGates"]] ) ) ) } ) )
+              var   <- calScale**2 * unlist( lapply( dlist , function(x){ return( unlist( lapply( seq( ncol( x[["ACF"]] ) ) , function( i , n , x ){ return( x[ 1 : n[i] , i ] ) } , x=x[["var"]] , n=x[["nGates"]] ) ) ) } ) )
+              lag   <- 1e-6*unlist( lapply( dlist , function(x){ return( rep( x[["lag.us"]] , times=x[["nGates"]] ) ) } ) )
+              ran   <- 1000*unlist( lapply( dlist , function(x){ return( unlist( lapply( seq( ncol( x[["ACF"]] ) ) , function( i , n , x ){ return( x[ 1 : n[i] ] ) } , x=x[["range.km"]] , n=x[["nGates"]] ) ) ) } ) )
+              sinds <- unlist( lapply( seq(nd) , function( i , x ){ return( rep( i , sum( x[[i]][["nGates"]] ) ) ) } , x=dlist ) )
+              
+              # number of sites is equal to number of data directories, create a matrix with position and pointing direction information for each site
+
+              sites <- matrix( nrow=nd , ncol=12 )
+              for(n in seq(nd)){
+                  sites[n,1]     <- n
+                  sites[n,2]     <- dlist[[n]][["radarFreq"]]
+                  sites[n,3:5]   <- dlist[[n]][["llhT"]]
+                  sites[n,6:7]   <- dlist[[n]][["azelT"]]
+                  sites[n,8:10]  <- dlist[[n]][["llhR"]]
+                  sites[n,11:12] <- dlist[[n]][["azelR"]]
+              }
+
+
+              # if siteScales is null, we will give NULL to ISapriori that will
+              # then allow scaling for all others but the reference site
+              if(is.null(siteScales)){
+                  sScales <- NULL
+              }else{
+                  # if siteScales was given, we need to pick correct rows from it
+                  sScales <- matrix(nrow=nd,ncol=dim(siteScales)[2])
+                  for(n in seq(nd)){
+                      # select the site that is closest to site n
+                      # it must be reasonably close, since the calibration
+                      # was done with ISfit.3D results from identical data.
+                      # There are small differences because siteCalib rounds the
+                      # site information to reasonably accuracy before site
+                      # identification
+                      sdiffs <- apply( siteScales[,2:12] , FUN=function(x,y){sum(abs(x-y)**2)},MARGIN=1,y=sites[n,2:12])
+                      if(!all(is.na(sdiffs))){
+                          sScales[n,] <- siteScales[which(sdiffs==min(sdiffs)),]
+                          sScales[n,1] <- n
+                      }
+                  }
+              }
+
+              # select the reference site
+              # if there is data for only one site this is trivial
+              # if absCalib==TRUE we can just pick any site
+              if( nd==1 | absCalib | sum(!is.na(rowSums(sites)))==1 ){
+                  refsite <- which(!is.na(rowSums(sites)))[1]
+              }else{ # otherwise look for a monostatic site
+
+                  refsite <- which( apply( sites[,3:7] == sites[,8:12] , FUN=all , MARGIN=1 ) )
+
+                  # if there are more than one candidate we will first check if the antenna was
+                  # just moving slightly during the integration
+                  # (this was left from an earlier, slightly different, version. Should never happen the present version...)
+                  if(length(refsite)>1){
+                      # largest variation in azimuth / elevation
+                      maxPointDiff <- max( apply( sites[refsite,c(6,7,11,12)] ,
+                                                 FUN=function(x){diff(range(x))} ,
+                                                 MARGIN=2) )
+                      # this should not be too common in well-designed experiments
+                      # simply proceed by picking the first candidate
+                      if(maxPointDiff < .1 ){
+                          refsite <- refsite[1]
+                      }
+                      
+                  }
+
+                 # just pick the first available site and warn the user
+                  if(length(refsite) != 1){
+                      if(length(refsite)==0){
+                          cat("Could not find a monostatic site, using the first bistatic as a reference\n")
+                          refsite <- which(!is.na(rowSums(sites)))[1] #sometimes eiscat data contains NaNs as coordinates...
+                      }else{
+                          cat("Found two or more monostatic sites, using the first one as a reference\n")
+                          refsite <- refsite[1]
+                      }
+                      
+                  }
+                  
+              }
+
+              
+              # scale all data with values returned by scaleFun
+              dscales <- scaleFun( sites )
+              for( n in seq( nd ) ){
+                  spoints <- which(sinds==n)
+                  acf[spoints] <- acf[spoints] * dscales[n,6]
+                  if(!is.na(dscales[n,5])){
+                      if( dscales[n,5] ) acf[spoints] <- Conj(acf[spoints])
+                  }
+                  var[spoints] <- var[spoints] * dscales[n,6]**2
+              }
+              
+
+              # a time vector converted from iperLimits
+              t <- as.POSIXlt( iperLimits[k+1] , origin='1970-01-01' , tz='utc')
+              date <- c(t$year+1900,t$mon+1,t$mday,t$hour,t$min,t$sec)
+              
+              # height gate limits
+              if( all( is.na( heightLimits.km ) ) ){
+                  rlims <- sort( unique( ran[ which( sinds==refsite ) ] ) )
+                  rlims <- c( rlims , max(rlims) + 1)
+                  hlims <- rlims
+                  for( h in seq(length(hlims))) hlims[h] <- range2llh(r=rlims[h],llhT=sites[refsite,3:5],llhR=sites[refsite,8:10],azelT=sites[refsite,6:7])['h']
+              }else{
+                  hlims <- unique( heightLimits.km )*1000
+              }
+              
+
+              # IRI does not work above 70 km
+              hlims <- hlims[hlims>=70000]
+              
+              
+              nh <- length( hlims ) - 1
+              
+              covar <- intersect <- list()
+              for(h in seq(nh)) covar[[h]] <- matrix(ncol=12+nd,nrow=12+nd)
+              
+              model <- std <- param <- matrix(ncol=12+nd,nrow=nh)
+              latitude <- longitude <- height <- status <- chisqr <- rep(-1,nh)
+              B <- matrix(ncol=3,nrow=nh)
+              MCMC <- vector(length=nh,mode='list')
+              
+              # convert all ranges to latitude, longitude, height
+              llh <- matrix(nrow=length(ran),ncol=3)
+              llhlist <- mclapply(seq(length(ran)) , FUN=range2llhParFun ,  ran=ran , sites=sites , sinds=sinds , mc.cores=nCores)
+              for( dind in seq(length(ran))){
+#                  if(!is.na(ran[dind])) llh[dind,] <- range2llh( r=ran[dind] , llhT=sites[sinds[dind],3:5] , llhR=sites[sinds[dind],8:10] , azelT=sites[sinds[dind],6:7])
+                  if(!is.na(ran[dind])) llh[dind,] <- llhlist[[dind]]
+              }
+
+              # a list for site indices contributing at each height
+              contribSites <- apriori <- list()
+              
+              
+              
+
+
+
+
+
+
+
+
+
+
+              acf.gate <- var.gate <- lag.gate <- ran.gate <- llh.gate <- sites.gate <- list()
+              acf.site <- var.site <- lag.site <-  nlags.site <- ind.site <- aSite  <- kSite <- list()
+              initParam <- limitParam <- parScales <- list()
+              fitGate <- rep(T,nh)
+              
+              for( h in seq( nh ) ){
+
+                  # Initial values, these will be immediately updated if any data is found
+                  height[h]      <- sum(hlims[h:(h+1)])/2000
+                  latitude[h]    <- sites[refsite,3]
+                  longitude[h]   <- sites[refsite,4]
+                  Btmp           <- igrf(date=date[1:3],lat=latitude[h],lon=longitude[h],height=height[h],isv=0,itype=1)
+                  B[h,]          <- c(Btmp$y,Btmp$x,-Btmp$z) # the model has y-axis to east and z-axis downwards, we have x towards east,
+                  dimnames(covar[[h]])   <- list(c('Ne','Tipar','Tiperp','Tepar','Teperp','Coll','Vix','Viy','Viz',paste('Ion',seq(3),sep=''),paste('Site',seq(nd),sep='')),c('Ne','Tipar','Tiperp','Tepar','Teperp','Coll','Vix','Viy','Viz',paste('Ion',seq(3),sep=''),paste('Site',seq(nd),sep='')))
+                  
+                  # if there are actual data, all initializations will be updated
+
+
+                  gateinds       <- which( ( llh[,3] >= hlims[h] ) & (llh[,3] < hlims[h+1]) )
+                  
+                  acf.gate[[h]]       <- acf[ gateinds ]
+                  var.gate[[h]]       <- var[ gateinds ]
+                  lag.gate[[h]]       <- lag[ gateinds ]
+                  ran.gate[[h]]       <- ran[ gateinds ]
+                  llh.gate[[h]]       <- llh[ gateinds , ]
+                  sites.gate[[h]]     <- sites[ sinds[gateinds] , ]
+                  
+                  if(!is.matrix(llh.gate[[h]])) llh.gate[[h]] <- matrix(llh.gate[[h]],nrow=1)
+                  if(!is.matrix(sites.gate[[h]])) sites.gate[[h]] <- matrix(sites.gate[[h]],nrow=1)
+                  
+                  # remove NA values
+                  nainds         <- is.na(acf.gate[[h]]) | is.na(var.gate[[h]])
+
+                  if(any(!nainds)){
+
+                      acf.gate[[h]]       <- acf.gate[[h]][ !nainds ]
+                      var.gate[[h]]       <- var.gate[[h]][ !nainds ]
+                      lag.gate[[h]]       <- lag.gate[[h]][ !nainds ]
+                      llh.gate[[h]]       <- llh.gate[[h]][ !nainds , ]
+                      sites.gate[[h]]     <- sites.gate[[h]][ !nainds , ]
+                      
+                      if(!is.matrix(llh.gate[[h]])) llh.gate[[h]] <- matrix(llh.gate[[h]],nrow=1)
+                      if(!is.matrix(sites.gate[[h]])) sites.gate[[h]] <- matrix(sites.gate[[h]],nrow=1)
+
+                      # coordinates of the measurement volume
+                      llhTarget      <- colMeans( llh.gate[[h]] )
+                      height[h]      <- llhTarget[3] / 1000
+                      latitude[h]    <- llhTarget[1]
+                      longitude[h]   <- llhTarget[2]
+                      
+                      
+                      
+                      # beam intersections
+                      intersect[[h]] <- list()
+                      gainR <- aSite[[h]] <- nlags.site[[h]] <-  rep(NA,nd)
+                      kSite[[h]] <- list()
+                      lag.site[[h]] <- list()
+                      acf.site[[h]] <- list()
+                      var.site[[h]] <- list()
+                      ind.site[[h]] <- list()
+                      for( s in seq(nd) ){
+                          
+                          if(any(is.na(sites[s,]))){
+                              gainR[s] <- NA
+                              aSite[[h]][s] <- NA
+                              kSite[[h]][[s]] <- c(NA,NA,NA)
+                          }else{
+                              # the beam widths and antenna types are stored in dscales
+                              intersect[[h]][[s]] <- beamIntersection( llhT=sites[s,3:5] , llhR=sites[s,8:10] , azelT=sites[s,6:7] , azelR=sites[s,11:12] , fwhmT=dscales[s,1] , fwhmR=dscales[s,3] , phArrT=dscales[s,2]>0 , phArrR=dscales[s,4]>0 , freq.Hz=sites[s,2] )
+                              
+                              # conversion from lat, lon, height to range in this gate
+                              rs1 <- height2range( llhT=sites[s,3:5] , azelT=sites[s,6:7] , llhR=sites[s,8:10] , h=hlims[h] )
+                              rs2 <- height2range( llhT=sites[s,3:5] , azelT=sites[s,6:7] , llhR=sites[s,8:10] , h=hlims[h+1] )
+                              
+                              # gain integral
+                              gainR[s] <- gategain( intersect[[h]][[s]] , c(rs1,rs2) , maxdev=maxdev)
+                              
+                              # scattering angle
+                              aSite[[h]][s] <- intersect[[h]][[s]][["phi"]]
+                              
+                              # scattering wave vector
+                              kSite[[h]][[s]] <- intersect[[h]][[s]][["k.ENU"]]
+                          }
+
+                          if(is.na(gainR[s])){
+                              lag.site[[h]][[s]] <- c()
+                              nlags.site[[h]][[s]] <- 0
+                              acf.site[[h]][[s]] <- c()
+                              var.site[[h]][[s]] <- c()
+                              ind.site[[h]][[s]] <- c()
+                          }else{
+                              
+                              # data points from this site
+                              data.site <- which(sites.gate[[h]][,1]==s)
+                              
+                              # lags measured at this site
+                              lag.site[[h]][[s]] <- unique(lag.gate[[h]][data.site])
+                              
+                              nlags.site[[h]][s] <- length(lag.site[[h]][[s]])
+                              
+                              # average data points from each lag value
+                              acf.site[[h]][[s]] <- rep(0+0i,nlags.site[[h]][s])
+                              var.site[[h]][[s]] <- rep(0,nlags.site[[h]][s])
+                              for( l in seq(nlags.site[[h]][s])){
+                                  lagind <- which(lag.site[[h]][[s]][l]==lag.gate[[h]][data.site])
+                                  for( lind in lagind ){
+                                      acf.site[[h]][[s]][l] <- acf.site[[h]][[s]][l] + acf.gate[[h]][data.site][lind]/var.gate[[h]][data.site][lind]
+                                      var.site[[h]][[s]][l] <- var.site[[h]][[s]][l] + 1/var.gate[[h]][data.site][lind]
+                                  }
+                              }
+                              var.site[[h]][[s]] <- 1/var.site[[h]][[s]]
+                              acf.site[[h]][[s]] <- acf.site[[h]][[s]] * var.site[[h]][[s]]
+                              
+                              acf.site[[h]][[s]] <- acf.site[[h]][[s]] / gainR[s]
+                              var.site[[h]][[s]] <- var.site[[h]][[s]] / gainR[s]**2
+                              
+                              ind.site[[h]][[s]] <- rep(s,nlags.site[[h]][s])
+                          }
+                          
+                      }
+
+
+                  }else{
+                      fitGate[h] <- FALSE
+                  }
+              }
+
+
+
+              # the prior model etc. 
+              # first run IRI in parallel, because it is the most time-consuming part here
+              # we DO NOT want to run IRI as part of the fit, because it will be replaced with BAFIM, which
+              # requires that the prior is formed in the master process
+
+              IRIlist <- mclapply(seq(nh) , FUN=iriParamsParFun , date=date,latitude=latitude,longitude=longitude,height=height,fitGate=fitGate , okData=unlist(lapply(nlags.site,sum))>0 , mc.cores=nCores)
+              
+              for(h in seq(nh)){
+                  if(fitGate[h]){
+                  
+                      if(sum(nlags.site[[h]])>0){
+                          
+                          # magnetic field direction
+                          Btmp           <- igrf(date=date[1:3],lat=latitude[h],lon=longitude[h],height=height[h],isv=0,itype=1)
+                          # the model has y-axis to east and z-axis downwards, we have x towards east and z upwards
+                          B[h,]          <- c(Btmp$y,Btmp$x,-Btmp$z)
+                          
+                          # parameters from iri model
+#                          ptmp           <- iriParams( time=date ,latitude=latitude[h],longitude=longitude[h],heights=height[h])
+                          ptmp <- IRIlist[[h]]
+                          
+                          # an approximation for NO+-neutral colllision frequency (Schunk & Walker, Planet. Space Sci., 1971)
+                          # This is approximately true for all ions, because ion density is much smaller than neutral density
+                          ioncoll        <- sum( ionNeutralCollisionFrequency(ptmp[,1])['NO+',] )
+
+
+                          # initial plasma parameter values
+                          cH <- max(ptmp['H+',1],0)
+                          cO <- max(ptmp['O+',1],0)
+                          cM <- max(sum(ptmp[c('NO+','O2+','cluster'),1]),0)
+                          cTot <- cH + cO + cM
+                          if(cTot<1e7){
+                              if(h<150){
+                                  cH <- 0
+                                  cO <- 0
+                                  cM <- 1
+                                  cTot <- 1
+                              }else{
+                                  cM <- 0
+                                  cTot <- cO + cH
+                              }
+                          }
+                          
+                          parInit <- pmax( c( ptmp['e-',1] , ptmp['Ti',1] , ptmp['Ti',1], ptmp['Te',1] , ptmp['Te',1] , ioncoll , 0 , 0 , 0 , cM/cTot , cO/cTot , cH/cTot , rep(1,nd) ) , 0 )
+                          
+                          
+                          parInit[1]     <- max(parInit[1],1e9)
+                          
+                          mIon <- c(30.5,16.0,1)
+                          
+                          # parameter scaling factors
+                          parScales[[h]]      <- ISparamScales(parInit,3)
+                          
+                          # scale the initial parameter values
+                          initParam[[h]]      <- scaleParams( parInit , parScales[[h]] , inverse=F)
+
+                          # parameter value limits
+                          parLimits      <- ISparamLimits(3,nd)
+
+                          # scale the parameter limits
+                          limitParam[[h]]     <- parLimits
+                          limitParam[[h]][1,] <- scaleParams(parLimits[1,] , parScales[[h]] , inverse=F)
+                          limitParam[[h]][2,] <- scaleParams(parLimits[2,] , parScales[[h]] , inverse=F)
+                          
+                          # apriori information
+                          apriori[[h]]   <- aprioriFunction( initParam[[h]] , nIon=3 , absCalib=absCalib , TiIsotropic=TiIsotropic , TeIsotropic=TeIsotropic , refSite=refsite , siteScales=sScales[,c((h+12),(h+12+nh))] , h=height[h] , B=B[h,] , ...)
+
+                          model[h,]      <- parInit
+                          
+                          
+                      }
+                  }
+              }
+
+              # run the actual iterative fit in parallel              
+              fitpar <- mclapply(seq(nh),FUN=ISparamfitParallel,
+                                 acf             = acf.site,
+                                 var             = var.site,
+                                 lags            = lag.site,
+                                 nData           = nlags.site,
+                                 fSite           = sites[,2],
+                                 aSite           = aSite,
+                                 kSite           = kSite,
+                                 iSite           = ind.site,
+                                 B               = B,
+                                 initParam       = initParam,
+                                 apriori         = apriori,
+                                 mIon            = mIon,
+                                 nIon            = 3,
+                                 paramLimits     = limitParam,
+                                 directTheory    = ISdirectTheory,
+                                 absLimit        = absLimit,
+                                 diffLimit       = diffLimit,
+                                 scaleFun        = scaleParams,
+                                 scale           = parScales,
+                                 maxLambda       = maxLambda,
+                                 maxIter         = maxIter,
+                                 fitFun          = fitFun,
+                                 MCMCsettings    = MCMCsettings,
+                                 trueHessian     = trueHessian,
+                                 heights         = height,
+                                 fitGate = fitGate,
+                                 mc.cores=nCores
+                                 )
+                      
+
+              # scale the results back to physical units and add some metadata
+              for(h in seq(nh)){
+                  if(fitGate[h]){                      
+                      param[h,] <- scaleParams( fitpar[[h]]$param , scale=parScales[[h]] , inverse=TRUE )
+                      covar[[h]] <- scaleCovar( fitpar[[h]]$covar , scale=parScales[[h]] , inverse=TRUE)
+                      std[h,]   <- sqrt(diag(covar[[h]]))
+                      chisqr[h] <- fitpar[[h]][["chisqr"]]
+                      status[h] <- fitpar[[h]][["fitStatus"]]
+                      dimnames(covar[[h]])   <- list(c('Ne','Tipar','Tiperp','Tepar','Teperp','Coll','Vix','Viy','Viz',paste('Ion',seq(3),sep=''),paste('Site',seq(nd),sep='')),c('Ne','Tipar','Tiperp','Tepar','Teperp','Coll','Vix','Viy','Viz',paste('Ion',seq(3),sep=''),paste('Site',seq(nd),sep='')))
+                      
+                      contribSites[[h]] <- unique(unlist(ind.site[[h]]))
+                      if(!is.null(fitpar[[h]]$MCMC)){
+                          MCMC[[h]] <- fitpar[[h]]$MCMC
+                          for( sr in seq(dim(MCMC[[h]][["pars"]][1]))) MCMC[[h]][["pars"]][k,] <-  scaleParams( MCMC[[h]][["pars"]][k,] , parScales[[h]] , inverse=T )
+                          MCMC[[h]][["bestpar"]] <- scaleParams( MCMC[[h]][["bestpar"]] , parScales[[h]] , inverse=TRUE )
+                          MCMC[[h]][["pars"]] <- t( apply( MCMC[[h]][["pars"]] , FUN=scaleParams , MARGIN=1  , scale=parScales[[h]] , inverse=TRUE) )
+                          dimnames(MCMC[[h]][["pars"]]) <- list( NULL , c('Ne','Tipar','Tiperp','Tepar','Teperp','Coll','Vix','Viy','Viz',paste('Ion',seq(3),sep=''),paste('Site',seq(nd),sep='')) )
+                          names(MCMC[[h]][["bestpar"]]) <- c('Ne','Tipar','Tiperp','Tepar','Teperp','Coll','Vix','Viy','Viz',paste('Ion',seq(3),sep=''),paste('Site',seq(nd),sep=''))
+                      }
+                  }
+              }
+              
+
+
+
+              time_sec <- iperLimits[k+1]
+              POSIXtime <- as.POSIXlt(time_sec,origin='1970-01-01',tz='utc')
+              std[is.na(std)] <- Inf
+              
+              
+              dimnames(param) <- list(paste('gate',seq(nh),sep=''),c('Ne','Tipar','Tiperp','Tepar','Teperp','Coll','Vix','Viy','Viz',paste('Ion',seq(3),sep=''),paste('Site',seq(nd),sep='')))
+              dimnames(std)   <- list(paste('gate',seq(nh),sep=''),c('Ne','Tipar','Tiperp','Tepar','Teperp','Coll','Vix','Viy','Viz',paste('Ion',seq(3),sep=''),paste('Site',seq(nd),sep='')))
+              dimnames(model)   <- list(paste('gate',seq(nh),sep=''),c('Ne','Tipar','Tiperp','Tepar','Teperp','Coll','Vix','Viy','Viz',paste('Ion',seq(3),sep=''),paste('Site',seq(nd),sep='')))
+              names(height) <- paste('gate',seq(nh),sep='')
+              names(latitude) <- paste('gate',seq(nh),sep='')
+              names(longitude) <- paste('gate',seq(nh),sep='')
+              dimnames(B) <- list(paste('gate',seq(nh),sep=''),c('x','y','z'))
+              
+              
+              # save the results to file
+              PP <- list(param=param,std=std,model=model,chisqr=chisqr,status=status,time_sec=time_sec,date=date,POSIXtime=POSIXtime,height=height,latitude=latitude,longitude=longitude,sites=sites,intersect=intersect,covar=covar,B=B,heightLimits.km=hlims/1000,contribSites=contribSites,mIon=c(30.5,16.0,1.0),MCMC=MCMC,timeLimits.s=iperLimits[k:(k+1)],functionCall=functionCall,apriori=apriori)
+              resFile <- file.path( odir , paste( sprintf( '%13.0f' , trunc( iperLimits[k+1]  * 1000 ) ) , "PP.Rdata" , sep=''))
+              save( PP , file=resFile )
+              
+              cat(iperLimits[k+1],'\n')
+              
+              
+          }
+          
       }
-      if(plotFit|plotTest) dev.off(figFit)
-      if(plotSpectra) dev.off(figSpec)
   }
+
