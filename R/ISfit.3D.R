@@ -51,12 +51,9 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
 
 
 
+      # Initialize an empty list for the plasma parameters
+      PP <- list()
 
-
-
-
-
-      
       # list all data files
       dfiles <- list()
       ddirs <- unique(ddirs)
@@ -310,7 +307,7 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
 
               acf.gate <- var.gate <- lag.gate <- ran.gate <- llh.gate <- sites.gate <- list()
               acf.site <- var.site <- lag.site <-  nlags.site <- ind.site <- aSite  <- kSite <- list()
-              initParam <- limitParam <- parScales <- list()
+              initParam <- limitParam  <- list()
               fitGate <- rep(T,nh)
               
               for( h in seq( nh ) ){
@@ -437,13 +434,7 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
 
 
 
-              # the prior model etc. 
-              # first run IRI in parallel, because it is the most time-consuming part here
-              # we DO NOT want to run IRI as part of the fit, because it will be replaced with BAFIM, which
-              # requires that the prior is formed in the master process
-
-              IRIlist <- mclapply(seq(nh) , FUN=iriParamsParFun , date=date,latitude=latitude,longitude=longitude,height=height,fitGate=fitGate , okData=unlist(lapply(nlags.site,sum))>0 , mc.cores=nCores)
-              
+              # magnetic field from igrf
               for(h in seq(nh)){
                   if(fitGate[h]){
                   
@@ -454,62 +445,18 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
                           # the model has y-axis to east and z-axis downwards, we have x towards east and z upwards
                           B[h,]          <- c(Btmp$y,Btmp$x,-Btmp$z)
                           
-                          # parameters from iri model
-#                          ptmp           <- iriParams( time=date ,latitude=latitude[h],longitude=longitude[h],heights=height[h])
-                          ptmp <- IRIlist[[h]]
-                          
-                          # an approximation for NO+-neutral colllision frequency (Schunk & Walker, Planet. Space Sci., 1971)
-                          # This is approximately true for all ions, because ion density is much smaller than neutral density
-                          ioncoll        <- sum( ionNeutralCollisionFrequency(ptmp[,1])['NO+',] )
-
-
-                          # initial plasma parameter values
-                          cH <- max(ptmp['H+',1],0)
-                          cO <- max(ptmp['O+',1],0)
-                          cM <- max(sum(ptmp[c('NO+','O2+','cluster'),1]),0)
-                          cTot <- cH + cO + cM
-                          if(cTot<1e7){
-                              if(h<150){
-                                  cH <- 0
-                                  cO <- 0
-                                  cM <- 1
-                                  cTot <- 1
-                              }else{
-                                  cM <- 0
-                                  cTot <- cO + cH
-                              }
-                          }
-                          
-                          parInit <- pmax( c( ptmp['e-',1] , ptmp['Ti',1] , ptmp['Ti',1], ptmp['Te',1] , ptmp['Te',1] , ioncoll , 0 , 0 , 0 , cM/cTot , cO/cTot , cH/cTot , rep(1,nd) ) , 0 )
-                          
-                          
-                          parInit[1]     <- max(parInit[1],1e9)
-                          
-                          mIon <- c(30.5,16.0,1)
-                          
-                          # parameter scaling factors
-                          parScales[[h]]      <- ISparamScales(parInit,3)
-                          
-                          # scale the initial parameter values
-                          initParam[[h]]      <- scaleParams( parInit , parScales[[h]] , inverse=F)
-
-                          # parameter value limits
-                          parLimits      <- ISparamLimits(3,nd)
-
-                          # scale the parameter limits
-                          limitParam[[h]]     <- parLimits
-                          limitParam[[h]][1,] <- scaleParams(parLimits[1,] , parScales[[h]] , inverse=F)
-                          limitParam[[h]][2,] <- scaleParams(parLimits[2,] , parScales[[h]] , inverse=F)
-                          
-                          # apriori information
-                          apriori[[h]]   <- aprioriFunction( initParam[[h]] , nIon=3 , absCalib=absCalib , TiIsotropic=TiIsotropic , TeIsotropic=TeIsotropic , refSite=refsite , siteScales=sScales[,c((h+12),(h+12+nh))] , h=height[h] , B=B[h,] , ...)
-
-                          model[h,]      <- parInit
-                          
-                          
                       }
                   }
               }
+              
+              # the prior model
+              apriori <- aprioriFunction( PP=PP , date=date , latitude=latitude , longitude=longitude , height=height , nSite=nd , nIon=3 , absCalib=absCalib , TiIsotropic=TiIsotropic , TeIsotropic=TeIsotropic , refSite=refsite , siteScales=sScales , B=B ,  nCores=nCores , ...)
+
+              
+              # copy the model/initial values in a matrix for backward compatibility
+              for (h in seq(nh)){
+                  model[h,] <- apriori[[h]][["aprioriParam"]]
+                  }
 
               # run the actual iterative fit in parallel              
               fitpar <- mclapply(seq(nh),FUN=ISparamfitParallel,
@@ -522,16 +469,11 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
                                  kSite           = kSite,
                                  iSite           = ind.site,
                                  B               = B,
-                                 initParam       = initParam,
                                  apriori         = apriori,
-                                 mIon            = mIon,
-                                 nIon            = 3,
-                                 paramLimits     = limitParam,
                                  directTheory    = ISdirectTheory,
                                  absLimit        = absLimit,
                                  diffLimit       = diffLimit,
                                  scaleFun        = scaleParams,
-                                 scale           = parScales,
                                  maxLambda       = maxLambda,
                                  maxIter         = maxIter,
                                  fitFun          = fitFun,
@@ -541,13 +483,12 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
                                  fitGate = fitGate,
                                  mc.cores=nCores
                                  )
-                      
 
               # scale the results back to physical units and add some metadata
               for(h in seq(nh)){
                   if(fitGate[h]){                      
-                      param[h,] <- scaleParams( fitpar[[h]]$param , scale=parScales[[h]] , inverse=TRUE )
-                      covar[[h]] <- scaleCovar( fitpar[[h]]$covar , scale=parScales[[h]] , inverse=TRUE)
+                      param[h,] <- scaleParams( fitpar[[h]]$param , scale=apriori[[h]]$parScales , inverse=TRUE )
+                      covar[[h]] <- scaleCovar( fitpar[[h]]$covar , scale=apriori[[h]]$parScales , inverse=TRUE)
                       std[h,]   <- sqrt(diag(covar[[h]]))
                       chisqr[h] <- fitpar[[h]][["chisqr"]]
                       status[h] <- fitpar[[h]][["fitStatus"]]
@@ -557,8 +498,8 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
                       if(!is.null(fitpar[[h]]$MCMC)){
                           MCMC[[h]] <- fitpar[[h]]$MCMC
                           for( sr in seq(dim(MCMC[[h]][["pars"]][1]))) MCMC[[h]][["pars"]][k,] <-  scaleParams( MCMC[[h]][["pars"]][k,] , parScales[[h]] , inverse=T )
-                          MCMC[[h]][["bestpar"]] <- scaleParams( MCMC[[h]][["bestpar"]] , parScales[[h]] , inverse=TRUE )
-                          MCMC[[h]][["pars"]] <- t( apply( MCMC[[h]][["pars"]] , FUN=scaleParams , MARGIN=1  , scale=parScales[[h]] , inverse=TRUE) )
+                          MCMC[[h]][["bestpar"]] <- scaleParams( MCMC[[h]][["bestpar"]] , apriori[[h]]$parScales , inverse=TRUE )
+                          MCMC[[h]][["pars"]] <- t( apply( MCMC[[h]][["pars"]] , FUN=scaleParams , MARGIN=1  , scale=apriori[[h]]$parScales , inverse=TRUE) )
                           dimnames(MCMC[[h]][["pars"]]) <- list( NULL , c('Ne','Tipar','Tiperp','Tepar','Teperp','Coll','Vix','Viy','Viz',paste('Ion',seq(3),sep=''),paste('Site',seq(nd),sep='')) )
                           names(MCMC[[h]][["bestpar"]]) <- c('Ne','Tipar','Tiperp','Tepar','Teperp','Coll','Vix','Viy','Viz',paste('Ion',seq(3),sep=''),paste('Site',seq(nd),sep=''))
                       }

@@ -1,4 +1,4 @@
-ISparamfitParallel <- function(h,acf,var,lags,nData,fSite,aSite,kSite,iSite,B,initParam,apriori,mIon,nIon,paramLimits,directTheory,absLimit,diffLimit,scaleFun,scale,maxLambda,maxIter,fitFun,MCMCsettings,trueHessian,heights,fitGate){
+ISparamfitParallel <- function(h,acf,var,lags,nData,fSite,aSite,kSite,iSite,B,apriori,directTheory,absLimit,diffLimit,scaleFun,maxLambda,maxIter,fitFun,MCMCsettings,trueHessian,heights,fitGate){
 
 
 
@@ -15,18 +15,18 @@ ISparamfitParallel <- function(h,acf,var,lags,nData,fSite,aSite,kSite,iSite,B,in
             kSite           = kSite[[h]],
             iSite           = unlist(iSite[[h]]),
             B               = B[h,],
-            initParam       = initParam[[h]],
+            initParam       = apriori[[h]]$aprioriParam,
             invAprioriCovar = apriori[[h]]$invAprioriCovar,
             aprioriTheory   = apriori[[h]]$aprioriTheory,
             aprioriMeas     = apriori[[h]]$aprioriMeas,
-            mIon            = mIon,
-            nIon            = nIon,
-            paramLimits     = paramLimits[[h]],
+            mIon            = apriori[[h]]$mIon,
+            nIon            = apriori[[h]]$nIon,
+            paramLimits     = apriori[[h]]$limitParam,
             directTheory    = directTheory,
             absLimit        = absLimit,
             diffLimit       = diffLimit,
             scaleFun        = scaleFun,
-            scale           = scale[[h]],
+            scale           = apriori[[h]]$parScales,
             plotTest        = FALSE,
             plotFit         = FALSE,
             maxLambda       = maxLambda,
