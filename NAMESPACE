@@ -3,6 +3,7 @@ export(
     ISaprioriH,
     ISapriori.general,
     ISapriori.guisdap,
+    ISaprioriBAFIM,
     ISdirectTheory,
     ISdirectTheory.general,
     ISdirectTheory.guisdap,
