@@ -279,7 +279,7 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
               
               model <- std <- param <- matrix(ncol=12+nd,nrow=nh)
               latitude <- longitude <- height <- status <- chisqr <- rep(-1,nh)
-              B <- matrix(ncol=3,nrow=nh)
+              B <- B2 <- matrix(ncol=3,nrow=nh)
               MCMC <- vector(length=nh,mode='list')
               
               # convert all ranges to latitude, longitude, height
@@ -306,7 +306,7 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
 
 
               acf.gate <- var.gate <- lag.gate <- ran.gate <- llh.gate <- sites.gate <- list()
-              acf.site <- var.site <- lag.site <-  nlags.site <- ind.site <- aSite  <- kSite <- list()
+              acf.site <- var.site <- lag.site <-  nlags.site <- ind.site <- aSite  <- kSite  <- kBsite <- Brotmat <- list()
               initParam <- limitParam  <- list()
               fitGate <- rep(T,nh)
               
@@ -444,13 +444,35 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
                           Btmp           <- igrf(date=date[1:3],lat=latitude[h],lon=longitude[h],height=height[h],isv=0,itype=1)
                           # the model has y-axis to east and z-axis downwards, we have x towards east and z upwards
                           B[h,]          <- c(Btmp$y,Btmp$x,-Btmp$z)
+
+
+                          # rotate all k-vectors to magnetic coordinates
+                          # the z-axis is along B but upwards
+                          Bz <- -B[h,]/sqrt(sum(B[h,]**2))
+                          # horizontal component of B
+                          Bhor <- c(B[h,1:2],0)
+                          # geomagnetic east is perpendicular both to B and Bhor
+                          Bx <- radarPointings:::vectorProduct.cartesian(B[h,],Bhor)
+                          Bx <- Bx / sqrt(sum(Bx**2))
+                          # y completes the right-handed coordinate system
+                          By <- radarPointings:::vectorProduct.cartesian(Bx,B[h,])
+                          By <- By / sqrt(sum(By**2))
+
+                          Brotmat[[h]] <- matrix(c(Bx,By,Bz),ncol=3,byrow=F)
+
+                          kBsite[[h]] <- list()
+                          for(ss in seq(length(kSite[[h]]))){
+                              kBsite[[h]][[ss]] <- kSite[[h]][[ss]]%*%Brotmat[[h]]
+                              # checking that the conversion was done correctly
+                              B2[h,] <- B[h,]%*%Brotmat[[h]]
+                          }
                           
                       }
                   }
               }
               
               # the prior model
-              apriori <- aprioriFunction( PP=PP , date=date , latitude=latitude , longitude=longitude , height=height , nSite=nd , nIon=3 , absCalib=absCalib , TiIsotropic=TiIsotropic , TeIsotropic=TeIsotropic , refSite=refsite , siteScales=sScales , B=B ,  nCores=nCores , ...)
+              apriori <- aprioriFunction( PP=PP , date=date , latitude=latitude , longitude=longitude , height=height , nSite=nd , nIon=3 , absCalib=absCalib , TiIsotropic=TiIsotropic , TeIsotropic=TeIsotropic , refSite=refsite , siteScales=sScales , B=B2 ,  nCores=nCores , ...)
 
               
               # copy the model/initial values in a matrix for backward compatibility
@@ -466,9 +488,9 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
                                  nData           = nlags.site,
                                  fSite           = sites[,2],
                                  aSite           = aSite,
-                                 kSite           = kSite,
+                                 kSite           = kBsite,
                                  iSite           = ind.site,
-                                 B               = B,
+                                 B               = B2,
                                  apriori         = apriori,
                                  directTheory    = ISdirectTheory,
                                  absLimit        = absLimit,
@@ -486,7 +508,10 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
 
               # scale the results back to physical units and add some metadata
               for(h in seq(nh)){
-                  if(fitGate[h]){                      
+                  if(fitGate[h]){
+                      # rotate the velocities back to geodetic coordinate system (for backward compatibility)
+                      BrotInv <- solve(Brotmat[[h]])
+                      param[h,7:9] <- param[h,7:9]%*%BrotInv
                       param[h,] <- scaleParams( fitpar[[h]]$param , scale=apriori[[h]]$parScales , inverse=TRUE )
                       covar[[h]] <- scaleCovar( fitpar[[h]]$covar , scale=apriori[[h]]$parScales , inverse=TRUE)
                       std[h,]   <- sqrt(diag(covar[[h]]))
@@ -529,7 +554,7 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
               save( PP , file=resFile )
               
               cat(iperLimits[k+1],'\n')
-              
+#              print(PP$param[,1:12])
               
           }
           
