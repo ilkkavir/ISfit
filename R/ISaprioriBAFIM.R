@@ -31,8 +31,19 @@ ISaprioriBAFIM <- function( PP , date , latitude , longitude , height , nSite , 
         #
         #  I. Virtanen 2012, 2013, 2023
 
+        if(length(PP)>0){
 
+            # we will save the PP list again with modified arrays, make copies as necessary
+            PP$paramFilter <- PP$param
+            PP$stdFilter <- PP$std
+            PP$covarFilter <- PP$covar
 
+            # these will be updated with altitude-smoothed profiles:
+            PP$paramRcorr <- PP$param
+            PP$stdRcorr <- PP$std
+            PP$covarRcorr <- PP$covar
+        }
+            
         # THIS function has not been completed yet!
 
         nh <- length(height)
@@ -380,6 +391,8 @@ ISaprioriBAFIM <- function( PP , date , latitude , longitude , height , nSite , 
             ## lines(log10(nesmooth),height)
             ## lines(log10(nesmooth+NeErrCorr),height,col='red')
 
+
+            
             plot((PP$param[,1]),height,xlim=c(0,1e12))
             lines((PP$param[,1]+PP$std[,1]),height,col='blue')
             nesmooth <- NeCorr
@@ -393,22 +406,38 @@ ISaprioriBAFIM <- function( PP , date , latitude , longitude , height , nSite , 
             lines(PP$param[,2]+PP$std[,2],height,col='blue')
             lines(TiparCorr+TiparErrCorr,height,col='red')
             
+            plot(PP$param[,3],height,xlim=c(0,3000))
+            lines(TiperpCorr,height)
+            lines(PP$param[,3]+PP$std[,3],height,col='blue')
+            lines(TiperpCorr+TiperpErrCorr,height,col='red')
+            
             plot(PP$param[,4],height,xlim=c(0,3000))
             lines(TeparCorr,height)
             lines(PP$param[,4]+PP$std[,4],height,col='blue')
             lines(TeparCorr+TeparErrCorr,height,col='red')
 
-            plot(PP$param[,7],height,xlim=c(-1,1)*2000)
+            plot(PP$param[,5],height,xlim=c(0,3000))
+            lines(TeperpCorr,height)
+            lines(PP$param[,5]+PP$std[,5],height,col='blue')
+            lines(TeperpCorr+TeperpErrCorr,height,col='red')
+            
+            
+            plot(PP$param[,6],height,xlim=c(0,1e5))
+            lines(CollCorr,height)
+            lines(PP$param[,6]+PP$std[,6],height,col='blue')
+            lines(CollCorr+CollErrCorr,height,col='red')
+            
+            plot(PP$param[,7],height,xlim=c(-1,1)*100)
             lines(VixCorr,height)
             lines(PP$param[,7]+PP$std[,7],height,col='blue')
             lines(VixCorr+VixErrCorr,height,col='red')
 
-            plot(PP$param[,8],height,xlim=c(-1,1)*2000)
+            plot(PP$param[,8],height,xlim=c(-1,1)*100)
             lines(ViyCorr,height)
             lines(PP$param[,8]+PP$std[,8],height,col='blue')
             lines(ViyCorr+ViyErrCorr,height,col='red')
 
-            plot(PP$param[,9],height,xlim=c(-1,1)*400)
+            plot(PP$param[,9],height,xlim=c(-1,1)*100)
             lines(ViparCorr,height)
             lines(PP$param[,9]+PP$std[,9],height,col='blue')
             lines(ViparCorr+ViparErrCorr,height,col='red')
@@ -428,30 +457,43 @@ ISaprioriBAFIM <- function( PP , date , latitude , longitude , height , nSite , 
             lines(PP$param[,12]+PP$std[,12],height,col='blue')
             lines(HpCorr+HpErrCorr,height,col='red')
             
-            plot(sqrt(diag(Cpost)[1:nh]),height,type='l',xlim=c(0,1e11))
-            plot(hsAlt,height)
-            plot(corrP[,1],height,type='l',xlim=c(0,1e22))
-            
-
             
             dt <- as.double(ISOdate(date[1],date[2],date[3],date[4],date[5],date[6])) - PP$time_sec
             for (hind in seq(nh)){
 
+                # the range-smoothed parameters
+                PP$paramRcorr[hind,1:12] <-c(NeCorr[hind],TiparCorr[hind],TiperpCorr[hind],TeparCorr[hind],TeperpCorr[hind],CollCorr[hind],VixCorr[hind],ViyCorr[hind],ViparCorr[hind],MpCorr[hind],OpCorr[hind],HpCorr[hind])
+
+                PP$stdRcorr[hind,1:12] <- c(NeErrCorr[hind],TiparErrCorr[hind],TiperpErrCorr[hind],TeparErrCorr[hind],TeperpErrCorr[hind],CollErrCorr[hind],VixErrCorr[hind],ViyErrCorr[hind],ViparErrCorr[hind],MpErrCorr[hind],OpErrCorr[hind],HpErrCorr[hind])
+
+                PP$covarRcorr[[hind]][1:12,1:12] <- Cpost[ ((0:11)*nh + hind) , ((0:11)*nh + hind) ]
+                
+
+                # the prior model for the next time step
                 aprioriBAFIM[[hind]] <- list()
-                aprioriBAFIM[[hind]][['aprioriParam']] <- scaleParams(c(NeCorr[hind],TiparCorr[hind],TiperpCorr[hind],TeparCorr[hind],TeperpCorr[hind],CollCorr[hind],VixCorr[hind],ViyCorr[hind],ViparCorr[hind],MpCorr[hind],OpCorr[hind],HpCorr[hind]) , aprioriIRI[[hind]]$parScales[1:12] , inverse=FALSE )
+                aprioriBAFIM[[hind]][['aprioriParam']] <- scaleParams( PP$paramRcorr[hind,1:12] , aprioriIRI[[hind]]$parScales[1:12] , inverse=FALSE )
 
                 # process noise standard deviation in normalized units
-                processStd <- c( BAFIMpar$Ne[4] , BAFIMpar$Ti[4] , BAFIMpar$Ti[4] ,BAFIMpar$Te[4] , BAFIMpar$Te[4] , BAFIMpar$Coll[4] , BAFIMpar$Viperp[4] , BAFIMpar$Viperp[4] , BAFIMpar$Vipar[4] , BAFIMpar$Mp[4], BAFIMpar$Op[4], BAFIMpar$Hp[4] )
+                processStd <- c( BAFIMpar$Ne[4] , BAFIMpar$Ti[4] , BAFIMpar$Ti[4] ,BAFIMpar$Te[4] , BAFIMpar$Te[4] , BAFIMpar$Coll[4] , BAFIMpar$Viperp[4] , BAFIMpar$Viperp[4] , BAFIMpar$Vipar[4] , BAFIMpar$Mp[4], BAFIMpar$Op[4], BAFIMpar$Hp[4] )*sqrt(dt)
 
                 
                 # standard deviations of the smoothed values + the process noise
-                aprioriBAFIM[[hind]][['aprioriStd']] <- scaleParams( c(NeErrCorr[hind],TiparErrCorr[hind],TiperpErrCorr[hind],TeparErrCorr[hind],TeperpErrCorr[hind],CollErrCorr[hind],VixErrCorr[hind],ViyErrCorr[hind],ViparErrCorr[hind],MpErrCorr[hind],OpErrCorr[hind],HpErrCorr[hind]) + processStd*sqrt(dt) , aprioriIRI[[hind]]$parScales[1:12] , inverse=FALSE )
+                aprioriBAFIM[[hind]][['aprioriStd']] <- scaleParams( PP$stdRcorr[hind,1:12] + processStd , aprioriIRI[[hind]]$parScales[1:12] , inverse=FALSE )
 
                 # smoothed plasma parameter error covariance in this gate 
-                aprioriBAFIM[[hind]][['invAprioriCovar']] <- solve(scaleCovar( Cpost[ ((0:11)*nh + hind) , ((0:11)*nh + hind) ] + (diag(processStd[1:12]*sqrt(dt))**2), aprioriIRI[[hind]]$parScales[1:12] , inverse=F ))
+                aprioriBAFIM[[hind]][['invAprioriCovar']] <- solve(scaleCovar( PP$covarRcorr[[hind]][1:12,1:12] + diag(processStd[1:12])**2, aprioriIRI[[hind]]$parScales[1:12] , inverse=F ))
 
-            }
                 
+            }
+
+            Cpred <- Cpost + diag(rep(processStd,each=nh)**2)
+                
+            stdCpred <- sqrt(diag(Cpred))
+            sCpred <- outer(stdCpred,stdCpred)
+            Qpred <- solve(Cpred/sCpred)/sCpred
+
+            
+            PP$BAFIM_G <- Cfit * t(Cpost * Qfit) * Qpred
 
         }else{
             # IRI parameters are used in the first iteration step
@@ -754,6 +796,17 @@ ISaprioriBAFIM <- function( PP , date , latitude , longitude , height , nSite , 
             apriorilist[[h]] <- list(aprioriParam=aprioriParam,aprioriTheory=aprioriTheory,invAprioriCovar=invAprioriCovar,aprioriMeas=aprioriMeas,limitParam=limitParam,parScales=parScales,mIon=mIon,nIon,aprioriParamIRI=aprioriIRI[[h]]$aprioriParam,aprioriParamBAFIM=aprioriBAFIM[[h]]$aprioriParam)
         }
 
+        if(length(PP)>0){
+            
+            # copy the range-smoothed data to the default ouputs (but the original ones are also there in the Filter-versions
+            PP$param <- PP$paramRcorr
+            PP$std <- PP$stdRcorr
+            PP$covar <- PP$covarRcorr
+        
+            # overwrite the output file with the updated copy
+            save(PP,file=PP$resFile)
+        }
+        
         return(apriorilist)
 
     }
