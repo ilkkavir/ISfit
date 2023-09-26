@@ -1,4 +1,4 @@
-ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 , beginTime=c(1970,1,1,0,0,0) , endTime=c(2100,1,1,0,0,0) , fitFun=leastSquare.lvmrq , absLimit=5 , diffLimit=1e-2 , maxLambda=1e30 , maxIter=10 , absCalib=FALSE , TiIsotropic=TRUE , TeIsotropic=TRUE , recursive=TRUE , aprioriFunction=ISaprioriH , scaleFun=acfscales , siteScales=NULL, calScale=1, MCMCsettings=list( niter=10000 , updatecov=100 , burninlength=5000 , outputlength=5000 ) , maxdev=2 , trueHessian=FALSE , nCores=1 , ... )
+ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 , beginTime=c(1970,1,1,0,0,0) , endTime=c(2100,1,1,0,0,0) , fitFun=leastSquare.lvmrq , absLimit=5 , diffLimit=1e-2 , maxLambda=1e30 , maxIter=10 , absCalib=FALSE , TiIsotropic=TRUE , TeIsotropic=TRUE , recursive=TRUE , aprioriFunction=ISaprioriH , scaleFun=acfscales , siteScales=NULL, calScale=1, MCMCsettings=list( niter=10000 , updatecov=100 , burninlength=5000 , outputlength=5000 ) , maxdev=2 , trueHessian=FALSE , nCores=1 , reverseTime=FALSE , burnin.s=0 , ... )
   {
 
       # 3D incoherent scatter plasma parameter fit using LPI output files in ddirs
@@ -31,6 +31,8 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
       #   maxdev          maximum angular deviation from the beam centre intersection
       #   trueHessian     logical, calculate the Hessian from finite differences of cost function instead of the direct theory approximation?
       #   nCores          number of parallel processes
+      #   reverseTime     logical, should the integration periods be analysed from the last to the first one? (needed for the BAFIM analysis)
+      #   burnin.s        duration of a burnin period. If reverseTime=FALSE, te analysis is started burnin.s seconds after the actual start time, runs backwards in time until the start time, and then runs forward until end of the analysis period. If reverseTime=TRUE, the corresponding thing is done at end of the analysis period. (This is needed for the BAFM analysis)
       #
       # OUTPUT:
       #   None, the results are written to files in odir.
@@ -110,9 +112,32 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
       # logical for permanent site selection
       siteselprev <- 0
 
-      # walk through all integration periods
-      for( k in seq( nIper ) ){
+      # walk through all integration periods, taking into accout reverseTime and burnin.s inputs
+      ipers <- seq(nIper)
+      if(reverseTime){
+          ipers <- rev(ipers)
+      }
+      nburnin <- 0
+      if(burnin.s>0){
+          for(k in seq(nIper)){
+              if(abs(iperLimits[ipers[k]]-iperLimits[ipers[1]])>burnin.s){
+                  break
+              }
+          }
+          nburnin <- k-1
+          if(k>1){
+              ipers <- c(rev(ipers[2:k]),ipers)
+          }
+      }
 
+      nnn <- 0
+#      for( k in seq( nIper ) ){
+      for( k in ipers ){
+
+          nnn <- nnn + 1
+          
+          # output file name
+          resFile <- paste( sprintf( '%13.0f' , trunc( iperLimits[k+1]  * 1000 ) ) , "PP.Rdata" , sep='')
           
           # look for data files from the current integration period
           iperFiles <- lapply( tstamps , function(x,l1,l2){ which( ( x > l1 ) & ( x <= l2 ) ) } , l1=iperLimits[k] , l2=iperLimits[k+1] )
@@ -444,35 +469,37 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
                           Btmp           <- igrf(date=date[1:3],lat=latitude[h],lon=longitude[h],height=height[h],isv=0,itype=1)
                           # the model has y-axis to east and z-axis downwards, we have x towards east and z upwards
                           B[h,]          <- c(Btmp$y,Btmp$x,-Btmp$z)
+                      }
+                  }
 
+                  # rotate all k-vectors to magnetic coordinates
+                  # the z-axis is along B but upwards
+                  Bz <- -B[h,]/sqrt(sum(B[h,]**2))
+                  # horizontal component of B
+                  Bhor <- c(B[h,1:2],0)
+                  # geomagnetic east is perpendicular both to B and Bhor
+                  Bx <- radarPointings:::vectorProduct.cartesian(B[h,],Bhor)
+                  Bx <- Bx / sqrt(sum(Bx**2))
+                  # y completes the right-handed coordinate system
+                  By <- radarPointings:::vectorProduct.cartesian(Bx,B[h,])
+                  By <- By / sqrt(sum(By**2))
 
-                          # rotate all k-vectors to magnetic coordinates
-                          # the z-axis is along B but upwards
-                          Bz <- -B[h,]/sqrt(sum(B[h,]**2))
-                          # horizontal component of B
-                          Bhor <- c(B[h,1:2],0)
-                          # geomagnetic east is perpendicular both to B and Bhor
-                          Bx <- radarPointings:::vectorProduct.cartesian(B[h,],Bhor)
-                          Bx <- Bx / sqrt(sum(Bx**2))
-                          # y completes the right-handed coordinate system
-                          By <- radarPointings:::vectorProduct.cartesian(Bx,B[h,])
-                          By <- By / sqrt(sum(By**2))
+                  Brotmat[[h]] <- matrix(c(Bx,By,Bz),ncol=3,byrow=F)
 
-                          Brotmat[[h]] <- matrix(c(Bx,By,Bz),ncol=3,byrow=F)
+                  # checking that the conversion was done correctly
+                  B2[h,] <- B[h,]%*%Brotmat[[h]]
 
-                          kBsite[[h]] <- list()
-                          for(ss in seq(length(kSite[[h]]))){
-                              kBsite[[h]][[ss]] <- kSite[[h]][[ss]]%*%Brotmat[[h]]
-                              # checking that the conversion was done correctly
-                              B2[h,] <- B[h,]%*%Brotmat[[h]]
-                          }
-                          
+                  kBsite[[h]] <- list()
+
+                  if(fitGate[h]){
+                      for(ss in seq(length(kSite[[h]]))){
+                          kBsite[[h]][[ss]] <- kSite[[h]][[ss]]%*%Brotmat[[h]]                          
                       }
                   }
               }
               
               # the prior model
-              apriori <- aprioriFunction( PP=PP , date=date , latitude=latitude , longitude=longitude , height=height , nSite=nd , nIon=3 , absCalib=absCalib , TiIsotropic=TiIsotropic , TeIsotropic=TeIsotropic , refSite=refsite , siteScales=sScales , B=B2 ,  nCores=nCores , ...)
+              apriori <- aprioriFunction( PP=PP , date=date , latitude=latitude , longitude=longitude , height=height , nSite=nd , nIon=3 , absCalib=absCalib , TiIsotropic=TiIsotropic , TeIsotropic=TeIsotropic , refSite=refsite , siteScales=sScales , B=B2 ,  nCores=nCores , resFile=resFile , updateFile=ifelse(nnn>nburnin,TRUE,FALSE) , ... )
 
               
               # copy the model/initial values in a matrix for backward compatibility
@@ -549,9 +576,10 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
               
               
               # save the results to file
-              resFile <- file.path( odir , paste( sprintf( '%13.0f' , trunc( iperLimits[k+1]  * 1000 ) ) , "PP.Rdata" , sep=''))
-              PP <- list(param=param,std=std,model=model,chisqr=chisqr,status=status,time_sec=time_sec,date=date,POSIXtime=POSIXtime,height=height,latitude=latitude,longitude=longitude,sites=sites,intersect=intersect,covar=covar,B=B,heightLimits.km=hlims/1000,contribSites=contribSites,mIon=c(30.5,16.0,1.0),MCMC=MCMC,timeLimits.s=iperLimits[k:(k+1)],functionCall=functionCall,apriori=apriori,resFile=resFile)
-              save( PP , file=resFile )
+              PP <- list(param=param,std=std,model=model,chisqr=chisqr,status=status,time_sec=time_sec,date=date,POSIXtime=POSIXtime,height=height,latitude=latitude,longitude=longitude,sites=sites,intersect=intersect,covar=covar,B=B,heightLimits.km=hlims/1000,contribSites=contribSites,mIon=c(30.5,16.0,1.0),MCMC=MCMC,timeLimits.s=iperLimits[k:(k+1)],functionCall=functionCall,apriori=apriori,resFile=resFile , resDir=odir)
+              if(nnn>nburnin){
+                  save( PP , file=file.path(odir,resFile) )
+              }
 
               cat(iperLimits[k+1],'\n')
 #              print(PP$param[,1:12])

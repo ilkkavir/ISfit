@@ -1,4 +1,4 @@
-ISaprioriBAFIM <- function( PP , date , latitude , longitude , height , nSite ,  nIon , absCalib=FALSE , TiIsotropic=FALSE , TeIsotropic=FALSE, refSite=1 , siteScales=NULL , hTeTi=100 , B=c(0,0,0) , ViPar0=FALSE , nCores=1, BAFIMpar=list(Ne=c(0,Inf,0.05,2.5e11),Ti=c(80,Inf,0.1,30),Te=c(100,Inf,0.1,30),Coll=c(0,0,.1,1),Vipar=c(80,Inf,0.05,2.5),Viperp=c(80,Inf,.05,10),Mp=c(150,500,.05,.01),Op=c(150,500,0.05,0.01),Hp=c(0,0,.05,.01)), ... )
+ISaprioriBAFIM <- function( PP , date , latitude , longitude , height , nSite ,  nIon , absCalib=FALSE , TiIsotropic=FALSE , TeIsotropic=FALSE, refSite=1 , siteScales=NULL , hTeTi=100 , B=c(0,0,0) , ViPar0=FALSE , nCores=1, BAFIMpar=list(Ne=c(0,Inf,0.05,2.5e11),Ti=c(80,Inf,0.1,30),Te=c(100,Inf,0.1,30),Coll=c(0,0,.1,1),Vipar=c(80,Inf,0.05,2.5),Viperp=c(80,Inf,.05,10),Mp=c(150,500,.05,.01),Op=c(150,500,0.05,0.01),Hp=c(0,0,.05,.01)) , updateFile=TRUE , returnParams=FALSE , ... )
     {
         #
         #
@@ -21,14 +21,18 @@ ISaprioriBAFIM <- function( PP , date , latitude , longitude , height , nSite , 
         #  B               magnetic field (direction). The default is considered as missing value
         #  ViPar0          logical, force field-aligned ion velocity to zero
         #  nCores          number of cpu cores to use in forks
+        #  updateFile      Logical, should the upgraded PP list be written to the output file (default TRUE)
+        #  returnParams    Logical, should the upgraded PP list be returned instead of the apriori model (Default FALSE)        
         #
         #  ...             arbitrary parameters to be passed forward to other functions, mainly for compatability reasons
         #
         # OUTPUT:
-        #  aprioriTheory      apriori theory matrix
-        #  aprioriMeas        apriori "measurements"
-        #  invAprioriCovar    inverse of apriori covariance matrix
-        #
+        #  if returnParams==FALSE (the default), a list with elements
+        #    aprioriTheory      apriori theory matrix
+        #    aprioriMeas        apriori "measurements"
+        #    invAprioriCovar    inverse of apriori covariance matrix
+        #  if returnParams==TRUE, an updated PP list with the range-smoothed parameter profiles included
+        # 
         #  I. Virtanen 2012, 2013, 2023
 
         if(length(PP)>0){
@@ -163,7 +167,7 @@ ISaprioriBAFIM <- function( PP , date , latitude , longitude , height , nSite , 
         if (length(PP)>0){
 
             # time step duration
-            dt <- as.double(ISOdate(date[1],date[2],date[3],date[4],date[5],date[6])) - PP$time_sec
+            dt <-abs( as.double(ISOdate(date[1],date[2],date[3],date[4],date[5],date[6])) - PP$time_sec)
 
             # scaling factor for the length scales
             hsAlt <- H/1000 * sqrt(dt)
@@ -196,18 +200,12 @@ ISaprioriBAFIM <- function( PP , date , latitude , longitude , height , nSite , 
 
             }
 
-            ## print('testing edge effct, line 185 in ISaprioriBAFIM')
-            ## PP$param[nh,1] <- 1e10
-            ## vartmp  <- PP$covar[[nh]][1,1]
-            ## PP$covar[[nh]][,1] <- PP$covar[[nh]][,1]/sqrt(vartmp)*1e10
-            ## PP$covar[[nh]][1,] <- PP$covar[[nh]][1,]/sqrt(vartmp)*1e10
-            ## PP$std[nh,1] <- 1e8
 
             # need at least three gates for the smoothing
             if(nh>2){
 
 
-                # the smoothing must be done for unscaled parameters, because the scales vary with altitude!!!!
+                # the smoothing must be done for unscaled parameters, because the scales vary with altitude!
 
                 
                 # Form a correlation prior in range (height) direction
@@ -217,11 +215,6 @@ ISaprioriBAFIM <- function( PP , date , latitude , longitude , height , nSite , 
                 Aind <- 1
             
                 # The correlation powers solved from known variances, height steps, and correlation lengths
-                # the smoothing is done for scaled parameters!
-                ## corrP <- PP$std[,1:12]*0
-                ## for(hind in seq(nh)){
-                ##     corrP[hind,1:12] <- scaleParams(PP$std[hind,1:12],PP$apriori[[hind]]$parScales[1:12],inverse=F)**2
-                ## }
                 corrP <- PP$std[,1:12]**2
                 
                 corrP[,1] <- corrP[,1]*dheights/(BAFIMpar$Ne[3]*hsAlt) # Ne
@@ -312,9 +305,6 @@ ISaprioriBAFIM <- function( PP , date , latitude , longitude , height , nSite , 
             Cfit <- matrix(0,ncol=nh*12,nrow=nh*12)
             Mfit <- matrix(NaN,nrow=nh*12,ncol=1)
             for(ih in seq(nh)){
-                ## fitCov <- scaleCovar(PP$covar[[ih]],PP$apriori[[ih]]$parScales,inverse=F)
-                ## Cfit[ ((0:11)*nh + ih) , ((0:11)*nh + ih) ] <- fitCov[1:12,1:12]
-                ## Mfit[ (0:11)*nh+ih ] <- scaleParams(PP$param[ih,1:12],PP$apriori[[ih]]$parScales[1:12],inverse=F)
                 fitCov <- PP$covar[[ih]]
                 Cfit[ ((0:11)*nh + ih) , ((0:11)*nh + ih) ] <- fitCov[1:12,1:12]
                 Mfit[ (0:11)*nh + ih ] <- PP$param[ih,1:12]
@@ -326,8 +316,6 @@ ISaprioriBAFIM <- function( PP , date , latitude , longitude , height , nSite , 
             Cscale <- outer(Cdiagsqrt,Cdiagsqrt)
             Qfit <- solve(Cfit/Cscale)/Cscale
 
-
-#            Qfit <- solve(Cfit)
 
             # solve the the whole problem (zeroth, first, and second order terms).
             # Normalize the variances to unit values to stabilise the matrix inversion
@@ -458,7 +446,7 @@ ISaprioriBAFIM <- function( PP , date , latitude , longitude , height , nSite , 
             lines(HpCorr+HpErrCorr,height,col='red')
             
             
-            dt <- as.double(ISOdate(date[1],date[2],date[3],date[4],date[5],date[6])) - PP$time_sec
+#            dt <- abs(as.double(ISOdate(date[1],date[2],date[3],date[4],date[5],date[6])) - PP$time_sec)
             for (hind in seq(nh)){
 
                 # the range-smoothed parameters
@@ -804,9 +792,15 @@ ISaprioriBAFIM <- function( PP , date , latitude , longitude , height , nSite , 
             PP$covar <- PP$covarRcorr
         
             # overwrite the output file with the updated copy
-            save(PP,file=PP$resFile)
+            if(updateFile){
+                save(PP,file=file.path(PP$resDir,PP$resFile))
+            }
         }
-        
-        return(apriorilist)
+
+        if(returnParams){
+            return(PP)
+        }else{
+            return(apriorilist)
+        }
 
     }

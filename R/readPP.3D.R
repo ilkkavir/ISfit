@@ -131,8 +131,8 @@ readPP.3D <- function(dpath,measuredOnly=T,nSiteVi=3,recursive=F,...){
                 param[r,nPar+1,k] <- (PP$param[r,2] + 2*PP$param[r,3] ) / 3
                 # electron temperature (Te_par + 2*Te_perp)/3
                 param[r,nPar+2,k] <- (PP$param[r,4] + 2*PP$param[r,5] ) / 3
-                # ion velocity along magnetic field
-                param[r,nPar+3,k] <- PP$param[r,7:9]%*%PP$B[r,]/sqrt(sum(PP$B[r,]**2))
+                # ion velocity along magnetic field (positive upward)
+                param[r,nPar+3,k] <- -PP$param[r,7:9]%*%PP$B[r,]/sqrt(sum(PP$B[r,]**2))
                 # ion perpendicular/parallel temperature ratio
                 # approximation of the ratio of two correlated normal random variables
                 # from Hayya et al., A note on the ratio of two normally distributed variables,
@@ -185,13 +185,13 @@ readPP.3D <- function(dpath,measuredOnly=T,nSiteVi=3,recursive=F,...){
 
                 for( s in PP$contribSites[[r]]){
 
-                    # ion velocity seen at site s
-                    param[r,nPar+2*s+6,k] <- PP$param[r,7:9]%*%PP$intersect[[r]][[s]]$k.ENU/sqrt(sum(PP$intersect[[r]][[s]]$k.ENU**2))
+                    # ion velocity seen at site s (positive away)
+                    param[r,nPar+2*s+6,k] <- -PP$param[r,7:9]%*%PP$intersect[[r]][[s]]$k.ENU/sqrt(sum(PP$intersect[[r]][[s]]$k.ENU**2))
                     std[r,nPar+2*s+6,k] <- sqrt(PP$intersect[[r]][[s]]$k.ENU%*%PP$covar[[r]][7:9,7:9]%*%PP$intersect[[r]][[s]]$k.ENU/sum(PP$intersect[[r]][[s]]$k.ENU**2))
-                    # horizontal ion velocity component seen at site s
+                    # horizontal ion velocity component seen at site s (positive away)
                     khor <- c(PP$intersect[[r]][[s]]$k.ENU[c(1,2)],0)
                     khor <- khor / sqrt(sum(khor**2))
-                    param[r,nPar+2*s+7,k] <- PP$param[r,7:9]%*%khor
+                    param[r,nPar+2*s+7,k] <- -PP$param[r,7:9]%*%khor
                     std[r,nPar+2*s+7,k] <- sqrt(khor%*%PP$covar[[r]][7:9,7:9]%*%khor)
                     # copy the horizontal velocity projections to all beams of a multibeam receiver
                     for( ss in seq( nSitesk ) ){
