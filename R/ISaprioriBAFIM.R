@@ -46,6 +46,8 @@ ISaprioriBAFIM <- function( PP , date , latitude , longitude , height , nSite , 
             PP$paramRcorr <- PP$param
             PP$stdRcorr <- PP$std
             PP$covarRcorr <- PP$covar
+
+
         }
             
         # THIS function has not been completed yet!
@@ -144,7 +146,8 @@ ISaprioriBAFIM <- function( PP , date , latitude , longitude , height , nSite , 
             aprioriStd[12] <- ifelse( height[h]>=BAFIMpar$Hp[1] & height[h]<BAFIMpar$Hp[2] , processStdScale[12] , 1e-3 )
 
             
-            aprioriIRI[[h]] <- list(aprioriParam=aprioriParam,aprioriStd=aprioriStd,limitParam=limitParam,parScales=parScales,invAprioriCovar=diag(1/aprioriStd**2))
+#            aprioriIRI[[h]] <- list(aprioriParam=aprioriParam,aprioriStd=aprioriStd,limitParam=limitParam,parScales=parScales,invAprioriCovar=diag(1/aprioriStd**2))
+            aprioriIRI[[h]] <- list(aprioriParam=aprioriParam,aprioriStd=aprioriStd,limitParam=limitParam,parScales=parScales,aprioriCovar=diag(aprioriStd**2))
 
         }
 
@@ -368,7 +371,6 @@ ISaprioriBAFIM <- function( PP , date , latitude , longitude , height , nSite , 
             OpErrCorr <- sqrt(diag(Cpost[(10*nh+1):(11*nh),(10*nh+1):(11*nh)]));
             HpErrCorr <- sqrt(diag(Cpost[(11*nh+1):(12*nh),(11*nh+1):(12*nh)]));
 
-
 #            plot(Xpost[(3*nh+1):(4*nh)],height,xlim=c(0,3000))
 #            lines(PP$param[,4],height)
             layout(matrix(seq(12),ncol=4))
@@ -455,7 +457,6 @@ ISaprioriBAFIM <- function( PP , date , latitude , longitude , height , nSite , 
                 PP$stdRcorr[hind,1:12] <- c(NeErrCorr[hind],TiparErrCorr[hind],TiperpErrCorr[hind],TeparErrCorr[hind],TeperpErrCorr[hind],CollErrCorr[hind],VixErrCorr[hind],ViyErrCorr[hind],ViparErrCorr[hind],MpErrCorr[hind],OpErrCorr[hind],HpErrCorr[hind])
 
                 PP$covarRcorr[[hind]][1:12,1:12] <- Cpost[ ((0:11)*nh + hind) , ((0:11)*nh + hind) ]
-                
 
                 # the prior model for the next time step
                 aprioriBAFIM[[hind]] <- list()
@@ -469,7 +470,8 @@ ISaprioriBAFIM <- function( PP , date , latitude , longitude , height , nSite , 
                 aprioriBAFIM[[hind]][['aprioriStd']] <- scaleParams( PP$stdRcorr[hind,1:12] + processStd , aprioriIRI[[hind]]$parScales[1:12] , inverse=FALSE )
 
                 # smoothed plasma parameter error covariance in this gate 
-                aprioriBAFIM[[hind]][['invAprioriCovar']] <- solve(scaleCovar( PP$covarRcorr[[hind]][1:12,1:12] + diag(processStd[1:12])**2, aprioriIRI[[hind]]$parScales[1:12] , inverse=F ))
+#                aprioriBAFIM[[hind]][['invAprioriCovar']] <- solve(scaleCovar( PP$covarRcorr[[hind]][1:12,1:12] + diag(processStd[1:12])**2, aprioriIRI[[hind]]$parScales[1:12] , inverse=F ))
+                aprioriBAFIM[[hind]][['aprioriCovar']] <- scaleCovar( PP$covarRcorr[[hind]][1:12,1:12] + diag(processStd[1:12])**2, aprioriIRI[[hind]]$parScales[1:12] , inverse=F )
 
                 
             }
@@ -500,6 +502,7 @@ ISaprioriBAFIM <- function( PP , date , latitude , longitude , height , nSite , 
             limitParam <- aprioriIRI[[h]]$limitParam
             parScales <- aprioriIRI[[h]]$parScales
 
+            fitPar <- rep(FALSE,12)
 
             # length of the parameter vector
             nPar                         <- length(aprioriParam)
@@ -517,8 +520,10 @@ ISaprioriBAFIM <- function( PP , date , latitude , longitude , height , nSite , 
             # a vector of standard deviations, which is easier.
             aprioriStd                   <- aprioriStd#vector(mode='numeric',length=nApriori)
 
-            invAprioriCovar <- matrix( 0 , nrow=nApriori , ncol=nApriori )
-            invAprioriCovar[1:nPar,1:nPar] <- aprioriIRI[[h]]$invAprioriCovar
+            ## invAprioriCovar <- matrix( 0 , nrow=nApriori , ncol=nApriori )
+            ## invAprioriCovar[1:nPar,1:nPar] <- aprioriIRI[[h]]$invAprioriCovar
+            aprioriCovar <- matrix( 0 , nrow=nApriori , ncol=nApriori )
+            aprioriCovar[1:nPar,1:nPar] <- aprioriIRI[[h]]$aprioriCovar
 
             # apriori parameter values
             aprioriTheory[1:nPar,1:nPar] <- diag(rep(1,nPar))
@@ -527,8 +532,13 @@ ISaprioriBAFIM <- function( PP , date , latitude , longitude , height , nSite , 
             if (height[h]>=BAFIMpar$Ne[1] & height[h]<BAFIMpar$Ne[2]){
                 aprioriMeas[1] <- aprioriParam[1] <- aprioriBAFIM[[h]]$aprioriParam[1]
                 aprioriStd[1] <- aprioriBAFIM[[h]]$aprioriStd[1]
-                invAprioriCovar[1:12,1] <- aprioriBAFIM[[h]]$invAprioriCovar[1:12,1]
-                invAprioriCovar[1,1:12] <- aprioriBAFIM[[h]]$invAprioriCovar[1,1:12]
+
+                fitPar[1] <- TRUE
+                # does this really work like this??!??
+                # we ar filling in also some kind of cross-information with the parameters we will not fit (and this off-diagonal terms are probably incorrectly weighted!!)
+                # we may need to first form the actual covariance and then invert it!!! 
+                ## invAprioriCovar[1:12,1] <- aprioriBAFIM[[h]]$invAprioriCovar[1:12,1]
+                ## invAprioriCovar[1,1:12] <- aprioriBAFIM[[h]]$invAprioriCovar[1,1:12]
             }
             
             if (height[h]>=BAFIMpar$Ti[1] & height[h]<BAFIMpar$Ti[2]){
@@ -536,10 +546,11 @@ ISaprioriBAFIM <- function( PP , date , latitude , longitude , height , nSite , 
                 aprioriStd[2] <- aprioriBAFIM[[h]]$aprioriStd[2]
                 aprioriMeas[3] <- aprioriParam[3] <- aprioriBAFIM[[h]]$aprioriParam[3]
                 aprioriStd[3] <- aprioriBAFIM[[h]]$aprioriStd[3]
-                invAprioriCovar[1:12,2] <- aprioriBAFIM[[h]]$invAprioriCovar[1:12,2]
-                invAprioriCovar[2,1:12] <- aprioriBAFIM[[h]]$invAprioriCovar[2,1:12]
-                invAprioriCovar[1:12,3] <- aprioriBAFIM[[h]]$invAprioriCovar[1:12,3]
-                invAprioriCovar[3,1:12] <- aprioriBAFIM[[h]]$invAprioriCovar[3,1:12]
+                fitPar[2:3] <- TRUE
+                ## invAprioriCovar[1:12,2] <- aprioriBAFIM[[h]]$invAprioriCovar[1:12,2]
+                ## invAprioriCovar[2,1:12] <- aprioriBAFIM[[h]]$invAprioriCovar[2,1:12]
+                ## invAprioriCovar[1:12,3] <- aprioriBAFIM[[h]]$invAprioriCovar[1:12,3]
+                ## invAprioriCovar[3,1:12] <- aprioriBAFIM[[h]]$invAprioriCovar[3,1:12]
             }else{
                 # remove IRI model values of Tiperp, these are controlled with the Tipar-Tiperp correlation
                 aprioriMeas[3] <- 0
@@ -551,10 +562,11 @@ ISaprioriBAFIM <- function( PP , date , latitude , longitude , height , nSite , 
                 aprioriStd[4] <- aprioriBAFIM[[h]]$aprioriStd[4]
                 aprioriMeas[5] <- aprioriParam[5] <- aprioriBAFIM[[h]]$aprioriParam[5]
                 aprioriStd[5] <- aprioriBAFIM[[h]]$aprioriStd[5]
-                invAprioriCovar[1:12,4] <- aprioriBAFIM[[h]]$invAprioriCovar[1:12,4]
-                invAprioriCovar[4,1:12] <- aprioriBAFIM[[h]]$invAprioriCovar[4,1:12]
-                invAprioriCovar[1:12,5] <- aprioriBAFIM[[h]]$invAprioriCovar[1:12,5]
-                invAprioriCovar[5,1:12] <- aprioriBAFIM[[h]]$invAprioriCovar[5,1:12]
+                fitPar[4:5] <- TRUE
+                ## invAprioriCovar[1:12,4] <- aprioriBAFIM[[h]]$invAprioriCovar[1:12,4]
+                ## invAprioriCovar[4,1:12] <- aprioriBAFIM[[h]]$invAprioriCovar[4,1:12]
+                ## invAprioriCovar[1:12,5] <- aprioriBAFIM[[h]]$invAprioriCovar[1:12,5]
+                ## invAprioriCovar[5,1:12] <- aprioriBAFIM[[h]]$invAprioriCovar[5,1:12]
            }else{
                 # remove IRI model values of Teperp, these are controlled with the Tepar-Teperp correlation
                 aprioriMeas[5] <- 0
@@ -564,8 +576,9 @@ ISaprioriBAFIM <- function( PP , date , latitude , longitude , height , nSite , 
             if (height[h]>=BAFIMpar$Coll[1] & height[h]<BAFIMpar$Coll[2]){
                 aprioriMeas[6] <- aprioriParam[6] <- aprioriBAFIM[[h]]$aprioriParam[6]
                 aprioriStd[6] <- aprioriBAFIM[[h]]$aprioriStd[6]
-                invAprioriCovar[1:12,6] <- aprioriBAFIM[[h]]$invAprioriCovar[1:12,6]
-                invAprioriCovar[6,1:12] <- aprioriBAFIM[[h]]$invAprioriCovar[6,1:12]
+                fitPar[6] <- TRUE
+                ## invAprioriCovar[1:12,6] <- aprioriBAFIM[[h]]$invAprioriCovar[1:12,6]
+                ## invAprioriCovar[6,1:12] <- aprioriBAFIM[[h]]$invAprioriCovar[6,1:12]
             }
 
             if (height[h]>=BAFIMpar$Viperp[1] & height[h]<BAFIMpar$Viperp[2]){
@@ -573,41 +586,48 @@ ISaprioriBAFIM <- function( PP , date , latitude , longitude , height , nSite , 
                 aprioriStd[7] <- aprioriBAFIM[[h]]$aprioriStd[7]
                 aprioriMeas[8] <- aprioriParam[8] <- aprioriBAFIM[[h]]$aprioriParam[8]
                 aprioriStd[8] <- aprioriBAFIM[[h]]$aprioriStd[8]
-                invAprioriCovar[1:12,7] <- aprioriBAFIM[[h]]$invAprioriCovar[1:12,7]
-                invAprioriCovar[7,1:12] <- aprioriBAFIM[[h]]$invAprioriCovar[7,1:12]
-                invAprioriCovar[1:12,8] <- aprioriBAFIM[[h]]$invAprioriCovar[1:12,8]
-                invAprioriCovar[8,1:12] <- aprioriBAFIM[[h]]$invAprioriCovar[8,1:12]
+                fitPar[7:8] <- TRUE
+                ## invAprioriCovar[1:12,7] <- aprioriBAFIM[[h]]$invAprioriCovar[1:12,7]
+                ## invAprioriCovar[7,1:12] <- aprioriBAFIM[[h]]$invAprioriCovar[7,1:12]
+                ## invAprioriCovar[1:12,8] <- aprioriBAFIM[[h]]$invAprioriCovar[1:12,8]
+                ## invAprioriCovar[8,1:12] <- aprioriBAFIM[[h]]$invAprioriCovar[8,1:12]
             }
             
             if (height[h]>=BAFIMpar$Vipar[1] & height[h]<BAFIMpar$Vipar[2]){
                 aprioriMeas[9] <- aprioriParam[9] <- aprioriBAFIM[[h]]$aprioriParam[9]
                 aprioriStd[9] <- aprioriBAFIM[[h]]$aprioriStd[9]
-                invAprioriCovar[1:12,9] <- aprioriBAFIM[[h]]$invAprioriCovar[1:12,9]
-                invAprioriCovar[9,1:12] <- aprioriBAFIM[[h]]$invAprioriCovar[9,1:12]
+                fitPar[9] <- TRUE
+                ## invAprioriCovar[1:12,9] <- aprioriBAFIM[[h]]$invAprioriCovar[1:12,9]
+                ## invAprioriCovar[9,1:12] <- aprioriBAFIM[[h]]$invAprioriCovar[9,1:12]
             }
             
             if (height[h]>=BAFIMpar$Mp[1] & height[h]<BAFIMpar$Mp[2]){
                 aprioriMeas[10] <- aprioriParam[10] <- aprioriBAFIM[[h]]$aprioriParam[10]
                 aprioriStd[10] <- aprioriBAFIM[[h]]$aprioriStd[10]
-                invAprioriCovar[1:12,10] <- aprioriBAFIM[[h]]$invAprioriCovar[1:12,10]
-                invAprioriCovar[10,1:12] <- aprioriBAFIM[[h]]$invAprioriCovar[10,1:12]
+                fitPar[10] <- TRUE
+                ## invAprioriCovar[1:12,10] <- aprioriBAFIM[[h]]$invAprioriCovar[1:12,10]
+                ## invAprioriCovar[10,1:12] <- aprioriBAFIM[[h]]$invAprioriCovar[10,1:12]
             }
             
             if (height[h]>=BAFIMpar$Op[1] & height[h]<BAFIMpar$Op[2]){
                 aprioriMeas[11] <- aprioriParam[11] <- aprioriBAFIM[[h]]$aprioriParam[11]
                 aprioriStd[11] <- aprioriBAFIM[[h]]$aprioriStd[11]
-                invAprioriCovar[1:12,11] <- aprioriBAFIM[[h]]$invAprioriCovar[1:12,11]
-                invAprioriCovar[11,1:12] <- aprioriBAFIM[[h]]$invAprioriCovar[11,1:12]
+                fitPar[11] <- TRUE
+                ## invAprioriCovar[1:12,11] <- aprioriBAFIM[[h]]$invAprioriCovar[1:12,11]
+                ## invAprioriCovar[11,1:12] <- aprioriBAFIM[[h]]$invAprioriCovar[11,1:12]
             }
             
             if (height[h]>=BAFIMpar$Hp[1] & height[h]<BAFIMpar$Hp[2]){
                 aprioriMeas[12] <- aprioriParam[12] <- aprioriBAFIM[[h]]$aprioriParam[12]
                 aprioriStd[12] <- aprioriBAFIM[[h]]$aprioriStd[12]
-                invAprioriCovar[1:12,12] <- aprioriBAFIM[[h]]$invAprioriCovar[1:12,12]
-                invAprioriCovar[12,1:12] <- aprioriBAFIM[[h]]$invAprioriCovar[12,1:12]
+                fitPar[12] <- TRUE
+                ## invAprioriCovar[1:12,12] <- aprioriBAFIM[[h]]$invAprioriCovar[1:12,12]
+                ## invAprioriCovar[12,1:12] <- aprioriBAFIM[[h]]$invAprioriCovar[12,1:12]
             }
 
 
+            aprioriCovar[1:12,1:12][fitPar,fitPar] <- aprioriBAFIM[[h]][["aprioriCovar"]][1:12,1:12][fitPar,fitPar]
+            
             aprioriMeas[1:12] <- aprioriParam[1:12] <- pmax(aprioriMeas[1:12],limitParam[1,1:12])
             aprioriMeas[1:12] <- aprioriParam[1:12] <-  pmin(aprioriMeas[1:12],limitParam[2,1:12])
 
@@ -703,10 +723,12 @@ ISaprioriBAFIM <- function( PP , date , latitude , longitude , height , nSite , 
             
             if(absCalib){
                 aprioriStd[(nIon+10):length(aprioriParam)] <- 1e-3 # fix all sites to the same ACF scale
-                diag(invAprioriCovar)[(nIon+10):length(aprioriParam)] <- 1e6
+                diag(aprioriCovar)[(nIon+10):length(aprioriParam)] <- 1e-6
+                ## diag(invAprioriCovar)[(nIon+10):length(aprioriParam)] <- 1e6
             }else{
                 aprioriStd[(nIon+10):length(aprioriParam)] <- 1   # allow scaling for other sites
-                diag(invAprioriCovar)[(nIon+10):length(aprioriParam)] <- 1
+                diag(aprioriCovar)[(nIon+10):length(aprioriParam)] <- 1
+                ## diag(invAprioriCovar)[(nIon+10):length(aprioriParam)] <- 1
             }
             if(!is.null(siteScales)){
                 if(!is.matrix(siteScales)) siteScales <- matrix(siteScales,nrow=1)
@@ -714,12 +736,14 @@ ISaprioriBAFIM <- function( PP , date , latitude , longitude , height , nSite , 
                 aprioriMeas[ssinds+nIon+9] <- siteScales[ssinds,1]  # user-given scaling factors
                 if(absCalib){
                     aprioriStd[ssinds+nIon+9] <- siteScales[ssinds,2]
-                    diag(invAprioriCovar)[ssinds+nIon+9] <- 1/siteScales[ssinds,2]**2
+                    diag(aprioriCovar)[ssinds+nIon+9] <- siteScales[ssinds,2]**2
+                    ## diag(invAprioriCovar)[ssinds+nIon+9] <- 1/siteScales[ssinds,2]**2
                 }
             }
             
             aprioriStd[nIon+9+refSite]     <- 1e-3                 # do not allow scaling at the reference site
-            diag(invAprioriCovar)[nIon+9+refSite] <- 1e6
+            diag(aprioriCovar)[nIon+9+refSite] <- 1e-6
+            ## diag(invAprioriCovar)[nIon+9+refSite] <- 1e6
             
             # force certain parameter differences close to zero
             curRow                         <- nPar + 1
@@ -736,10 +760,12 @@ ISaprioriBAFIM <- function( PP , date , latitude , longitude , height , nSite , 
             aprioriMeas[curRow]            <- 0
             if(TeIsotropic){
                 aprioriStd[curRow]             <- 1e-3
-                diag(invAprioriCovar)[curRow] <- 1e6
+                diag(aprioriCovar)[curRow] <- 1e-6
+                ## diag(invAprioriCovar)[curRow] <- 1e6
             }else{
                 aprioriStd[curRow]             <- 1e3
-                diag(invAprioriCovar)[curRow] <- 1e-6
+                diag(aprioriCovar)[curRow] <- 1e6
+                ## diag(invAprioriCovar)[curRow] <- 1e-6
             }
             curRow                         <- curRow + 1
 
@@ -748,10 +774,12 @@ ISaprioriBAFIM <- function( PP , date , latitude , longitude , height , nSite , 
             aprioriMeas[curRow]            <- 0
             if(TiIsotropic){
                 aprioriStd[curRow]             <- 1e-3
-                diag(invAprioriCovar)[curRow] <- 1e6
+                diag(aprioriCovar)[curRow] <- 1e-6
+                ## diag(invAprioriCovar)[curRow] <- 1e6
             }else{
                 aprioriStd[curRow]             <- 1e3
-                diag(invAprioriCovar)[curRow] <- 1e-6
+                diag(aprioriCovar)[curRow] <- 1e6
+                ## diag(invAprioriCovar)[curRow] <- 1e-6
             }
             curRow                         <- curRow + 1
 
@@ -759,14 +787,16 @@ ISaprioriBAFIM <- function( PP , date , latitude , longitude , height , nSite , 
             aprioriTheory[curRow,10:(nIon+9)] <- 1
             aprioriMeas[curRow] <- 1
             aprioriStd[curRow] <- 1e-3
-            diag(invAprioriCovar)[curRow] <- 1e6
+            diag(aprioriCovar)[curRow] <- 1e-6
+            ## diag(invAprioriCovar)[curRow] <- 1e6
             curRow                         <- curRow + 1
 
             # Te=Ti below hTeTi
             aprioriTheory[curRow,c(2,4)] <- c(1,-1)
             aprioriMeas[curRow] <- 0
             aprioriStd[curRow] <- ifelse(height[h]<hTeTi,1e-3,1e3)
-            diag(invAprioriCovar)[curRow] <- ifelse(height[h]<hTeTi,1e6,1e-6)
+            diag(aprioriCovar)[curRow] <- ifelse(height[h]<hTeTi,1e-6,1e6)
+            ## diag(invAprioriCovar)[curRow] <- ifelse(height[h]<hTeTi,1e6,1e-6)
             if(height[h]<hTeTi){
                 aprioriTheory[4,] <- 0
                 aprioriTheory[5,] <- 0
@@ -778,12 +808,16 @@ ISaprioriBAFIM <- function( PP , date , latitude , longitude , height , nSite , 
             aprioriTheory[curRow,c(7,8,9)] <- B[h,]/sum(sqrt(B[h,]^2))
             aprioriMeas[curRow] <- 0
             aprioriStd[curRow] <- ifelse(ViPar0&all(B[h,]!=0),1e-3,100)
-            diag(invAprioriCovar)[curRow] <- ifelse(ViPar0&all(B[h,]!=0),1e6,1e-4)
-            
+            diag(aprioriCovar)[curRow] <- ifelse(ViPar0&all(B[h,]!=0),1e-6,1e4)
+            ##diag(invAprioriCovar)[curRow] <- ifelse(ViPar0&all(B[h,]!=0),1e6,1e-4)
+
+            invAprioriCovar <- solve(aprioriCovar)
+
 #            apriorilist[[h]] <- list(aprioriParam=aprioriParam,aprioriTheory=aprioriTheory,invAprioriCovar=diag(1/aprioriStd**2),aprioriMeas=aprioriMeas,limitParam=limitParam,parScales=parScales,mIon=mIon,nIon,aprioriParamIRI=aprioriIRI[[h]]$aprioriParam,aprioriParamBAFIM=aprioriBAFIM[[h]]$aprioriParam)
             apriorilist[[h]] <- list(aprioriParam=aprioriParam,aprioriTheory=aprioriTheory,invAprioriCovar=invAprioriCovar,aprioriMeas=aprioriMeas,limitParam=limitParam,parScales=parScales,mIon=mIon,nIon,aprioriParamIRI=aprioriIRI[[h]]$aprioriParam,aprioriParamBAFIM=aprioriBAFIM[[h]]$aprioriParam)
         }
 
+        
         if(length(PP)>0){
             
             # copy the range-smoothed data to the default ouputs (but the original ones are also there in the Filter-versions

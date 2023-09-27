@@ -59,6 +59,11 @@ readPP.3D <- function(dpath,measuredOnly=T,nSiteVi=3,recursive=F,...){
     # read the data from files
     for (k in seq(nFile)){
         load(flist[k])
+
+        if(length(PP$contribSites)==0){
+            PP$contribSites <- vector(mode='list',length=nHeight)
+        }
+        
         # check the number of unknowns, if it is larger than the current nPar we must reallocate
         nSitesk <- dim(PP$sites)[1]
         nPark <- dim(PP$param)[2]

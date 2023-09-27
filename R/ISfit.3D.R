@@ -316,7 +316,7 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
               }
 
               # a list for site indices contributing at each height
-              contribSites <- apriori <- list()
+              contribSites <- apriori <- vector(mode='list',length=nh)#list()
               
               
               
