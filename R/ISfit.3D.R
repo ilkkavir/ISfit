@@ -486,6 +486,7 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
 
                   Brotmat[[h]] <- matrix(c(Bx,By,Bz),ncol=3,byrow=F)
 
+                  
                   # checking that the conversion was done correctly
                   B2[h,] <- B[h,]%*%Brotmat[[h]]
 
@@ -493,11 +494,12 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
 
                   if(fitGate[h]){
                       for(ss in seq(length(kSite[[h]]))){
-                          kBsite[[h]][[ss]] <- kSite[[h]][[ss]]%*%Brotmat[[h]]                          
+                          kBsite[[h]][[ss]] <- kSite[[h]][[ss]]%*%Brotmat[[h]]
+#                          print(kBsite[[h]][[s]])
                       }
                   }
               }
-              
+
               # the prior model
               apriori <- aprioriFunction( PP=PP , date=date , latitude=latitude , longitude=longitude , height=height , nSite=nd , nIon=3 , absCalib=absCalib , TiIsotropic=TiIsotropic , TeIsotropic=TeIsotropic , refSite=refsite , siteScales=sScales , B=B2 ,  nCores=nCores , resFile=resFile , updateFile=ifelse(nnn>nburnin,TRUE,FALSE) , ... )
 
@@ -536,9 +538,6 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
               # scale the results back to physical units and add some metadata
               for(h in seq(nh)){
                   if(fitGate[h]){
-                      # rotate the velocities back to geodetic coordinate system (for backward compatibility)
-                      BrotInv <- solve(Brotmat[[h]])
-                      param[h,7:9] <- param[h,7:9]%*%BrotInv
                       param[h,] <- scaleParams( fitpar[[h]]$param , scale=apriori[[h]]$parScales , inverse=TRUE )
                       covar[[h]] <- scaleCovar( fitpar[[h]]$covar , scale=apriori[[h]]$parScales , inverse=TRUE)
                       std[h,]   <- sqrt(diag(covar[[h]]))
@@ -576,7 +575,7 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
               
               
               # save the results to file
-              PP <- list(param=param,std=std,model=model,chisqr=chisqr,status=status,time_sec=time_sec,date=date,POSIXtime=POSIXtime,height=height,latitude=latitude,longitude=longitude,sites=sites,intersect=intersect,covar=covar,B=B,heightLimits.km=hlims/1000,contribSites=contribSites,mIon=c(30.5,16.0,1.0),MCMC=MCMC,timeLimits.s=iperLimits[k:(k+1)],functionCall=functionCall,apriori=apriori,resFile=resFile , resDir=odir)
+              PP <- list(param=param,std=std,model=model,chisqr=chisqr,status=status,time_sec=time_sec,date=date,POSIXtime=POSIXtime,height=height,latitude=latitude,longitude=longitude,sites=sites,intersect=intersect,covar=covar,B=B,heightLimits.km=hlims/1000,contribSites=contribSites,mIon=c(30.5,16.0,1.0),MCMC=MCMC,timeLimits.s=iperLimits[k:(k+1)],functionCall=functionCall,apriori=apriori,resFile=resFile , resDir=odir,ViCoordinates='ENUmagnetic')
               if(nnn>nburnin){
                   save( PP , file=file.path(odir,resFile) )
               }

@@ -199,6 +199,7 @@ ISaprioriBAFIM <- function( PP , date , latitude , longitude , height , nSite , 
                     PP$param[h,] <- scaleParams(xtmp,PP$apriori[[h]]$parScales,inverse=T)
                     PP$covar[[h]] <- scaleCovar(Stmp,PP$apriori[[h]]$parScales,inverse=T)
                     PP$std[h,] <- sqrt(diag(PP$covar[[h]]))
+#                    print(height[h])
                 }
 
             }
@@ -220,19 +221,20 @@ ISaprioriBAFIM <- function( PP , date , latitude , longitude , height , nSite , 
                 # The correlation powers solved from known variances, height steps, and correlation lengths
                 corrP <- PP$std[,1:12]**2
                 
-                corrP[,1] <- corrP[,1]*dheights/(BAFIMpar$Ne[3]*hsAlt) # Ne
-                corrP[,2] <- corrP[,2]*dheights/(BAFIMpar$Ti[3]*hsAlt) # Tipar
-                corrP[,3] <- corrP[,3]*dheights/(BAFIMpar$Ti[3]*hsAlt) # Tiperp
-                corrP[,4] <- corrP[,4]*dheights/(BAFIMpar$Te[3]*hsAlt) # Tepar
-                corrP[,5] <- corrP[,5]*dheights/(BAFIMpar$Te[3]*hsAlt) # Teperp
-                corrP[,6] <- corrP[,6]*dheights/(BAFIMpar$Coll[3]*hsAlt) # Collisions
-                corrP[,7] <- corrP[,7]*dheights/(BAFIMpar$Viperp[3]*hsAlt) # Vix
-                corrP[,8] <- corrP[,8]*dheights/(BAFIMpar$Viperp[3]*hsAlt) # Viy
-                corrP[,9] <- corrP[,9]*dheights/(BAFIMpar$Vipar[3]*hsAlt) # ViB
-                corrP[,10] <- corrP[,10]*dheights/(BAFIMpar$Mp[3]*hsAlt) # Molecular ions
-                corrP[,11] <- corrP[,11]*dheights/(BAFIMpar$Op[3]*hsAlt) # O+
-                corrP[,12] <- corrP[,12]*dheights/(BAFIMpar$Hp[3]*hsAlt) # H+
-                
+                corrP[,1]  <- corrP[,1]  * dheights / (BAFIMpar$Ne[3]*hsAlt) # Ne
+                corrP[,2]  <- corrP[,2]  * dheights / (BAFIMpar$Ti[3]*hsAlt) # Tipar
+                corrP[,3]  <- corrP[,3]  * dheights / (BAFIMpar$Ti[3]*hsAlt) # Tiperp
+                corrP[,4]  <- corrP[,4]  * dheights / (BAFIMpar$Te[3]*hsAlt) # Tepar
+                corrP[,5]  <- corrP[,5]  * dheights / (BAFIMpar$Te[3]*hsAlt) # Teperp
+                corrP[,6]  <- corrP[,6]  * dheights / (BAFIMpar$Coll[3]*hsAlt) # Collisions
+                corrP[,7]  <- corrP[,7]  * dheights / (BAFIMpar$Viperp[3]*hsAlt) # Vix
+                corrP[,8]  <- corrP[,8]  * dheights / (BAFIMpar$Viperp[3]*hsAlt) # Viy
+                corrP[,9]  <- corrP[,9]  * dheights / (BAFIMpar$Vipar[3]*hsAlt) # ViB
+                corrP[,10] <- corrP[,10] * dheights / (BAFIMpar$Mp[3]*hsAlt) # Molecular ions
+                corrP[,11] <- corrP[,11] * dheights / (BAFIMpar$Op[3]*hsAlt) # O+
+                corrP[,12] <- corrP[,12] * dheights / (BAFIMpar$Hp[3]*hsAlt) # H+
+
+
             
                 #The first order terms.
                 # M is always zero for the first and higher order terms
@@ -264,18 +266,18 @@ ISaprioriBAFIM <- function( PP , date , latitude , longitude , height , nSite , 
                     A[Aind,hind] <- -2
                     A[Aind,hind+1] <- 1
 
-                    SNe[Aind] <- 8 * corrP[hind,1] * ( dheights[hind] / (BAFIMpar$Ne[3] * hsAlt[hind]) )**3
-                    STipar[Aind] <- 8 * corrP[hind,2] * ( dheights[hind] / (BAFIMpar$Ti[3] * hsAlt[hind]) )**3
-                    STiperp[Aind] <- 8 * corrP[hind,3] * ( dheights[hind] / (BAFIMpar$Ti[3] * hsAlt[hind]) )**3
-                    STepar[Aind] <- 8 * corrP[hind,4] * ( dheights[hind] / (BAFIMpar$Te[3] * hsAlt[hind]) )**3
-                    STeperp[Aind] <- 8 * corrP[hind,5] * ( dheights[hind] / (BAFIMpar$Te[3] * hsAlt[hind]) )**3
-                    SColl[Aind] <- 8 * corrP[hind,6] * ( dheights[hind] / (BAFIMpar$Coll[3] * hsAlt[hind]) )**3
-                    SVix[Aind] <- 8 * corrP[hind,7] * ( dheights[hind] / (BAFIMpar$Viperp[3] * hsAlt[hind]) )**3
-                    SViy[Aind] <- 8 * corrP[hind,8] * ( dheights[hind] / (BAFIMpar$Viperp[3] * hsAlt[hind]) )**3
-                    SVipar[Aind] <- 8 * corrP[hind,9] * ( dheights[hind] / (BAFIMpar$Vipar[3] * hsAlt[hind]) )**3
-                    SMp[Aind] <- 8 * corrP[hind,10] * ( dheights[hind] / (BAFIMpar$Mp[3] * hsAlt[hind]) )**3
-                    SOp[Aind] <- 8 * corrP[hind,11] * ( dheights[hind] / (BAFIMpar$Op[3] * hsAlt[hind]) )**3
-                    SHp[Aind] <- 8 * corrP[hind,12] * ( dheights[hind] / (BAFIMpar$Hp[3] * hsAlt[hind]) )**3
+                    SNe[Aind]     <- 8 * corrP[hind,1]  * ( dheights[hind] / (BAFIMpar$Ne[3]     * hsAlt[hind]) )**3
+                    STipar[Aind]  <- 8 * corrP[hind,2]  * ( dheights[hind] / (BAFIMpar$Ti[3]     * hsAlt[hind]) )**3
+                    STiperp[Aind] <- 8 * corrP[hind,3]  * ( dheights[hind] / (BAFIMpar$Ti[3]     * hsAlt[hind]) )**3
+                    STepar[Aind]  <- 8 * corrP[hind,4]  * ( dheights[hind] / (BAFIMpar$Te[3]     * hsAlt[hind]) )**3
+                    STeperp[Aind] <- 8 * corrP[hind,5]  * ( dheights[hind] / (BAFIMpar$Te[3]     * hsAlt[hind]) )**3
+                    SColl[Aind]   <- 8 * corrP[hind,6]  * ( dheights[hind] / (BAFIMpar$Coll[3]   * hsAlt[hind]) )**3
+                    SVix[Aind]    <- 8 * corrP[hind,7]  * ( dheights[hind] / (BAFIMpar$Viperp[3] * hsAlt[hind]) )**3
+                    SViy[Aind]    <- 8 * corrP[hind,8]  * ( dheights[hind] / (BAFIMpar$Viperp[3] * hsAlt[hind]) )**3
+                    SVipar[Aind]  <- 8 * corrP[hind,9]  * ( dheights[hind] / (BAFIMpar$Vipar[3]  * hsAlt[hind]) )**3
+                    SMp[Aind]     <- 8 * corrP[hind,10] * ( dheights[hind] / (BAFIMpar$Mp[3]     * hsAlt[hind]) )**3
+                    SOp[Aind]     <- 8 * corrP[hind,11] * ( dheights[hind] / (BAFIMpar$Op[3]     * hsAlt[hind]) )**3
+                    SHp[Aind]     <- 8 * corrP[hind,12] * ( dheights[hind] / (BAFIMpar$Hp[3]     * hsAlt[hind]) )**3
                     
                     Aind <- Aind + 1
                 }
@@ -358,18 +360,18 @@ ISaprioriBAFIM <- function( PP , date , latitude , longitude , height , nSite , 
             HpCorr <- Xpost[(11*nh+1):(12*nh)];
         
             #Standard deviations. NOTICE: we could pick the full covariance matrices at each height!
-            NeErrCorr <- sqrt(diag(Cpost[1:nh,1:nh]));
-            TiparErrCorr <- sqrt(diag(Cpost[(nh+1):(2*nh),(nh+1):(2*nh)]));
-            TiperpErrCorr <- sqrt(diag(Cpost[(2*nh+1):(3*nh),(2*nh+1):(3*nh)]));
-            TeparErrCorr <- sqrt(diag(Cpost[(3*nh+1):(4*nh),(3*nh+1):(4*nh)]));
-            TeperpErrCorr <- sqrt(diag(Cpost[(4*nh+1):(5*nh),(4*nh+1):(5*nh)]));
-            CollErrCorr <- sqrt(diag(Cpost[(5*nh+1):(6*nh),(5*nh+1):(6*nh)]));
-            VixErrCorr <- sqrt(diag(Cpost[(6*nh+1):(7*nh),(6*nh+1):(7*nh)]));
-            ViyErrCorr <- sqrt(diag(Cpost[(7*nh+1):(8*nh),(7*nh+1):(8*nh)]));
-            ViparErrCorr <- sqrt(diag(Cpost[(8*nh+1):(9*nh),(8*nh+1):(9*nh)]));
-            MpErrCorr <- sqrt(diag(Cpost[(9*nh+1):(10*nh),(9*nh+1):(10*nh)]));
-            OpErrCorr <- sqrt(diag(Cpost[(10*nh+1):(11*nh),(10*nh+1):(11*nh)]));
-            HpErrCorr <- sqrt(diag(Cpost[(11*nh+1):(12*nh),(11*nh+1):(12*nh)]));
+            NeErrCorr     <- sqrt(diag(Cpost[              1:nh,             1:nh]));
+            TiparErrCorr  <- sqrt(diag(Cpost[(    nh+1): (2*nh),   (nh+1): (2*nh)]));
+            TiperpErrCorr <- sqrt(diag(Cpost[(  2*nh+1): (3*nh), (2*nh+1): (3*nh)]));
+            TeparErrCorr  <- sqrt(diag(Cpost[(  3*nh+1): (4*nh), (3*nh+1): (4*nh)]));
+            TeperpErrCorr <- sqrt(diag(Cpost[(  4*nh+1): (5*nh), (4*nh+1): (5*nh)]));
+            CollErrCorr   <- sqrt(diag(Cpost[(  5*nh+1): (6*nh), (5*nh+1): (6*nh)]));
+            VixErrCorr    <- sqrt(diag(Cpost[(  6*nh+1): (7*nh), (6*nh+1): (7*nh)]));
+            ViyErrCorr    <- sqrt(diag(Cpost[(  7*nh+1): (8*nh), (7*nh+1): (8*nh)]));
+            ViparErrCorr  <- sqrt(diag(Cpost[(  8*nh+1): (9*nh), (8*nh+1): (9*nh)]));
+            MpErrCorr     <- sqrt(diag(Cpost[( 9*nh+1) :(10*nh), (9*nh+1):(10*nh)]));
+            OpErrCorr     <- sqrt(diag(Cpost[(10*nh+1) :(11*nh),(10*nh+1):(11*nh)]));
+            HpErrCorr     <- sqrt(diag(Cpost[(11*nh+1) :(12*nh),(11*nh+1):(12*nh)]));
 
 #            plot(Xpost[(3*nh+1):(4*nh)],height,xlim=c(0,3000))
 #            lines(PP$param[,4],height)
@@ -389,63 +391,75 @@ ISaprioriBAFIM <- function( PP , date , latitude , longitude , height , nSite , 
             nesmooth[nesmooth<=1] <- 1
             lines((nesmooth),height)
             lines((nesmooth+NeErrCorr),height,col='red')
+            lines((nesmooth+NeErrCorr+BAFIMpar$Ne[4]*sqrt(dt)),height,col='green')
 
             
             plot(PP$param[,2],height,xlim=c(0,3000))
             lines(TiparCorr,height)
             lines(PP$param[,2]+PP$std[,2],height,col='blue')
             lines(TiparCorr+TiparErrCorr,height,col='red')
+            lines((TiparCorr+TiparErrCorr+BAFIMpar$Ti[4]*sqrt(dt)),height,col='green')
             
             plot(PP$param[,3],height,xlim=c(0,3000))
             lines(TiperpCorr,height)
             lines(PP$param[,3]+PP$std[,3],height,col='blue')
             lines(TiperpCorr+TiperpErrCorr,height,col='red')
+            lines((TiperpCorr+TiperpErrCorr+BAFIMpar$Ti[4]*sqrt(dt)),height,col='green')
             
             plot(PP$param[,4],height,xlim=c(0,3000))
             lines(TeparCorr,height)
             lines(PP$param[,4]+PP$std[,4],height,col='blue')
             lines(TeparCorr+TeparErrCorr,height,col='red')
+            lines((TeparCorr+TeparErrCorr+BAFIMpar$Te[4]*sqrt(dt)),height,col='green')
 
             plot(PP$param[,5],height,xlim=c(0,3000))
             lines(TeperpCorr,height)
             lines(PP$param[,5]+PP$std[,5],height,col='blue')
             lines(TeperpCorr+TeperpErrCorr,height,col='red')
+            lines((TeperpCorr+TeperpErrCorr+BAFIMpar$Te[4]*sqrt(dt)),height,col='green')
             
             
             plot(PP$param[,6],height,xlim=c(0,1e5))
             lines(CollCorr,height)
             lines(PP$param[,6]+PP$std[,6],height,col='blue')
             lines(CollCorr+CollErrCorr,height,col='red')
+            lines((CollCorr+CollErrCorr+BAFIMpar$Coll[4]*sqrt(dt)),height,col='green')
             
             plot(PP$param[,7],height,xlim=c(-1,1)*100)
             lines(VixCorr,height)
             lines(PP$param[,7]+PP$std[,7],height,col='blue')
             lines(VixCorr+VixErrCorr,height,col='red')
+            lines((VixCorr+VixErrCorr+BAFIMpar$Viperp[4]*sqrt(dt)),height,col='green')
 
             plot(PP$param[,8],height,xlim=c(-1,1)*100)
             lines(ViyCorr,height)
             lines(PP$param[,8]+PP$std[,8],height,col='blue')
             lines(ViyCorr+ViyErrCorr,height,col='red')
+            lines((ViyCorr+ViyErrCorr+BAFIMpar$Viperp[4]*sqrt(dt)),height,col='green')
 
             plot(PP$param[,9],height,xlim=c(-1,1)*100)
             lines(ViparCorr,height)
             lines(PP$param[,9]+PP$std[,9],height,col='blue')
             lines(ViparCorr+ViparErrCorr,height,col='red')
+            lines((ViparCorr+ViparErrCorr+BAFIMpar$Vipar[4]*sqrt(dt)),height,col='green')
 
             plot(PP$param[,10],height,xlim=c(0,1))
             lines(MpCorr,height)
             lines(PP$param[,10]+PP$std[,10],height,col='blue')
             lines(MpCorr+MpErrCorr,height,col='red')
+            lines((MpCorr+MpErrCorr+BAFIMpar$Mp[4]*sqrt(dt)),height,col='green')
 
             plot(PP$param[,11],height,xlim=c(0,1))
             lines(OpCorr,height)
             lines(PP$param[,11]+PP$std[,11],height,col='blue')
             lines(OpCorr+OpErrCorr,height,col='red')
+            lines((OpCorr+OpErrCorr+BAFIMpar$Op[4]*sqrt(dt)),height,col='green')
 
             plot(PP$param[,12],height,xlim=c(0,1))
             lines(HpCorr,height)
             lines(PP$param[,12]+PP$std[,12],height,col='blue')
             lines(HpCorr+HpErrCorr,height,col='red')
+            lines((HpCorr+HpErrCorr+BAFIMpar$Hp[4]*sqrt(dt)),height,col='green')
             
             
 #            dt <- abs(as.double(ISOdate(date[1],date[2],date[3],date[4],date[5],date[6])) - PP$time_sec)
@@ -508,7 +522,7 @@ ISaprioriBAFIM <- function( PP , date , latitude , longitude , height , nSite , 
             nPar                         <- length(aprioriParam)
 
             # number of imaginary apriori "measurements"
-            nApriori                     <- ( nPar + 5 )
+            nApriori                     <- ( nPar + 6 )
 
             # apriori theory matrix
             aprioriTheory                <- matrix( 0 , nrow=nApriori , ncol=nPar )
@@ -803,6 +817,11 @@ ISaprioriBAFIM <- function( PP , date , latitude , longitude , height , nSite , 
                 aprioriMeas[c(4,5)] <- 0
             }
             curRow                         <- curRow + 1
+            aprioriTheory[curRow,c(3,5)] <- c(1,-1)
+            aprioriMeas[curRow] <- 0
+            aprioriStd[curRow] <- ifelse(height[h]<hTeTi,1e-3,1e3)
+            diag(aprioriCovar)[curRow] <- ifelse(height[h]<hTeTi,1e-6,1e6)
+            curRow                         <- curRow + 1
             
             # optional ViPar=0
             aprioriTheory[curRow,c(7,8,9)] <- B[h,]/sum(sqrt(B[h,]^2))
@@ -813,7 +832,13 @@ ISaprioriBAFIM <- function( PP , date , latitude , longitude , height , nSite , 
 
             invAprioriCovar <- solve(aprioriCovar)
 
-#            apriorilist[[h]] <- list(aprioriParam=aprioriParam,aprioriTheory=aprioriTheory,invAprioriCovar=diag(1/aprioriStd**2),aprioriMeas=aprioriMeas,limitParam=limitParam,parScales=parScales,mIon=mIon,nIon,aprioriParamIRI=aprioriIRI[[h]]$aprioriParam,aprioriParamBAFIM=aprioriBAFIM[[h]]$aprioriParam)
+
+            ## print(PP$height[h])
+            ## print(unname(c(sqrt(diag(aprioriCovar))[c(1,2,4,7,8,9)]*parScales[c(1,2,4,7,8,9)])))
+            ## print(unname(c(PP$std[h,c(1,2,4,7,8,9)])))
+            ## print(unname(PP$stdRcorr[h,c(1,2,4,7,8,9)]))
+            
+#            Apriorilist[[h]] <- list(aprioriParam=aprioriParam,aprioriTheory=aprioriTheory,invAprioriCovar=diag(1/aprioriStd**2),aprioriMeas=aprioriMeas,limitParam=limitParam,parScales=parScales,mIon=mIon,nIon,aprioriParamIRI=aprioriIRI[[h]]$aprioriParam,aprioriParamBAFIM=aprioriBAFIM[[h]]$aprioriParam)
             apriorilist[[h]] <- list(aprioriParam=aprioriParam,aprioriTheory=aprioriTheory,invAprioriCovar=invAprioriCovar,aprioriMeas=aprioriMeas,limitParam=limitParam,parScales=parScales,mIon=mIon,nIon,aprioriParamIRI=aprioriIRI[[h]]$aprioriParam,aprioriParamBAFIM=aprioriBAFIM[[h]]$aprioriParam)
         }
 
@@ -824,6 +849,7 @@ ISaprioriBAFIM <- function( PP , date , latitude , longitude , height , nSite , 
             PP$param <- PP$paramRcorr
             PP$std <- PP$stdRcorr
             PP$covar <- PP$covarRcorr
+            PP$BAFIMpar <- BAFIMpar
         
             # overwrite the output file with the updated copy
             if(updateFile){

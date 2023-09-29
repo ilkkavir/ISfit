@@ -41,6 +41,11 @@ readPP.3D <- function(dpath,measuredOnly=T,nSiteVi=3,recursive=F,...){
     # number of receiver sites
     nSites <- dim(PP$sites)[1]
 
+    # coordinate system for Vi (used to be geographic ENU, but geomagnetic in later versions)
+    if (is.null( ViCoord <- PP$ViCoordinates ) ){
+        ViCoor <- 'ENUgeodetic'
+    }
+    
     # allocate the necessary arrays
     param     <- array(NA,dim=c(nHeight,nPar+4*nSites+7,nFile))
     std       <- array(NA,dim=c(nHeight,nPar+4*nSites+7,nFile))
@@ -136,8 +141,16 @@ readPP.3D <- function(dpath,measuredOnly=T,nSiteVi=3,recursive=F,...){
                 param[r,nPar+1,k] <- (PP$param[r,2] + 2*PP$param[r,3] ) / 3
                 # electron temperature (Te_par + 2*Te_perp)/3
                 param[r,nPar+2,k] <- (PP$param[r,4] + 2*PP$param[r,5] ) / 3
+                
                 # ion velocity along magnetic field (positive upward)
-                param[r,nPar+3,k] <- -PP$param[r,7:9]%*%PP$B[r,]/sqrt(sum(PP$B[r,]**2))
+                if(ViCoord=='ENUgeodetic'){
+                    param[r,nPar+3,k] <- -PP$param[r,7:9]%*%PP$B[r,]/sqrt(sum(PP$B[r,]**2))
+                }else if(ViCoord=='ENUgeomagnetic'){
+                    param[r,nPar+3,k] <- PP$param[r,7:9]
+                }else{
+                    stop('Unknown coordinate system for Vi')
+                }
+                
                 # ion perpendicular/parallel temperature ratio
                 # approximation of the ratio of two correlated normal random variables
                 # from Hayya et al., A note on the ratio of two normally distributed variables,
@@ -162,7 +175,13 @@ readPP.3D <- function(dpath,measuredOnly=T,nSiteVi=3,recursive=F,...){
 
                 std[r,nPar+1,k] <- sqrt(c(1,2)%*%PP$covar[[r]][2:3,2:3]%*%c(1,2)/9)
                 std[r,nPar+2,k] <- sqrt(c(1,2)%*%PP$covar[[r]][4:5,4:5]%*%c(1,2)/9)
-                std[r,nPar+3,k] <- sqrt(PP$B[r,]%*%PP$covar[[r]][7:9,7:9]%*%PP$B[r,]/sum(PP$B[r,]**2))
+                if(ViCoord=='ENUgeodetic'){
+                    std[r,nPar+3,k] <- sqrt(PP$B[r,]%*%PP$covar[[r]][7:9,7:9]%*%PP$B[r,]/sum(PP$B[r,]**2))
+                }else if(ViCoord=='ENUgeomagnetic'){
+                    std[r,nPar+3,k] <- sqrt(diag(PP$covar[[r]][7:9,7:9]))
+                }else{
+                    stop('Unknown coordinate system for Vi')
+                }
 #                std[r,nPar+4,k] <- sqrt( PP$covar[[r]][2,2]*PP$param[r,3]**2/PP$param[r,2]**4 +
 #                                        PP$covar[[r]][3,3]/PP$param[r,2]**2 #-
 ##                                        2*PP$covar[[r]][2,3]*PP$param[r,3]/PP$param[r,2]**3
@@ -173,7 +192,7 @@ readPP.3D <- function(dpath,measuredOnly=T,nSiteVi=3,recursive=F,...){
 #                                        2*PP$covar[[r]][4,5]*PP$param[r,5]/PP$param[r,4]**3
 #                                        )
                 std[r,nPar+5,k] <- sqrt(PP$covar[[r]][4,4]+PP$covar[[r]][5,5]+2*PP$covar[[r]][4,5])
-                # ion velocity components perpendicular to the magnetic field..
+                # ion velocity components perpendicular to the magnetic field, or in ENU if ViCooord==ENUgeomagnetic
                 # geomagnetic north
                 Bhor <- c(PP$B[r,1:2],0)
                 # geomagnetic east is perpendicular both to B and Bhor
@@ -183,10 +202,31 @@ readPP.3D <- function(dpath,measuredOnly=T,nSiteVi=3,recursive=F,...){
                 By <- radarPointings:::vectorProduct.cartesian(Bx,PP$B[r,])
                 By <- By / sqrt(sum(By**2))
 
-                param[r,nPar+6,k] <- PP$param[r,7:9]%*%Bx
-                param[r,nPar+7,k] <- PP$param[r,7:9]%*%By
-                std[r,nPar+6,k] <- sqrt(Bx%*%PP$covar[[r]][7:9,7:9]%*%Bx)
-                std[r,nPar+7,k] <- sqrt(By%*%PP$covar[[r]][7:9,7:9]%*%By)
+                if(ViCoord=='ENUgeodetic'){
+                    param[r,nPar+6,k] <- PP$param[r,7:9]%*%Bx
+                    param[r,nPar+7,k] <- PP$param[r,7:9]%*%By
+                    std[r,nPar+6,k] <- sqrt(Bx%*%PP$covar[[r]][7:9,7:9]%*%Bx)
+                    std[r,nPar+7,k] <- sqrt(By%*%PP$covar[[r]][7:9,7:9]%*%By)
+                }else if(ViCoord=='ENUgeomagnetic'){
+                    
+                    rotmat <- matrix(c(Bx,By,Bz),byrow=F,ncol=3)
+                    irotmat <- solve(rotmat)
+
+                    # put the Vi in geomagnetic and geodetic systems in the same places as above to avoid confusion
+                    param[r,nPar+6,k] <- PP$param[r,7]
+                    param[r,7,k] <- PP$param[r,7:9]%*%irotmat[,1]
+                    param[r,nPar+7,k] <- PP$param[r,8]
+                    param[r,8,k] <- PP$param[r,7:9]%*%irotmat[,2]
+                    param[r,9,k] <- PP$param[r,7:9]%*%irotmat[,3]
+
+                    std[r,nPar+6,k] <- sqrt(PP$covar[[r]][7,7])
+                    std[r,7,k] <- sqrt(irotmat[,1]%*%PP$covar[[r]][7:9,7:9]%*%irotmat[,1])
+                    std[r,nPar+7,k] <- sqrt(PP$covar[[r]][8,8])
+                    std[r,8,k] <- sqrt(irotmat[,2]%*%PP$covar[[r]][7:9,7:9]%*%irotmat[,2])
+                    std[r,9,k] <- sqrt(irotmat[,3]%*%PP$covar[[r]][7:9,7:9]%*%irotmat[,3])
+                }else{
+                    stop('Unknown coordinate system for Vi')
+                }
 
                 for( s in PP$contribSites[[r]]){
 
