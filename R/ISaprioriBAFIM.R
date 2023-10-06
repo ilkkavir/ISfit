@@ -373,6 +373,10 @@ ISaprioriBAFIM <- function( PP , date , latitude , longitude , height , nSite , 
             OpErrCorr     <- sqrt(diag(Cpost[(10*nh+1) :(11*nh),(10*nh+1):(11*nh)]));
             HpErrCorr     <- sqrt(diag(Cpost[(11*nh+1) :(12*nh),(11*nh+1):(12*nh)]));
 
+
+
+            if(FALSE){
+            
 #            plot(Xpost[(3*nh+1):(4*nh)],height,xlim=c(0,3000))
 #            lines(PP$param[,4],height)
             layout(matrix(seq(12),ncol=4))
@@ -461,7 +465,9 @@ ISaprioriBAFIM <- function( PP , date , latitude , longitude , height , nSite , 
             lines(HpCorr+HpErrCorr,height,col='red')
             lines((HpCorr+sqrt(HpErrCorr**2+BAFIMpar$Hp[4]**2*dt)),height,col='green')
             
-            mtext(ISOdate(date[1],date[2],date[3],date[4],date[5],date[6]),side=3,line=-2,outer=T)            
+                mtext(ISOdate(date[1],date[2],date[3],date[4],date[5],date[6]),side=3,line=-2,outer=T)            }
+
+            
 #            dt <- abs(as.double(ISOdate(date[1],date[2],date[3],date[4],date[5],date[6])) - PP$time_sec)
             for (hind in seq(nh)){
 
@@ -810,11 +816,16 @@ ISaprioriBAFIM <- function( PP , date , latitude , longitude , height , nSite , 
             ## diag(invAprioriCovar)[curRow] <- 1e6
             curRow                         <- curRow + 1
 
-            # Te=Ti below hTeTi. Ti>Ti is not possible when Ne is hight, either
+            # Te=Ti below hTeTi. Ne cannot be high when Ti>Te, either
+            TeTiForce <- FALSE
+            if(length(PP)>0){
+                if(PP$param[h,1]>5e11 & PP$param[h,4]>PP$param[h,2]*1.05){
+                    TeTiForce <- TRUE
+                }
+            }
             aprioriTheory[curRow,c(2,4)] <- c(1,-1)
             aprioriMeas[curRow] <- 0
-            if(PP$param[h,1>5e11] & PP$param[h,4]<PP$param[h,2]){
-                print('.')
+            if(TeTiForce){
                 aprioriStd[curRow] <- ifelse(height[h]<hTeTi,1e-3,.1)
                 diag(aprioriCovar)[curRow] <- ifelse(height[h]<hTeTi,1e-6,.01)
             }else{
@@ -830,7 +841,7 @@ ISaprioriBAFIM <- function( PP , date , latitude , longitude , height , nSite , 
             curRow                         <- curRow + 1
             aprioriTheory[curRow,c(3,5)] <- c(1,-1)
             aprioriMeas[curRow] <- 0
-            if(PP$param[h,1]>5e11 & PP$param[h,5]<PP$param[h,3]){
+            if(TeTiForce){
                 aprioriStd[curRow] <- ifelse(height[h]<hTeTi,1e-3,.1)
                 diag(aprioriCovar)[curRow] <- ifelse(height[h]<hTeTi,1e-6,.01)
             }else{
