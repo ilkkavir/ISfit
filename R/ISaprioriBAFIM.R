@@ -391,77 +391,77 @@ ISaprioriBAFIM <- function( PP , date , latitude , longitude , height , nSite , 
             nesmooth[nesmooth<=1] <- 1
             lines((nesmooth),height)
             lines((nesmooth+NeErrCorr),height,col='red')
-            lines((nesmooth+NeErrCorr+BAFIMpar$Ne[4]*sqrt(dt)),height,col='green')
+            lines((nesmooth+sqrt(NeErrCorr**2+BAFIMpar$Ne[4]**2*dt)),height,col='green')
 
             
-            plot(PP$param[,2],height,xlim=c(0,3000))
+            plot(PP$param[,2],height,xlim=c(0,2000))
             lines(TiparCorr,height)
             lines(PP$param[,2]+PP$std[,2],height,col='blue')
             lines(TiparCorr+TiparErrCorr,height,col='red')
-            lines((TiparCorr+TiparErrCorr+BAFIMpar$Ti[4]*sqrt(dt)),height,col='green')
+            lines((TiparCorr+sqrt(TiparErrCorr**2+BAFIMpar$Ti[4]**2*dt)),height,col='green')
             
-            plot(PP$param[,3],height,xlim=c(0,3000))
+            plot(PP$param[,3],height,xlim=c(0,2000))
             lines(TiperpCorr,height)
             lines(PP$param[,3]+PP$std[,3],height,col='blue')
             lines(TiperpCorr+TiperpErrCorr,height,col='red')
-            lines((TiperpCorr+TiperpErrCorr+BAFIMpar$Ti[4]*sqrt(dt)),height,col='green')
+            lines((TiperpCorr+sqrt(TiperpErrCorr**2+BAFIMpar$Ti[4]**2*dt)),height,col='green')
             
-            plot(PP$param[,4],height,xlim=c(0,3000))
+            plot(PP$param[,4],height,xlim=c(0,2000))
             lines(TeparCorr,height)
             lines(PP$param[,4]+PP$std[,4],height,col='blue')
             lines(TeparCorr+TeparErrCorr,height,col='red')
-            lines((TeparCorr+TeparErrCorr+BAFIMpar$Te[4]*sqrt(dt)),height,col='green')
+            lines((TeparCorr+sqrt(TeparErrCorr**2+BAFIMpar$Te[4]**2*dt)),height,col='green')
 
-            plot(PP$param[,5],height,xlim=c(0,3000))
+            plot(PP$param[,5],height,xlim=c(0,2000))
             lines(TeperpCorr,height)
             lines(PP$param[,5]+PP$std[,5],height,col='blue')
             lines(TeperpCorr+TeperpErrCorr,height,col='red')
-            lines((TeperpCorr+TeperpErrCorr+BAFIMpar$Te[4]*sqrt(dt)),height,col='green')
+            lines((TeperpCorr+sqrt(TeperpErrCorr**2+BAFIMpar$Te[4]**2*dt)),height,col='green')
             
             
-            plot(PP$param[,6],height,xlim=c(0,1e5))
+            plot(PP$param[,6],height,xlim=c(0,1e4))
             lines(CollCorr,height)
             lines(PP$param[,6]+PP$std[,6],height,col='blue')
             lines(CollCorr+CollErrCorr,height,col='red')
-            lines((CollCorr+CollErrCorr+BAFIMpar$Coll[4]*sqrt(dt)),height,col='green')
+            lines((CollCorr+sqrt(CollErrCorr**2+BAFIMpar$Coll[4]**2*dt)),height,col='green')
             
             plot(PP$param[,7],height,xlim=c(-1,1)*100)
             lines(VixCorr,height)
             lines(PP$param[,7]+PP$std[,7],height,col='blue')
             lines(VixCorr+VixErrCorr,height,col='red')
-            lines((VixCorr+VixErrCorr+BAFIMpar$Viperp[4]*sqrt(dt)),height,col='green')
+            lines((VixCorr+sqrt(VixErrCorr**2+BAFIMpar$Viperp[4]**2*dt)),height,col='green')
 
             plot(PP$param[,8],height,xlim=c(-1,1)*100)
             lines(ViyCorr,height)
             lines(PP$param[,8]+PP$std[,8],height,col='blue')
             lines(ViyCorr+ViyErrCorr,height,col='red')
-            lines((ViyCorr+ViyErrCorr+BAFIMpar$Viperp[4]*sqrt(dt)),height,col='green')
+            lines((ViyCorr+sqrt(ViyErrCorr**2+BAFIMpar$Viperp[4]**2*dt)),height,col='green')
 
             plot(PP$param[,9],height,xlim=c(-1,1)*100)
             lines(ViparCorr,height)
             lines(PP$param[,9]+PP$std[,9],height,col='blue')
             lines(ViparCorr+ViparErrCorr,height,col='red')
-            lines((ViparCorr+ViparErrCorr+BAFIMpar$Vipar[4]*sqrt(dt)),height,col='green')
+            lines((ViparCorr+sqrt(ViparErrCorr**2+BAFIMpar$Vipar[4]**2*dt)),height,col='green')
 
             plot(PP$param[,10],height,xlim=c(0,1))
             lines(MpCorr,height)
             lines(PP$param[,10]+PP$std[,10],height,col='blue')
             lines(MpCorr+MpErrCorr,height,col='red')
-            lines((MpCorr+MpErrCorr+BAFIMpar$Mp[4]*sqrt(dt)),height,col='green')
+            lines((MpCorr+sqrt(MpErrCorr**2+BAFIMpar$Mp[4]**2*dt)),height,col='green')
 
             plot(PP$param[,11],height,xlim=c(0,1))
             lines(OpCorr,height)
             lines(PP$param[,11]+PP$std[,11],height,col='blue')
             lines(OpCorr+OpErrCorr,height,col='red')
-            lines((OpCorr+OpErrCorr+BAFIMpar$Op[4]*sqrt(dt)),height,col='green')
+            lines((OpCorr+sqrt(OpErrCorr**2+BAFIMpar$Op[4]**2*dt)),height,col='green')
 
             plot(PP$param[,12],height,xlim=c(0,1))
             lines(HpCorr,height)
             lines(PP$param[,12]+PP$std[,12],height,col='blue')
             lines(HpCorr+HpErrCorr,height,col='red')
-            lines((HpCorr+HpErrCorr+BAFIMpar$Hp[4]*sqrt(dt)),height,col='green')
+            lines((HpCorr+sqrt(HpErrCorr**2+BAFIMpar$Hp[4]**2*dt)),height,col='green')
             
-            
+            mtext(ISOdate(date[1],date[2],date[3],date[4],date[5],date[6]),side=3,line=-2,outer=T)            
 #            dt <- abs(as.double(ISOdate(date[1],date[2],date[3],date[4],date[5],date[6])) - PP$time_sec)
             for (hind in seq(nh)){
 
@@ -480,13 +480,17 @@ ISaprioriBAFIM <- function( PP , date , latitude , longitude , height , nSite , 
                 processStd <- c( BAFIMpar$Ne[4] , BAFIMpar$Ti[4] , BAFIMpar$Ti[4] ,BAFIMpar$Te[4] , BAFIMpar$Te[4] , BAFIMpar$Coll[4] , BAFIMpar$Viperp[4] , BAFIMpar$Viperp[4] , BAFIMpar$Vipar[4] , BAFIMpar$Mp[4], BAFIMpar$Op[4], BAFIMpar$Hp[4] )*sqrt(dt)
 
                 
-                # standard deviations of the smoothed values + the process noise
-                aprioriBAFIM[[hind]][['aprioriStd']] <- scaleParams( PP$stdRcorr[hind,1:12] + processStd , aprioriIRI[[hind]]$parScales[1:12] , inverse=FALSE )
+                ## # standard deviations of the smoothed values + the process noise
+                ## aprioriBAFIM[[hind]][['aprioriStd']] <- scaleParams( PP$stdRcorr[hind,1:12] + processStd , aprioriIRI[[hind]]$parScales[1:12] , inverse=FALSE )
 
                 # smoothed plasma parameter error covariance in this gate 
 #                aprioriBAFIM[[hind]][['invAprioriCovar']] <- solve(scaleCovar( PP$covarRcorr[[hind]][1:12,1:12] + diag(processStd[1:12])**2, aprioriIRI[[hind]]$parScales[1:12] , inverse=F ))
                 aprioriBAFIM[[hind]][['aprioriCovar']] <- scaleCovar( PP$covarRcorr[[hind]][1:12,1:12] + diag(processStd[1:12])**2, aprioriIRI[[hind]]$parScales[1:12] , inverse=F )
 
+
+                # standard deviations of the smoothed values + the process noise
+                aprioriBAFIM[[hind]][["aprioriStd"]] <- sqrt(diag(aprioriBAFIM[[hind]][["aprioriCovar"]]))
+                
                 
             }
 
@@ -642,6 +646,7 @@ ISaprioriBAFIM <- function( PP , date , latitude , longitude , height , nSite , 
 
             aprioriCovar[1:12,1:12][fitPar,fitPar] <- aprioriBAFIM[[h]][["aprioriCovar"]][1:12,1:12][fitPar,fitPar]
             
+
             aprioriMeas[1:12] <- aprioriParam[1:12] <- pmax(aprioriMeas[1:12],limitParam[1,1:12])
             aprioriMeas[1:12] <- aprioriParam[1:12] <-  pmin(aprioriMeas[1:12],limitParam[2,1:12])
 
@@ -805,11 +810,17 @@ ISaprioriBAFIM <- function( PP , date , latitude , longitude , height , nSite , 
             ## diag(invAprioriCovar)[curRow] <- 1e6
             curRow                         <- curRow + 1
 
-            # Te=Ti below hTeTi
+            # Te=Ti below hTeTi. Ti>Ti is not possible when Ne is hight, either
             aprioriTheory[curRow,c(2,4)] <- c(1,-1)
             aprioriMeas[curRow] <- 0
-            aprioriStd[curRow] <- ifelse(height[h]<hTeTi,1e-3,1e3)
-            diag(aprioriCovar)[curRow] <- ifelse(height[h]<hTeTi,1e-6,1e6)
+            if(PP$param[h,1>5e11] & PP$param[h,4]<PP$param[h,2]){
+                print('.')
+                aprioriStd[curRow] <- ifelse(height[h]<hTeTi,1e-3,.1)
+                diag(aprioriCovar)[curRow] <- ifelse(height[h]<hTeTi,1e-6,.01)
+            }else{
+                aprioriStd[curRow] <- ifelse(height[h]<hTeTi,1e-3,1e3)
+                diag(aprioriCovar)[curRow] <- ifelse(height[h]<hTeTi,1e-6,1e6)
+            }
             ## diag(invAprioriCovar)[curRow] <- ifelse(height[h]<hTeTi,1e6,1e-6)
             if(height[h]<hTeTi){
                 aprioriTheory[4,] <- 0
@@ -819,8 +830,13 @@ ISaprioriBAFIM <- function( PP , date , latitude , longitude , height , nSite , 
             curRow                         <- curRow + 1
             aprioriTheory[curRow,c(3,5)] <- c(1,-1)
             aprioriMeas[curRow] <- 0
-            aprioriStd[curRow] <- ifelse(height[h]<hTeTi,1e-3,1e3)
-            diag(aprioriCovar)[curRow] <- ifelse(height[h]<hTeTi,1e-6,1e6)
+            if(PP$param[h,1]>5e11 & PP$param[h,5]<PP$param[h,3]){
+                aprioriStd[curRow] <- ifelse(height[h]<hTeTi,1e-3,.1)
+                diag(aprioriCovar)[curRow] <- ifelse(height[h]<hTeTi,1e-6,.01)
+            }else{
+                aprioriStd[curRow] <- ifelse(height[h]<hTeTi,1e-3,1e3)
+                diag(aprioriCovar)[curRow] <- ifelse(height[h]<hTeTi,1e-6,1e6)
+            }
             curRow                         <- curRow + 1
             
             # optional ViPar=0

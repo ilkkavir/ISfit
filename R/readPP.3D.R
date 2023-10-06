@@ -43,7 +43,7 @@ readPP.3D <- function(dpath,measuredOnly=T,nSiteVi=3,recursive=F,...){
 
     # coordinate system for Vi (used to be geographic ENU, but geomagnetic in later versions)
     if (is.null( ViCoord <- PP$ViCoordinates ) ){
-        ViCoor <- 'ENUgeodetic'
+        ViCoord <- 'ENUgeodetic'
     }
     
     # allocate the necessary arrays
@@ -145,8 +145,8 @@ readPP.3D <- function(dpath,measuredOnly=T,nSiteVi=3,recursive=F,...){
                 # ion velocity along magnetic field (positive upward)
                 if(ViCoord=='ENUgeodetic'){
                     param[r,nPar+3,k] <- -PP$param[r,7:9]%*%PP$B[r,]/sqrt(sum(PP$B[r,]**2))
-                }else if(ViCoord=='ENUgeomagnetic'){
-                    param[r,nPar+3,k] <- PP$param[r,7:9]
+                }else if(ViCoord=='ENUmagnetic'){
+                    param[r,nPar+3,k] <- PP$param[r,9]
                 }else{
                     stop('Unknown coordinate system for Vi')
                 }
@@ -177,8 +177,8 @@ readPP.3D <- function(dpath,measuredOnly=T,nSiteVi=3,recursive=F,...){
                 std[r,nPar+2,k] <- sqrt(c(1,2)%*%PP$covar[[r]][4:5,4:5]%*%c(1,2)/9)
                 if(ViCoord=='ENUgeodetic'){
                     std[r,nPar+3,k] <- sqrt(PP$B[r,]%*%PP$covar[[r]][7:9,7:9]%*%PP$B[r,]/sum(PP$B[r,]**2))
-                }else if(ViCoord=='ENUgeomagnetic'){
-                    std[r,nPar+3,k] <- sqrt(diag(PP$covar[[r]][7:9,7:9]))
+                }else if(ViCoord=='ENUmagnetic'){
+                    std[r,nPar+3,k] <- sqrt(PP$covar[[r]][9,9])
                 }else{
                     stop('Unknown coordinate system for Vi')
                 }
@@ -192,7 +192,7 @@ readPP.3D <- function(dpath,measuredOnly=T,nSiteVi=3,recursive=F,...){
 #                                        2*PP$covar[[r]][4,5]*PP$param[r,5]/PP$param[r,4]**3
 #                                        )
                 std[r,nPar+5,k] <- sqrt(PP$covar[[r]][4,4]+PP$covar[[r]][5,5]+2*PP$covar[[r]][4,5])
-                # ion velocity components perpendicular to the magnetic field, or in ENU if ViCooord==ENUgeomagnetic
+                # ion velocity components perpendicular to the magnetic field, or in ENU if ViCooord==ENUmagnetic
                 # geomagnetic north
                 Bhor <- c(PP$B[r,1:2],0)
                 # geomagnetic east is perpendicular both to B and Bhor
@@ -202,12 +202,14 @@ readPP.3D <- function(dpath,measuredOnly=T,nSiteVi=3,recursive=F,...){
                 By <- radarPointings:::vectorProduct.cartesian(Bx,PP$B[r,])
                 By <- By / sqrt(sum(By**2))
 
+                Bz <- radarPointings:::vectorProduct.cartesian(Bx,By)
+
                 if(ViCoord=='ENUgeodetic'){
                     param[r,nPar+6,k] <- PP$param[r,7:9]%*%Bx
                     param[r,nPar+7,k] <- PP$param[r,7:9]%*%By
                     std[r,nPar+6,k] <- sqrt(Bx%*%PP$covar[[r]][7:9,7:9]%*%Bx)
                     std[r,nPar+7,k] <- sqrt(By%*%PP$covar[[r]][7:9,7:9]%*%By)
-                }else if(ViCoord=='ENUgeomagnetic'){
+                }else if(ViCoord=='ENUmagnetic'){
                     
                     rotmat <- matrix(c(Bx,By,Bz),byrow=F,ncol=3)
                     irotmat <- solve(rotmat)
@@ -224,6 +226,9 @@ readPP.3D <- function(dpath,measuredOnly=T,nSiteVi=3,recursive=F,...){
                     std[r,nPar+7,k] <- sqrt(PP$covar[[r]][8,8])
                     std[r,8,k] <- sqrt(irotmat[,2]%*%PP$covar[[r]][7:9,7:9]%*%irotmat[,2])
                     std[r,9,k] <- sqrt(irotmat[,3]%*%PP$covar[[r]][7:9,7:9]%*%irotmat[,3])
+                    
+                    covar[r,nPar+c(6,7,3),nPar+c(6,7,3),k] <- PP$covar[[r]][7:9,7:9]
+                    covar[r,7:9,7:9,k] <- t(irotmat)%*%PP$covar[[r]][7:9,7:9]%*%irotmat
                 }else{
                     stop('Unknown coordinate system for Vi')
                 }
@@ -232,12 +237,15 @@ readPP.3D <- function(dpath,measuredOnly=T,nSiteVi=3,recursive=F,...){
 
                     # ion velocity seen at site s (positive away)
                     param[r,nPar+2*s+6,k] <- -PP$param[r,7:9]%*%PP$intersect[[r]][[s]]$k.ENU/sqrt(sum(PP$intersect[[r]][[s]]$k.ENU**2))
-                    std[r,nPar+2*s+6,k] <- sqrt(PP$intersect[[r]][[s]]$k.ENU%*%PP$covar[[r]][7:9,7:9]%*%PP$intersect[[r]][[s]]$k.ENU/sum(PP$intersect[[r]][[s]]$k.ENU**2))
+#                    std[r,nPar+2*s+6,k] <- sqrt(PP$intersect[[r]][[s]]$k.ENU%*%PP$covar[[r]][7:9,7:9]%*%PP$intersect[[r]][[s]]$k.ENU/sum(PP$intersect[[r]][[s]]$k.ENU**2))
+                    std[r,nPar+2*s+6,k] <- sqrt(PP$intersect[[r]][[s]]$k.ENU%*%covar[r,7:9,7:9,k]%*%PP$intersect[[r]][[s]]$k.ENU/sum(PP$intersect[[r]][[s]]$k.ENU**2))
+
                     # horizontal ion velocity component seen at site s (positive away)
                     khor <- c(PP$intersect[[r]][[s]]$k.ENU[c(1,2)],0)
                     khor <- khor / sqrt(sum(khor**2))
                     param[r,nPar+2*s+7,k] <- -PP$param[r,7:9]%*%khor
-                    std[r,nPar+2*s+7,k] <- sqrt(khor%*%PP$covar[[r]][7:9,7:9]%*%khor)
+#                    std[r,nPar+2*s+7,k] <- sqrt(khor%*%PP$covar[[r]][7:9,7:9]%*%khor)
+                    std[r,nPar+2*s+7,k] <- sqrt(khor%*%covar[r,7:9,7:9,k]%*%khor)
                     # copy the horizontal velocity projections to all beams of a multibeam receiver
                     for( ss in seq( nSitesk ) ){
                         if( !any(is.na(PP[["sites"]][ss,2:10])) ){
