@@ -1,4 +1,4 @@
-ISparamfitParallel <- function(h,acf,var,lags,nData,fSite,aSite,kSite,iSite,B,apriori,directTheory,absLimit,diffLimit,scaleFun,maxLambda,maxIter,fitFun,MCMCsettings,trueHessian,heights,fitGate){
+ISparamfitParallel <- function(h,acf,var,lags,nData,fSite,aSite,kSite,iSite,B,apriori,directTheory,absLimit,diffLimit,scaleFun,maxLambda,maxIter,fitFun,MCMCsettings,trueHessian,heights,latitude,longitude,fitGate,...){
 
 
 
@@ -34,11 +34,13 @@ ISparamfitParallel <- function(h,acf,var,lags,nData,fSite,aSite,kSite,iSite,B,ap
             fitFun          = fitFun,
             MCMCsettings    = MCMCsettings,
             trueHessian     = trueHessian,
-            h               = heights[h]
+            h               = heights[h],
+            lat             = latitude[h],
+            lon             = longitude[h],
+            flipchem        = apriori[[h]]$flipchem,
+            aprioriUpdateFunction = apriori[[h]]$aprioriUpdateFunction
         )
     }
-    
-    
 
     return(fitpar)
 

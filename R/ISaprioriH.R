@@ -205,7 +205,7 @@ ISaprioriH <- function( PP , date , latitude , longitude , height , nSite ,  nIo
             aprioriMeas[curRow] <- 0
             aprioriStd[curRow] <- ifelse(ViPar0&all(B[h,]!=0),1e-3,10)
 
-            apriorilist[[h]] <- list(aprioriParam=aprioriParam,aprioriTheory=aprioriTheory,invAprioriCovar=diag(1/aprioriStd**2),aprioriMeas=aprioriMeas,limitParam=limitParam,parScales=parScales,mIon=mIon,nIon)
+            apriorilist[[h]] <- list(aprioriParam=aprioriParam,aprioriTheory=aprioriTheory,invAprioriCovar=diag(1/aprioriStd**2),aprioriMeas=aprioriMeas,limitParam=limitParam,parScales=parScales,mIon=mIon,nIon=nIon)
         }
 
         return(apriorilist)

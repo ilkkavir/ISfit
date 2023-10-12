@@ -6,4 +6,4 @@ Author: Ilkka Virtanen <ilkka.i.virtanen@oulu.fi>
 Maintainer: Ilkka Virtanen <ilkka.i.virtanen@oulu.fi>
 Description: Incoherent scatter plasma parameter estimation for multistatic radar systems
 License:
-Depends: IGRF13, ISspectrum, NLSQ, IRI2016,  radarPointings, FME, lattice, parallel, plotrix, parallelly
+Depends: IGRF13, ISspectrum, IRI2016,  radarPointings, FME, lattice, parallel, plotrix, parallelly

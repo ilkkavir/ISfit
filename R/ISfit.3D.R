@@ -1,4 +1,4 @@
-ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 , beginTime=c(1970,1,1,0,0,0) , endTime=c(2100,1,1,0,0,0) , fitFun=leastSquare.lvmrq , absLimit=5 , diffLimit=1e-2 , maxLambda=1e30 , maxIter=10 , absCalib=FALSE , TiIsotropic=TRUE , TeIsotropic=TRUE , recursive=TRUE , aprioriFunction=ISaprioriH , scaleFun=acfscales , siteScales=NULL, calScale=1, MCMCsettings=list( niter=10000 , updatecov=100 , burninlength=5000 , outputlength=5000 ) , maxdev=2 , trueHessian=FALSE , nCores=1 , reverseTime=FALSE , burnin.s=0 , ... )
+ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 , beginTime=c(1970,1,1,0,0,0) , endTime=c(2100,1,1,0,0,0) , fitFun=leastSquare.lvmrq , absLimit=5 , diffLimit=1e-2 , maxLambda=1e30 , maxIter=10 , absCalib=FALSE , TiIsotropic=TRUE , TeIsotropic=TRUE , recursive=TRUE , aprioriFunction=ISaprioriH , scaleFun=acfscales , siteScales=NULL, calScale=1, MCMCsettings=list( niter=10000 , updatecov=100 , burninlength=5000 , outputlength=5000 ) , maxdev=2 , trueHessian=FALSE , nCores=1 , reverseTime=FALSE , burnin.s=0 ,  ... )
   {
 
       # 3D incoherent scatter plasma parameter fit using LPI output files in ddirs
@@ -507,10 +507,53 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
               # copy the model/initial values in a matrix for backward compatibility
               for (h in seq(nh)){
                   model[h,] <- apriori[[h]][["aprioriParam"]]
-                  }
+              }
 
-              # run the actual iterative fit in parallel              
-              fitpar <- mclapply(seq(nh),FUN=ISparamfitParallel,
+              ## # initialize flipchem if it will be used
+              ## fc <- NULL
+              ## chisqrFun <- chiSquare
+              ## if(!is.null(flipchemStd)){
+              ##     library(reticulate)
+              ##     Sys.setenv(RETICULATE_AUTOCREATE_PACKAGE_VENV="no")
+              ##     fcfile <- system.file('python','startflipchem.py',package='ISfit')
+              ##     source_python(fcfile)
+              ##     idate <- as.integer(date)
+              ##     fc <- startflipchem(idate[1],idate[2],idate[3],idate[4],idate[5],idate[6])
+              ##     chisqrFun <- chisqrFlipchem
+              ##     trueHessian <- TRUE # chisqrFlipchem works only when the Hessian matrix is calculated from finite differences of chi square
+              ## }
+              
+              ## # run the actual iterative fit in parallel              
+              ## fitpar <- mclapply(seq(nh),FUN=ISparamfitParallel,
+              ##                    acf             = acf.site,
+              ##                    var             = var.site,
+              ##                    lags            = lag.site,
+              ##                    nData           = nlags.site,
+              ##                    fSite           = sites[,2],
+              ##                    aSite           = aSite,
+              ##                    kSite           = kBsite,
+              ##                    iSite           = ind.site,
+              ##                    B               = B2,
+              ##                    apriori         = apriori,
+              ##                    directTheory    = ISdirectTheory,
+              ##                    absLimit        = absLimit,
+              ##                    diffLimit       = diffLimit,
+              ##                    scaleFun        = scaleParams,
+              ##                    maxLambda       = maxLambda,
+              ##                    maxIter         = maxIter,
+              ##                    fitFun          = fitFun,
+              ##                    MCMCsettings    = MCMCsettings,
+              ##                    trueHessian     = trueHessian,
+              ##                    heights         = height,
+              ##                    latitude        = latitude,
+              ##                    longitude       = longitude,
+              ##                    fitGate         = fitGate,
+              ##                    mc.cores=nCores
+              ##                    )
+              
+              fitpar <- list()
+              for(h in seq(nh)){
+                  fitpar[[h]] <- ISparamfitParallel(h,
                                  acf             = acf.site,
                                  var             = var.site,
                                  lags            = lag.site,
@@ -531,10 +574,11 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
                                  MCMCsettings    = MCMCsettings,
                                  trueHessian     = trueHessian,
                                  heights         = height,
-                                 fitGate = fitGate,
-                                 mc.cores=nCores
-                                 )
-
+                                 latitude        = latitude,
+                                 longitude       = longitude,
+                                 fitGate         = fitGate)#,
+                  }
+              
               # scale the results back to physical units and add some metadata
               for(h in seq(nh)){
                   if(fitGate[h]){

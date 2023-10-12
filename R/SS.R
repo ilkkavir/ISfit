@@ -11,6 +11,6 @@ SS <- function( p , measData , measVar , directTheory , aprioriTheory , aprioriM
 
         dirtheData <- directTheory( p , ... )
 
-        return(c( NLSQ:::chiSquare( measData , measVar , dirtheData , p , aprioriTheory , aprioriMeas , invAprioriCovar)))
+        return(c( chiSquare( measData , measVar , dirtheData , p , aprioriTheory , aprioriMeas , invAprioriCovar)))
 
     }

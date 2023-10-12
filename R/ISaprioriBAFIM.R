@@ -1,4 +1,4 @@
-ISaprioriBAFIM <- function( PP , date , latitude , longitude , height , nSite ,  nIon , absCalib=FALSE , TiIsotropic=FALSE , TeIsotropic=FALSE, refSite=1 , siteScales=NULL , hTeTi=100 , B=c(0,0,0) , ViPar0=FALSE , nCores=1, BAFIMpar=list(Ne=c(0,Inf,0.05,2.5e11),Ti=c(80,Inf,0.1,30),Te=c(100,Inf,0.1,30),Coll=c(0,0,.1,1),Vipar=c(80,Inf,0.05,2.5),Viperp=c(80,Inf,.05,10),Mp=c(150,500,.05,.01),Op=c(150,500,0.05,0.01),Hp=c(0,0,.05,.01)) , updateFile=TRUE , returnParams=FALSE , ... )
+ISaprioriBAFIM <- function( PP , date , latitude , longitude , height , nSite ,  nIon , absCalib=FALSE , TiIsotropic=FALSE , TeIsotropic=FALSE, refSite=1 , siteScales=NULL , hTeTi=100 , B=c(0,0,0) , ViPar0=FALSE , nCores=1, BAFIMpar=list(Ne=c(0,Inf,0.05,2.5e11),Ti=c(80,Inf,0.1,30),Te=c(100,Inf,0.1,30),Coll=c(0,0,.1,1),Vipar=c(80,Inf,0.05,2.5),Viperp=c(80,Inf,.05,10),Mp=c(150,500,.05,.01),Op=c(150,500,0.05,0.01),Hp=c(0,0,.05,.01),flipchem=c(150,350,.1)) , updateFile=TRUE , returnParams=FALSE , ... )
     {
         #
         #
@@ -35,6 +35,19 @@ ISaprioriBAFIM <- function( PP , date , latitude , longitude , height , nSite , 
         # 
         #  I. Virtanen 2012, 2013, 2023
 
+        # initialize flipchem with the correct date if that will be used
+        fc <- NULL
+        if(BAFIMpar$flipchem[2]-BAFIMpar$flipchem[1] > 0){
+            library(reticulate)
+            Sys.setenv(RETICULATE_AUTOCREATE_PACKAGE_VENV="no")
+            fcfile <- system.file('python','startflipchem.py',package='ISfit')
+            source_python(fcfile)
+            idate <- as.integer(date)
+            fc <- startflipchem(idate[1],idate[2],idate[3],idate[4],idate[5],idate[6])
+        }
+
+
+        
         if(length(PP)>0){
 
             # we will save the PP list again with modified arrays, make copies as necessary
@@ -50,7 +63,7 @@ ISaprioriBAFIM <- function( PP , date , latitude , longitude , height , nSite , 
 
         }
             
-        # THIS function has not been completed yet!
+        # This function has not been completed yet!
 
         nh <- length(height)
 
@@ -375,7 +388,7 @@ ISaprioriBAFIM <- function( PP , date , latitude , longitude , height , nSite , 
 
 
 
-            if(FALSE){
+            if(TRUE){
             
 #            plot(Xpost[(3*nh+1):(4*nh)],height,xlim=c(0,3000))
 #            lines(PP$param[,4],height)
@@ -531,8 +544,14 @@ ISaprioriBAFIM <- function( PP , date , latitude , longitude , height , nSite , 
             # length of the parameter vector
             nPar                         <- length(aprioriParam)
 
+            # check if flipchem will be used in this gate
+            flipchemfit <- FALSE
+            if(height[h]>=BAFIMpar$flipchem[1] & height[h]<=BAFIMpar$flipchem[2]){
+                flipchemfit <- TRUE
+            }
+            
             # number of imaginary apriori "measurements"
-            nApriori                     <- ( nPar + 6 )
+            nApriori                     <- ifelse( flipchemfit , nPar + 8 ,  nPar + 6 )
 
             # apriori theory matrix
             aprioriTheory                <- matrix( 0 , nrow=nApriori , ncol=nPar )
@@ -648,6 +667,7 @@ ISaprioriBAFIM <- function( PP , date , latitude , longitude , height , nSite , 
                 ## invAprioriCovar[1:12,12] <- aprioriBAFIM[[h]]$invAprioriCovar[1:12,12]
                 ## invAprioriCovar[12,1:12] <- aprioriBAFIM[[h]]$invAprioriCovar[12,1:12]
             }
+
 
 
             aprioriCovar[1:12,1:12][fitPar,fitPar] <- aprioriBAFIM[[h]][["aprioriCovar"]][1:12,1:12][fitPar,fitPar]
@@ -856,7 +876,37 @@ ISaprioriBAFIM <- function( PP , date , latitude , longitude , height , nSite , 
             aprioriStd[curRow] <- ifelse(ViPar0&all(B[h,]!=0),1e-3,100)
             diag(aprioriCovar)[curRow] <- ifelse(ViPar0&all(B[h,]!=0),1e-6,1e4)
             ##diag(invAprioriCovar)[curRow] <- ifelse(ViPar0&all(B[h,]!=0),1e6,1e-4)
+            curRow                         <- curRow + 1
 
+
+            
+            if (flipchemfit){
+                fysparam <- scaleParams( aprioriParam[1:12] , parScales[1:12] , inverse=T)
+                # ion and electron temperatures ( (Tpar+2*Tperp)/3 )
+                Te <- (fysparam[4] + 2*fysparam[5]) / 3
+                Ti <- (fysparam[2] + 2*fysparam[3]) / 3
+    
+                 # call flipchem with parallel temperatures to be sure that 
+                fcout <- fc$get_point(latitude[h],longitude[h],height[h],fysparam[1],Te,Ti)
+
+               # O+ and molecular ion fractions from flicphem
+                fcOp <- fcout[[4]] / fysparam[1]
+                fcMol <- (fcout[[5]]+fcout[[6]]+fcout[[7]]) / fysparam[1]
+
+                aprioriMeas[curRow] <- fcMol
+                aprioriTheory[curRow,10] <- 1
+                aprioriCovar[curRow,curRow] <- BAFIMpar$flipchem[3]^2
+
+                aprioriMeas[curRow+1] <- fcOp
+                aprioriTheory[curRow+1,11] <- 1
+                aprioriCovar[curRow+1,curRow+1] <- BAFIMpar$flipchem[3]^2
+
+                priorUpdateFunction <- ISaprioriUpdateFlipchem
+            }else{
+                priorUpdateFunction <- NULL
+            }
+
+            
             invAprioriCovar <- solve(aprioriCovar)
 
 
@@ -866,7 +916,7 @@ ISaprioriBAFIM <- function( PP , date , latitude , longitude , height , nSite , 
             ## print(unname(PP$stdRcorr[h,c(1,2,4,7,8,9)]))
             
 #            Apriorilist[[h]] <- list(aprioriParam=aprioriParam,aprioriTheory=aprioriTheory,invAprioriCovar=diag(1/aprioriStd**2),aprioriMeas=aprioriMeas,limitParam=limitParam,parScales=parScales,mIon=mIon,nIon,aprioriParamIRI=aprioriIRI[[h]]$aprioriParam,aprioriParamBAFIM=aprioriBAFIM[[h]]$aprioriParam)
-            apriorilist[[h]] <- list(aprioriParam=aprioriParam,aprioriTheory=aprioriTheory,invAprioriCovar=invAprioriCovar,aprioriMeas=aprioriMeas,limitParam=limitParam,parScales=parScales,mIon=mIon,nIon,aprioriParamIRI=aprioriIRI[[h]]$aprioriParam,aprioriParamBAFIM=aprioriBAFIM[[h]]$aprioriParam)
+            apriorilist[[h]] <- list(aprioriParam=aprioriParam,aprioriTheory=aprioriTheory,invAprioriCovar=invAprioriCovar,aprioriMeas=aprioriMeas,limitParam=limitParam,parScales=parScales,mIon=mIon,nIon=nIon,aprioriParamIRI=aprioriIRI[[h]]$aprioriParam,aprioriParamBAFIM=aprioriBAFIM[[h]]$aprioriParam,flipchem=fc,priorUpdateFunction=priorUpdateFunction)
         }
 
         

@@ -91,7 +91,7 @@ ISparamfit <- function( acf , var , lags , iSite , fSite , aSite , kSite , B , i
   for(k in seq(nl)) fAmb[1:length(freq[[iSite[k]]]),k] <- frequencyAmbiguity( lags[k] , freq[[iSite[k]]] )
 
   # the actual fitting
-  nlsParam <- fitFun( measData=acf , measVar=var , initParam=initParam , aprioriTheory=aprioriTheory , aprioriMeas=aprioriMeas , invAprioriCovar=invAprioriCovar , paramLimits=paramLimits , fAmb=fAmb , scaleFun=scaleFun , nIon=nIon , nSite=ns , iSite=iSite , fSite=fSite , aSite=aSite , kSite=kSite , B=B , xSite=freq , directTheory=directTheory , ... )
+  nlsParam <- fitFun( measData=acf , measVar=var , initParam=initParam , aprioriTheory=aprioriTheory , aprioriMeas=aprioriMeas , invAprioriCovar=invAprioriCovar , paramLimits=paramLimits , fAmb=fAmb , scaleFun=scaleFun , nIon=nIon , nSite=ns , iSite=iSite , fSite=fSite , aSite=aSite , kSite=kSite , B=B , xSite=freq , directTheory=directTheory , h=h ,  ... )
 
   nlsParam[["xSite"]] <- freq
   
