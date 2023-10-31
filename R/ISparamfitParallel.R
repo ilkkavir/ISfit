@@ -38,6 +38,7 @@ ISparamfitParallel <- function(h,acf,var,lags,nData,fSite,aSite,kSite,iSite,B,ap
             lat             = latitude[h],
             lon             = longitude[h],
             flipchem        = apriori[[h]]$flipchem,
+            flipchemStd     = apriori[[h]]$flipchemStd,
             aprioriUpdateFunction = apriori[[h]]$aprioriUpdateFunction
         )
     }

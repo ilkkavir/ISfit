@@ -281,6 +281,8 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
               # a time vector converted from iperLimits
               t <- as.POSIXlt( iperLimits[k+1] , origin='1970-01-01' , tz='utc')
               date <- c(t$year+1900,t$mon+1,t$mday,t$hour,t$min,t$sec)
+              tprev <- as.POSIXlt( iperLimits[k] , origin='1970-01-01' , tz='utc')
+              dateprev <- c(tprev$year+1900,tprev$mon+1,tprev$mday,tprev$hour,tprev$min,tprev$sec)
               
               # height gate limits
               if( all( is.na( heightLimits.km ) ) ){
@@ -501,7 +503,7 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
               }
 
               # the prior model
-              apriori <- aprioriFunction( PP=PP , date=date , latitude=latitude , longitude=longitude , height=height , nSite=nd , nIon=3 , absCalib=absCalib , TiIsotropic=TiIsotropic , TeIsotropic=TeIsotropic , refSite=refsite , siteScales=sScales , B=B2 ,  nCores=nCores , resFile=resFile , updateFile=ifelse(nnn>nburnin,TRUE,FALSE) , ... )
+              apriori <- aprioriFunction( PP=PP , date=date , dateprev=dateprev , latitude=latitude , longitude=longitude , height=height , nSite=nd , nIon=3 , absCalib=absCalib , TiIsotropic=TiIsotropic , TeIsotropic=TeIsotropic , refSite=refsite , siteScales=sScales , B=B2 ,  nCores=nCores , resFile=resFile , updateFile=ifelse(nnn>nburnin,TRUE,FALSE) , ... )
 
               
               # copy the model/initial values in a matrix for backward compatibility
@@ -523,37 +525,8 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
               ##     trueHessian <- TRUE # chisqrFlipchem works only when the Hessian matrix is calculated from finite differences of chi square
               ## }
               
-              ## # run the actual iterative fit in parallel              
-              ## fitpar <- mclapply(seq(nh),FUN=ISparamfitParallel,
-              ##                    acf             = acf.site,
-              ##                    var             = var.site,
-              ##                    lags            = lag.site,
-              ##                    nData           = nlags.site,
-              ##                    fSite           = sites[,2],
-              ##                    aSite           = aSite,
-              ##                    kSite           = kBsite,
-              ##                    iSite           = ind.site,
-              ##                    B               = B2,
-              ##                    apriori         = apriori,
-              ##                    directTheory    = ISdirectTheory,
-              ##                    absLimit        = absLimit,
-              ##                    diffLimit       = diffLimit,
-              ##                    scaleFun        = scaleParams,
-              ##                    maxLambda       = maxLambda,
-              ##                    maxIter         = maxIter,
-              ##                    fitFun          = fitFun,
-              ##                    MCMCsettings    = MCMCsettings,
-              ##                    trueHessian     = trueHessian,
-              ##                    heights         = height,
-              ##                    latitude        = latitude,
-              ##                    longitude       = longitude,
-              ##                    fitGate         = fitGate,
-              ##                    mc.cores=nCores
-              ##                    )
-              
-              fitpar <- list()
-              for(h in seq(nh)){
-                  fitpar[[h]] <- ISparamfitParallel(h,
+              # run the actual iterative fit in parallel              
+              fitpar <- mclapply(seq(nh),FUN=ISparamfitParallel,
                                  acf             = acf.site,
                                  var             = var.site,
                                  lags            = lag.site,
@@ -576,8 +549,37 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
                                  heights         = height,
                                  latitude        = latitude,
                                  longitude       = longitude,
-                                 fitGate         = fitGate)#,
-                  }
+                                 fitGate         = fitGate,
+                                 mc.cores=nCores
+                                 )
+              
+              ## fitpar <- list()
+              ## for(h in seq(nh)){
+              ##     fitpar[[h]] <- ISparamfitParallel(h,
+              ##                    acf             = acf.site,
+              ##                    var             = var.site,
+              ##                    lags            = lag.site,
+              ##                    nData           = nlags.site,
+              ##                    fSite           = sites[,2],
+              ##                    aSite           = aSite,
+              ##                    kSite           = kBsite,
+              ##                    iSite           = ind.site,
+              ##                    B               = B2,
+              ##                    apriori         = apriori,
+              ##                    directTheory    = ISdirectTheory,
+              ##                    absLimit        = absLimit,
+              ##                    diffLimit       = diffLimit,
+              ##                    scaleFun        = scaleParams,
+              ##                    maxLambda       = maxLambda,
+              ##                    maxIter         = maxIter,
+              ##                    fitFun          = fitFun,
+              ##                    MCMCsettings    = MCMCsettings,
+              ##                    trueHessian     = trueHessian,
+              ##                    heights         = height,
+              ##                    latitude        = latitude,
+              ##                    longitude       = longitude,
+              ##                    fitGate         = fitGate)#,
+              ##     }
               
               # scale the results back to physical units and add some metadata
               for(h in seq(nh)){

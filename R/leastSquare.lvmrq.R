@@ -1,4 +1,4 @@
-leastSquare.lvmrq <- function(measData , measVar , initParam , aprioriTheory, aprioriMeas , invAprioriCovar , paramLimits , directTheory , diffLimit=1e-2 , absLimit=5 , maxIter=50 , maxLambda=1e20 , plotTest=F , plotFit=F , trueHessian=F , priorUpdateFunction=NULL , ... ){
+leastSquare.lvmrq <- function(measData , measVar , initParam , aprioriTheory, aprioriMeas , invAprioriCovar , paramLimits , directTheory , diffLimit=1e-2 , absLimit=5 , maxIter=50 , maxLambda=1e20 , plotTest=F , plotFit=F , trueHessian=F , aprioriUpdateFunction=NULL , ... ){
 # 
 # Non-linear least-squares fit using the Levenberg-Marquardt algorithm
 # 
@@ -74,6 +74,13 @@ leastSquare.lvmrq <- function(measData , measVar , initParam , aprioriTheory, ap
         # Increment the iteration counter
         nIter          <- nIter + 1
         
+        ## if(!is.null(aprioriUpdateFunction)){
+        ##     aprioriNew <- aprioriUpdateFunction(param=param[1,],aprioriTheory=aprioriTheory,aprioriMeas=aprioriMeas,invAprioriCovar=invAprioriCovar,paramLimits=paramLimits , ... )
+        ##     aprioriTheory <- aprioriNew$A
+        ##     aprioriMeas <- aprioriNew$m
+        ##     invAprioriCovar <- aprioriNew$invAprioriCovar
+        ## }
+
         if( trueHessian ){
 
             alpha <- .5 * hessian( measData , measVar , param[1,] , directTheory , aprioriTheory , aprioriMeas , invAprioriCovar ,  ... )
@@ -93,6 +100,8 @@ leastSquare.lvmrq <- function(measData , measVar , initParam , aprioriTheory, ap
                                      aprioriTheory , aprioriMeas , invAprioriCovar )
             
         }
+
+        
     }
 
     # add lambda to the diagonal of alpha
@@ -140,9 +149,6 @@ leastSquare.lvmrq <- function(measData , measVar , initParam , aprioriTheory, ap
       chisqr[1]      <- chisqr[2]
 
 
-        if(!is.null(priorUpdateFunction)){
-            aprioriMeas <- priorUpdateFunction(param=param[1,],paramLimits=paramLimits,aprioriMeas=aprioriMeas , ... )
-        }
         
       if((chisqr[1]/nMeas) < absLimit){
         # if relative change in chi-squared is below the limit, break the loop
