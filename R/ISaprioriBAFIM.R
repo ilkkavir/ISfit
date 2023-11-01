@@ -276,8 +276,11 @@ ISaprioriBAFIM <- function( PP , date , dateprev , latitude , longitude , height
                 # The zeroth-order terms are added later
 
                 for(hind in seq(1,nh-1)){
-                    A[Aind,hind]   <- 1
-                    A[Aind,hind+1] <- -1
+                    # here '1' and '-1' should be scaled according to the difference between the forward gate centre difference and dheights
+                    #A[Aind,hind]   <- 1
+                    #A[Aind,hind+1] <- -1
+                    A[Aind,c(0,1)+hind] <- c(1,-1)/(height[hind+1]-height[hind])*dheights[hind]
+
                     SNe[Aind]      <-  2 * corrP[hind,1]  * dheights[hind] / (BAFIMpar$Ne[3]*hsAlt[hind])
                     STipar[Aind]   <-  2 * corrP[hind,2]  * dheights[hind] / (BAFIMpar$Ti[3]*hsAlt[hind])
                     STiperp[Aind]  <-  2 * corrP[hind,3]  * dheights[hind] / (BAFIMpar$Ti[3]*hsAlt[hind])
@@ -297,9 +300,13 @@ ISaprioriBAFIM <- function( PP , date , dateprev , latitude , longitude , height
                # NOTE: This is approximately OK also when the altitude resolution changes, because we assume that
                # the parameters are constant within a gate...
                 for(hind in seq(2,nh-1)){
-                    A[Aind,hind-1] <- 1
-                    A[Aind,hind] <- -2
-                    A[Aind,hind+1] <- 1
+                    # here '1', '-2' and  '1' should be normalized according to the difference between gate centre separations and dheights
+                    #A[Aind,hind-1] <- 1
+                    #A[Aind,hind] <- -2
+                    #A[Aind,hind+1] <- 1
+                    A[Aind,hind-1] <- 2/((height[hind+1]-height[hind])*(height[hind+1]-height[hind-1]))*dheights[hind]**2
+                    A[Aind,hind] <- 2*(height[hind-1]-height[hind+1])/((height[hind+1]-height[hind])*(height[hind]-height[hind-1])*(height[hind+1]-height[hind-1]))*dheights[hind]**2
+                    A[Aind,hind+1] <- 2/((height[hind]-height[hind-1])*(height[hind+1]-height[hind-1]))*dheights[hind]**2
 
                     SNe[Aind]     <- 8 * corrP[hind,1]  * ( dheights[hind] / (BAFIMpar$Ne[3]     * hsAlt[hind]) )**3
                     STipar[Aind]  <- 8 * corrP[hind,2]  * ( dheights[hind] / (BAFIMpar$Ti[3]     * hsAlt[hind]) )**3
