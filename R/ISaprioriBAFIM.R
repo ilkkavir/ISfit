@@ -156,7 +156,8 @@ ISaprioriBAFIM <- function( PP , date , dateprev , latitude , longitude , height
             aprioriStd                   <- vector(mode='numeric',length=nPar)
 
             # scaled process noise standard deviations. We use these as prior standard deviations in the first integration period
-            processStdScale <- scaleParams(c( BAFIMpar$Ne[4] , BAFIMpar$Ti[4] , BAFIMpar$Ti[4] ,BAFIMpar$Te[4] , BAFIMpar$Te[4] , BAFIMpar$Coll[4] , BAFIMpar$Viperp[4] , BAFIMpar$Viperp[4] , BAFIMpar$Vipar[4] , BAFIMpar$Mp[4], BAFIMpar$Op[4], BAFIMpar$Hp[4] ) ,  parScales[1:12],inverse=F)
+            dt <- abs( as.double(ISOdate(date[1],date[2],date[3],date[4],date[5],date[6])) - as.double(ISOdate(dateprev[1],dateprev[2],dateprev[3],dateprev[4],dateprev[5],dateprev[6])))
+            processStdScale <- scaleParams(c( BAFIMpar$Ne[4] , BAFIMpar$Ti[4] , BAFIMpar$Ti[4] ,BAFIMpar$Te[4] , BAFIMpar$Te[4] , BAFIMpar$Coll[4] , BAFIMpar$Viperp[4] , BAFIMpar$Viperp[4] , BAFIMpar$Vipar[4] , BAFIMpar$Mp[4], BAFIMpar$Op[4], BAFIMpar$Hp[4] ) ,  parScales[1:12],inverse=F)*sqrt(dt)
 
             
             # The user input standard deviation in the fitted region (when starting the filter), small values elsewhere. 
