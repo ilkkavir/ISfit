@@ -953,7 +953,7 @@ ISaprioriBAFIM <- function( PP , date , dateprev , latitude , longitude , height
                 aprioriTheory[curRow,] <- fcApriori$A
                 aprioriMeas[curRow] <- fcApriori$m
                 aprioriCovar[curRow,curRow] <- fcApriori$var
-                aprioriUpdateFunction <- updateAprioriFlipchem
+#                aprioriUpdateFunction <- updateAprioriFlipchem
             }else{
                 aprioriUpdateFunction <- NULL
             }
