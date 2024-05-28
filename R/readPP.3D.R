@@ -1,4 +1,4 @@
-readPP.3D <- function(dpath,measuredOnly=T,nSiteVi=3,recursive=F,...){
+readPP.3D <- function(dpath,measuredOnly=T,nSiteVi=3,recursive=F,mlatmlonstr=NULL,...){
 #
 #
 # read plasma parameters from files
@@ -14,10 +14,10 @@ readPP.3D <- function(dpath,measuredOnly=T,nSiteVi=3,recursive=F,...){
     dpath <- dpath[file.info(dpath)$isdir]
 
     # list the PPI result files
-    flist <- dir(dpath[1],pattern='PP.Rdata',recursive=recursive,full.names=TRUE)
+    flist <- dir(dpath[1],pattern=paste(mlatmlonstr,'PP.Rdata',sep=''),recursive=recursive,full.names=TRUE)
     if(length(dpath)>1){
         for(k in seq(2,length(dpath))){
-            flist <- c(flist,dir(dpath[1],pattern='PP.Rdata',recursive=recursive,full.names=TRUE))
+            flist <- c(flist,dir(dpath[1],pattern=paste(mlatmlonstr,'PP.Rdata',sep=''),recursive=recursive,full.names=TRUE))
         }
     }
     flist <- c(flist,fpath)

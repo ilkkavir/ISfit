@@ -146,19 +146,20 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
       for (imlat in seq(nmlat)){
           for (imlon in seq(nmlon)){
               for( k in ipers ){
-                  
+
+                  print(c(imlat,imlon,k))
                   nnn <- nnn + 1
                   
                   # output file name
                   mlatstr <- mlonstr <- ''
                   if(nmlat>1){
-                      mlatstr <- paste( '_',sprintf('%5.0f',mean(mlatLimits[c(0,1)+imlat])*100),sep='')
+                      mlatstr <- paste( '_',sprintf('%05.0f',mean(mlatLimits.deg[c(0,1)+imlat])*100),sep='')
                   }
                   if(nmlon>1){
-                      mlonstr <- paste( '_',sprintf('%5.0f',mean(mlonLimits[c(0,1)+imlon])*100),sep='')
+                      mlonstr <- paste( '_',sprintf('%05.0f',mean(mlonLimits.deg[c(0,1)+imlon])*100),sep='')
                   }
                   resFile <- paste( sprintf( '%13.0f' , trunc( iperLimits[k+1]  * 1000 ) ),mlatstr,mlonstr , "PP.Rdata" , sep='')
-          
+
                   # look for data files from the current integration period
                   if(nnn==1){
                       if(reverseTime){
@@ -210,7 +211,7 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
                               dlist[[n]][["radarFreq"]] <- NA
                           }
                       }
-                      
+
                       
                       # read acf, variance, lag, range, pointing directions, and TX / RX location of each data point
                       acf   <- calScale * unlist( lapply( dlist , function(x){ return( unlist( lapply( seq( ncol( x[["ACF"]] ) ) , function( i , n , x ){ return( x[ 1 : n[i] , i ] ) } , x=x[["ACF"]] , n=x[["nGates"]] ) ) ) } ) )
@@ -220,7 +221,7 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
                       sinds <- unlist( lapply( seq(nd) , function( i , x ){ return( rep( i , sum( x[[i]][["nGates"]] ) ) ) } , x=dlist ) )
                       
                       # number of sites is equal to number of data directories, create a matrix with position and pointing direction information for each site
-                      
+
                       sites <- matrix( nrow=nd , ncol=12 )
                       for(n in seq(nd)){
                           sites[n,1]     <- n
@@ -304,7 +305,7 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
                           }
                           var[spoints] <- var[spoints] * dscales[n,6]**2
                       }
-                      
+
                       
                       # a time vector converted from iperLimits
                       t <- as.POSIXlt( iperLimits[k+1] , origin='1970-01-01' , tz='utc')
@@ -340,6 +341,16 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
                       # convert all ranges to latitude, longitude, height
                       llh <- matrix(nrow=length(ran),ncol=3)
                       latlonm <- matrix(nrow=length(ran),ncol=2)
+
+
+                      # the mclapply below is very slow with lots of beam directions
+
+                      ##
+                      ## .. but the coordinates are the same in all time steps --> tabulate and check for pre-calculated ones whenever possible?
+                      ##
+
+
+
                       llhlist <- mclapply(seq(length(ran)) , FUN=range2llhParFun ,  ran=ran , sites=sites , sinds=sinds , mc.cores=nCores)
                       for( dind in seq(length(ran))){
                           #if(!is.na(ran[dind])) llh[dind,] <- range2llh( r=ran[dind] , llhT=sites[sinds[dind],3:5] , llhR=sites[sinds[dind],8:10] , azelT=sites[sinds[dind],6:7])
@@ -349,7 +360,6 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
                       llhmtmp <- aacgmv2(llh[,1],llh[,2],llh[,3]/1000,date,'G2A')
                       latlonm[,1] <- llhmtmp[[1]]
                       latlonm[,2] <- llhmtmp[[2]]
-
                       
                       # a list for site indices contributing at each height
                       contribSites <- apriori <- vector(mode='list',length=nh)#list()
@@ -386,7 +396,6 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
                           # is this where we can add the mlat, mlon check?
                           gateinds       <- which( ( llh[,3] >= hlims[h] ) & (llh[,3] < hlims[h+1]) & latlonm[,1]>=mlatLimits.deg[imlat] & latlonm[,1] < mlatLimits.deg[imlat+1] & latlonm[,2]>=mlonLimits.deg[imlon] & latlonm[,2]<mlonLimits.deg[imlon+1])
                           
-                          
                           acf.gate[[h]]       <- acf[ gateinds ]
                           var.gate[[h]]       <- var[ gateinds ]
                           lag.gate[[h]]       <- lag[ gateinds ]
@@ -399,7 +408,7 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
                           
                           # remove NA values
                           nainds         <- is.na(acf.gate[[h]]) | is.na(var.gate[[h]])
-                          
+
                           if(any(!nainds)){
                               
                               acf.gate[[h]]       <- acf.gate[[h]][ !nainds ]
