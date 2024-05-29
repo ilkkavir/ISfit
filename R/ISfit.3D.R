@@ -1,4 +1,4 @@
-ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 , timeResFirst.s=timeRes.s , mlatLimits.deg=c(-Inf,Inf),mlonLimits.deg=c(-Inf,Inf), beginTime=c(1970,1,1,0,0,0) , endTime=c(2100,1,1,0,0,0) , fitFun=leastSquare.lvmrq , absLimit=5 , diffLimit=1e-2 , maxLambda=1e30 , maxIter=10 , absCalib=FALSE , TiIsotropic=TRUE , TeIsotropic=TRUE , recursive=TRUE , aprioriFunction=ISaprioriH , scaleFun=acfscales , siteScales=NULL, calScale=1, MCMCsettings=list( niter=10000 , updatecov=100 , burninlength=5000 , outputlength=5000 ) , maxdev=2 , trueHessian=FALSE , nCores=1 , reverseTime=FALSE , burnin.s=0 ,  ... )
+ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 , timeResFirst.s=timeRes.s , mlatLimits.deg=c(-90,90),mlonLimits.deg=c(-360,360), beginTime=c(1970,1,1,0,0,0) , endTime=c(2100,1,1,0,0,0) , fitFun=leastSquare.lvmrq , absLimit=5 , diffLimit=1e-2 , maxLambda=1e30 , maxIter=10 , absCalib=FALSE , TiIsotropic=TRUE , TeIsotropic=TRUE , recursive=TRUE , aprioriFunction=ISaprioriH , scaleFun=acfscales , siteScales=NULL, calScale=1, MCMCsettings=list( niter=10000 , updatecov=100 , burninlength=5000 , outputlength=5000 ) , maxdev=2 , trueHessian=FALSE , nCores=1 , reverseTime=FALSE , burnin.s=0 ,  ... )
   {
 
       # 3D incoherent scatter plasma parameter fit using LPI output files in ddirs
@@ -41,7 +41,10 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
 
 
 
-      
+      ## check for available number of cores if not given
+      if(is.null(nCores)){
+          nCores <- parallelly::availableCores()
+      }
       
       # create the output directory
       dir.create( odir , recursive=TRUE , showWarnings=FALSE)
@@ -147,7 +150,7 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
           for (imlon in seq(nmlon)){
               for( k in ipers ){
 
-                  print(c(imlat,imlon,k))
+##                  print(c(imlat,imlon,k))
                   nnn <- nnn + 1
                   
                   # output file name
@@ -346,7 +349,10 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
                       # the mclapply below is very slow with lots of beam directions
 
                       ##
-                      ## .. but the coordinates are the same in all time steps --> tabulate and check for pre-calculated ones whenever possible?
+                      ## .. but the coordinates are the same in all time steps
+                      ## --> tabulate and check for pre-calculated ones whenever possible?
+                      ##
+                      ## this is not working, the table becomes large and checking it becomes very time-consuming... 
                       ##
 
 

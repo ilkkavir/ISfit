@@ -51,7 +51,8 @@ export(
     filterEfield,
     plotEvectorsF,
     writeEascii,
-    ISfit.NeVi
+    ISfit.NeVi,
+    ddirSelect
     )
 
 useDynLib(ISfit)
