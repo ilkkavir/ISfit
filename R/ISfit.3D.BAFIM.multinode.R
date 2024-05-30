@@ -48,7 +48,7 @@ ISfit.3D.BAFIM.multinode <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA
         }
     }else{
         # this has not been tested yet!!
-        snow::clusterApply( cl ,
+        snow::clusterApplyLB( cl ,
                            seq(nbinlatlon) ,
                            fun=ISfit.3D.BAFIM ,
                            ddirs=ddirs,
@@ -79,7 +79,6 @@ ISfit.3D.BAFIM.multinode <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA
                            reverseTime=FALSE,
                            burnin.s=burnin.s,
                            iddirs = iddirs,
-                           imlatlon=ibin,
                            ...
                            )
     }
