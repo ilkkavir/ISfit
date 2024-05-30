@@ -150,7 +150,7 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
           for (imlon in seq(nmlon)){
               for( k in ipers ){
 
-##                  print(c(imlat,imlon,k))
+                  ##print(c(imlat,imlon,k))
                   nnn <- nnn + 1
                   
                   # output file name
@@ -357,7 +357,7 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
 
 
 
-                      llhlist <- mclapply(seq(length(ran)) , FUN=range2llhParFun ,  ran=ran , sites=sites , sinds=sinds , mc.cores=nCores)
+                      llhlist <- parallel::mclapply(seq(length(ran)) , FUN=range2llhParFun ,  ran=ran , sites=sites , sinds=sinds , mc.cores=nCores)
                       for( dind in seq(length(ran))){
                           #if(!is.na(ran[dind])) llh[dind,] <- range2llh( r=ran[dind] , llhT=sites[sinds[dind],3:5] , llhR=sites[sinds[dind],8:10] , azelT=sites[sinds[dind],6:7])
                           if(!is.na(ran[dind])) llh[dind,] <- llhlist[[dind]]
@@ -562,7 +562,7 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
                       }
 
                       # run the actual iterative fit in parallel              
-                      fitpar <- mclapply(seq(nh),FUN=ISparamfitParallel,
+                      fitpar <- parallel::mclapply(seq(nh),FUN=ISparamfitParallel,
                                          acf             = acf.site,
                                          var             = var.site,
                                          lags            = lag.site,
@@ -657,7 +657,7 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
                       
               
                       # save the results to file
-                      PP <- list(param=param,std=std,model=model,chisqr=chisqr,status=status,time_sec=time_sec,date=date,POSIXtime=POSIXtime,height=height,latitude=latitude,longitude=longitude,sites=sites,intersect=intersect,covar=covar,B=B,heightLimits.km=hlims/1000,contribSites=contribSites,mIon=c(30.5,16.0,1.0),MCMC=MCMC,timeLimits.s=iperLimits[k:(k+1)],functionCall=functionCall,apriori=apriori,resFile=resFile , resDir=odir,ViCoordinates='ENUmagnetic')
+                      PP <- list(param=param,std=std,model=model,chisqr=chisqr,status=status,time_sec=time_sec,date=date,POSIXtime=POSIXtime,height=height,latitude=latitude,longitude=longitude,sites=sites,intersect=intersect,covar=covar,B=B,heightLimits.km=hlims/1000,contribSites=contribSites,mIon=c(30.5,16.0,1.0),MCMC=MCMC,timeLimits.s=iperLimits[k:(k+1)],functionCall=functionCall,apriori=apriori,resFile=resFile , resDir=odir,ViCoordinates='ENUmagnetic',mlatLimits.deg=mlatLimits.deg,mlonLimits.deg=mlonLimits.deg)
                       if(nnn>nburnin){
                           save( PP , file=file.path(odir,resFile) )
                       }

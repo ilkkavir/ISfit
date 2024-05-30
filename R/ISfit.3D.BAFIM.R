@@ -4,6 +4,16 @@ ISfit.3D.BAFIM <- function( imlatlon=NULL , ddirs='.' , odir='.' ,  heightLimits
       # 3D incoherent scatter plasma parameter fit with Baeysian filtering and smoothing using LPI output files in ddirs
       #
 
+      ## make sure that libraries are available also when running with MPI clusters..
+      ## these should match wtih those listed in the DESCRIPTION file of the ISfit package (excluding those needed for data plots etc. )
+      library(IGRF13)
+      library(radarPointings)
+      library(ISspectrum)
+      library(IRI2016)
+      library(FME)
+      library(parallel)
+      library(parallelly)
+
 
       if(!is.null(iddirs)){
           ddirs <- ddirs[iddirs[[imlatlon]]]
