@@ -558,7 +558,7 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
                       
                       # copy the model/initial values in a matrix for backward compatibility
                       for (h in seq(nh)){
-                          model[h,] <- apriori[[h]][["aprioriParam"]]
+                          model[h,] <- apriori[[h]][["aprioriParam"]] * apriori[[h]][['parScales']]
                       }
 
                       # run the actual iterative fit in parallel              
