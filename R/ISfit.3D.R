@@ -52,7 +52,7 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
 
       # copy the original function call, it will be stored in each data files
 # should also explicitly store every single input argument, as those with default values are not returned by  match.call
-      functionCall <- match.call(expand.dots=TRUE)
+      inputArgs <- c(list(ddirs=ddirs,odir=odir,heightLimits.km=heightLimits.km,timeRes.s=timeRes.s,timeResFirst.s=timeResFirst.s,mlatLimits.deg=mlatLimits.deg,mlonLimits.deg=mlonLimits.deg,beginTime=beginTime,endTime=endTime,fitFun=fitFun,absLimit=absLimit,diffLimit=diffLimit,maxLambda=maxLambda,maxIter=maxIter,absCalib=absCalib,TiIsotropic=TiIsotropic,TeIsotropic=TeIsotropic,recursive=recursive,aprioriFunction=aprioriFunction,scaleFun=scaleFun,siteScales=siteScales,calScale=calScale,MCMCsettings=MCMCsettings,maxdev=maxdev,trueHessian=trueHessian,nCores=nCores,reverseTime=reverseTime,burnin.s=burnin.s,logNe=logNe),list(...))
 
 
 
@@ -669,7 +669,7 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
                       
               
                       # save the results to file
-                      PP <- list(param=param,std=std,model=model,chisqr=chisqr,status=status,time_sec=time_sec,date=date,POSIXtime=POSIXtime,height=height,latitude=latitude,longitude=longitude,sites=sites,intersect=intersect,covar=covar,B=B,heightLimits.km=hlims/1000,contribSites=contribSites,mIon=c(30.5,16.0,1.0),MCMC=MCMC,timeLimits.s=iperLimits[k:(k+1)],functionCall=functionCall,apriori=apriori,resFile=resFile , resDir=odir,ViCoordinates='ENUmagnetic',mlatLimits.deg=mlatLimits.deg,mlonLimits.deg=mlonLimits.deg,logNe=logNe)
+                      PP <- list(param=param,std=std,model=model,chisqr=chisqr,status=status,time_sec=time_sec,date=date,POSIXtime=POSIXtime,height=height,latitude=latitude,longitude=longitude,sites=sites,intersect=intersect,covar=covar,B=B,heightLimits.km=hlims/1000,contribSites=contribSites,mIon=c(30.5,16.0,1.0),MCMC=MCMC,timeLimits.s=iperLimits[k:(k+1)],inputArgs=inputArgs,apriori=apriori,resFile=resFile , resDir=odir,ViCoordinates='ENUmagnetic',mlatLimits.deg=mlatLimits.deg,mlonLimits.deg=mlonLimits.deg,logNe=logNe)
                       if(nnn>nburnin){
                           save( PP , file=file.path(odir,resFile) )
                       }
