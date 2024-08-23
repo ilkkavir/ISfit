@@ -1,4 +1,4 @@
-ISparamVec2List <- function(param,mIon){
+ISparamVec2List <- function(param,mIon,logNe){
 #
 # Conversion from parameter vector used in ISparamfit into lists of electron and ion parameters
 # 
@@ -11,7 +11,7 @@ ISparamVec2List <- function(param,mIon){
 #
 #
   # electron parameters
-  ele      <- c( param[1] , param[4:5] , param[6]*0.35714 , param[7:9])
+  ele      <- c( ifelse(logNe,10^param[1],param[1]) , param[4:5] , param[6]*0.35714 , param[7:9])
 
   nIon <- length(mIon)
   

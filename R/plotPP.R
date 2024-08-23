@@ -71,6 +71,18 @@ plotPP.list <- function(data,par=list(Ne=c(10,12),TeR1=c(0,4000),TiR1=c(0,3000),
         # take a copy that will be returned
         data2 <- data
 
+
+        if(data$logNe){
+            data[["std"]][,1,] <- 10^((data[["param"]][,1,]+data[["std"]][,1,])) - 10^(data[["param"]][,1,])
+            data[["param"]][,1,] <- 10^(data[["param"]][,1,])
+            data[["model"]][,1,] <- 10^(data[["model"]][,1,])
+            dnames <- dimnames(data[["param"]])
+            dnames[[2]][1] <- 'Ne'
+            dimnames(data[["param"]]) <- dnames
+            dimnames(data[["std"]]) <- dnames
+            dimnames(data[['model']]) <- dnames
+        }
+        
         # if no data, return NULL
         if(is.null(data)){
             warning("No data")

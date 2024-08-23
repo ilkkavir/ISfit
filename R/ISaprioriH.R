@@ -1,4 +1,4 @@
-ISaprioriH <- function( PP , date , latitude , longitude , height , nSite ,  nIon , absCalib=FALSE , TiIsotropic=FALSE , TeIsotropic=FALSE, refSite=1 , siteScales=NULL , hTeTi=100 , hTi=80 , hVi=90, hColl=c(0,0) , B=c(0,0,0) , ViPar0=FALSE , nCores=1, ... )
+ISaprioriH <- function( PP , date , latitude , longitude , height , nSite ,  nIon , absCalib=FALSE , TiIsotropic=FALSE , TeIsotropic=FALSE, refSite=1 , siteScales=NULL , hTeTi=100 , hTi=80 , hVi=90, hColl=c(0,0) , B=c(0,0,0) , ViPar0=FALSE , nCores=1, logNe=TRUE , ... )
     {
         #
         #
@@ -43,15 +43,15 @@ ISaprioriH <- function( PP , date , latitude , longitude , height , nSite ,  nIo
               
         for(h in seq(nh)){
                     
-            # parameters from iri model
+            ## parameters from iri model
             ptmp <- IRIlist[[h]]
             
-            # an approximation for NO+-neutral colllision frequency (Schunk & Walker, Planet. Space Sci., 1971)
-            # This is approximately true for all ions, because ion density is much smaller than neutral density
+            ## an approximation for NO+-neutral colllision frequency (Schunk & Walker, Planet. Space Sci., 1971)
+            ## This is approximately true for all ions, because ion density is much smaller than neutral density
             ioncoll        <- sum( ionNeutralCollisionFrequency(ptmp[,1])['NO+',] )
 
 
-                    # initial plasma parameter values
+            ## initial plasma parameter values
             cH <- max(ptmp['H+',1],0)
             cO <- max(ptmp['O+',1],0)
             cM <- max(sum(ptmp[c('NO+','O2+','cluster'),1]),0)
@@ -68,21 +68,21 @@ ISaprioriH <- function( PP , date , latitude , longitude , height , nSite ,  nIo
                 }
             }
                           
-            parInit <- pmax( c( ptmp['e-',1] , ptmp['Ti',1] , ptmp['Ti',1], ptmp['Te',1] , ptmp['Te',1] , ioncoll , 0 , 0 , 0 , cM/cTot , cO/cTot , cH/cTot , rep(1,nSite) ) , 0 )
+            parInit <- pmax( c( ifelse(logNe,log10(ptmp['e-',1]),ptmp['e-',1]) , ptmp['Ti',1] , ptmp['Ti',1], ptmp['Te',1] , ptmp['Te',1] , ioncoll , 0 , 0 , 0 , cM/cTot , cO/cTot , cH/cTot , rep(1,nSite) ) , 0 )
             
             
-            parInit[1]     <- max(parInit[1],1e9)
+            parInit[1]     <- max(parInit[1],ifelse(logNe,9,1e9))
             
             mIon <- c(30.5,16.0,1)
             
             # parameter scaling factors
-            parScales      <- ISparamScales(parInit,3)
+            parScales      <- ISparamScales(parInit,3,logNe)
             
             # scale the initial parameter values
             aprioriParam      <- scaleParams( parInit , parScales , inverse=F)
             
             # parameter value limits
-            parLimits      <- ISparamLimits(3,nSite)
+            parLimits      <- ISparamLimits(3,nSite,logNe)
             
             # scale the parameter limits
             limitParam     <- parLimits
@@ -118,8 +118,8 @@ ISaprioriH <- function( PP , date , latitude , longitude , height , nSite ,  nIo
             
             aprioriMeas[1:nPar]          <- aprioriParam
             
-            aprioriStd[1]                <- 1e4                                        # electron density
-            aprioriStd[2]                <- ifelse(height[h]<hTi,1e-3,2)                       # parallel ion temperature
+            aprioriStd[1]                <- ifelse(logNe,4,1e4)                        # electron density
+            aprioriStd[2]                <- ifelse(height[h]<hTi,1e-3,2)               # parallel ion temperature
             aprioriStd[3]                <- 2                                          # perpendicular ion temperature
             aprioriStd[4]                <- 2                                          # parallel electron temperature
             aprioriStd[5]                <- 2                                          # perpendicular electron temperature
@@ -205,6 +205,7 @@ ISaprioriH <- function( PP , date , latitude , longitude , height , nSite ,  nIo
             aprioriMeas[curRow] <- 0
             aprioriStd[curRow] <- ifelse(ViPar0&all(B[h,]!=0),1e-3,10)
 
+            
             apriorilist[[h]] <- list(aprioriParam=aprioriParam,aprioriTheory=aprioriTheory,invAprioriCovar=diag(1/aprioriStd**2),aprioriMeas=aprioriMeas,limitParam=limitParam,parScales=parScales,mIon=mIon,nIon=nIon)
         }
 

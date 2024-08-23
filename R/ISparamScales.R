@@ -1,4 +1,4 @@
-ISparamScales <- function(param,nIon){
+ISparamScales <- function(param,nIon,logNe){
 #
 #
 #
@@ -15,7 +15,7 @@ ISparamScales <- function(param,nIon){
   parScales <- param
 
   # do not allow electron density step sizes smaller than 1e11
-  parScales[1] <- max(parScales[1],1e11)
+  parScales[1] <- max(parScales[1],ifelse(logNe,11,1e11))
 
   # do not allow temperature steps smaller than 300 K, this
   # is mainly to keep reasonable width for the prior distributions

@@ -1,4 +1,4 @@
-aprioriFlipchem <- function( param , flipchem , flipchemStd ,  lat , lon, h , scaleFun ,   ... ){
+aprioriFlipchem <- function( param , flipchem , flipchemStd ,  lat , lon, h , scaleFun , logNe ,   ... ){
 #
 # Apriori theory from linear apporiximation of flipchem composition
 #
@@ -32,10 +32,10 @@ aprioriFlipchem <- function( param , flipchem , flipchemStd ,  lat , lon, h , sc
     Ti <- (sparam[2] + 2*sparam[3]) / 3
     
     # call flipchem 
-    fcout <- flipchem$get_point(lat,lon,h,sparam[1],Te,Ti)
+    fcout <- flipchem$get_point(lat,lon,h,ifelse(logNe,10^sparam[1],sparam[1]),Te,Ti)
 
     # O+ ion fraction from flicphem
-    fcOp <- fcout[[4]] / sparam[1]
+    fcOp <- fcout[[4]] / ifelse(logNe,10^sparam[1],sparam[1])
 
     # derivatives with respect to Ne, Ti, Te, Coll
     dOp  <-  rep(0,6)
@@ -47,8 +47,8 @@ aprioriFlipchem <- function( param , flipchem , flipchemStd ,  lat , lon, h , sc
         sparam2 <- scaleFun( param2 , ... , inverse=T)
         Te <- (sparam2[4] + 2*sparam2[5]) / 3
         Ti <- (sparam2[2] + 2*sparam2[3]) / 3
-        fcout <- flipchem$get_point(lat,lon,h,sparam2[1],Te,Ti)
-        dfcOp <- fcout[[4]] / sparam[1] - fcOp
+        fcout <- flipchem$get_point(lat,lon,h,ifelse(logNe,10^sparam2[1],sparam2[1]),Te,Ti)
+        dfcOp <- fcout[[4]] / ifelse(logNe,10^sparam[1],sparam[1]) - fcOp
         dOp[k] <- dfcOp/dp
     }
 

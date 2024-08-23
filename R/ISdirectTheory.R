@@ -1,4 +1,4 @@
-ISdirectTheory <- function( param , scaleFun , nData , mIon , nSite , iSite , fSite , aSite , kSite ,  xSite ,  B , fAmb , ... ){
+ISdirectTheory <- function( param , scaleFun , nData , mIon , nSite , iSite , fSite , aSite , kSite ,  xSite ,  B , fAmb , logNe , ... ){
 #
 # Direct theory function for plasma paramter fits.
 #
@@ -26,7 +26,7 @@ ISdirectTheory <- function( param , scaleFun , nData , mIon , nSite , iSite , fS
   sparam         <- scaleFun( param , ... , inverse=T)
 
   # Conversion to parameter list
-  parlist <- ISparamVec2List( sparam , mIon )
+  parlist <- ISparamVec2List( sparam , mIon , logNe )
 
   # spectra at each site
   nf <- sapply( xSite , length )

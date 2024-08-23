@@ -1,4 +1,4 @@
-ISparamLimits <- function(nIon,nSite){
+ISparamLimits <- function(nIon,nSite,logNe){
 #
 # Default lower and upper limits for parameters, in physical units
 #
@@ -19,8 +19,8 @@ ISparamLimits <- function(nIon,nSite){
 
 
   # electron density
-  paramLimits[1,1]                <- 1e8
-  paramLimits[2,1]                <- 1e13
+  paramLimits[1,1]                <- ifelse(logNe,8,1e8)
+  paramLimits[2,1]                <- ifelse(logNe,13,1e13)
 
   # ion temperatures
   paramLimits[1,2:3] <- 10

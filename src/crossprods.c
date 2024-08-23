@@ -11,7 +11,7 @@ SEXP crossprods( SEXP nData , SEXP fAmb , SEXP nFreq , SEXP iSite , SEXP sSite ,
 
   SEXP dirtheData;
   Rcomplex * dData;
-  R_len_t  k,l,n,m;
+  R_len_t  k,l;
 
   // allocate the direct theory vector
   PROTECT( dirtheData = allocVector( CPLXSXP , nd ) );

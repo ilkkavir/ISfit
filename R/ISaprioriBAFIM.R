@@ -1,4 +1,4 @@
-ISaprioriBAFIM <- function( PP , date , dateprev , latitude , longitude , height , nSite ,  nIon , absCalib=FALSE , TiIsotropic=FALSE , TeIsotropic=FALSE, refSite=1 , siteScales=NULL , hTeTi=100 , B=c(0,0,0) , ViPar0=FALSE , nCores=1, BAFIMpar=list(Ne=c(0,Inf,0.05,2.5e11),Ti=c(80,Inf,0.1,30),Te=c(100,Inf,0.1,30),Coll=c(0,0,.1,1),Vipar=c(80,Inf,0.05,2.5),Viperp=c(80,Inf,.05,10),Mp=c(150,500,.05,.01),Op=c(150,500,0.05,0.01),Hp=c(0,0,.05,.01),flipchem=c(150,350,.1)) , updateFile=TRUE , returnParams=FALSE , ... )
+ISaprioriBAFIM <- function( PP , date , dateprev , latitude , longitude , height , nSite ,  nIon , absCalib=FALSE , TiIsotropic=FALSE , TeIsotropic=FALSE, refSite=1 , siteScales=NULL , hTeTi=100 , B=c(0,0,0) , ViPar0=FALSE , nCores=1, BAFIMpar=list(Ne=c(0,Inf,0.05,2.5e11),Ti=c(80,Inf,0.1,30),Te=c(100,Inf,0.1,30),Coll=c(0,0,.1,1),Vipar=c(80,Inf,0.05,2.5),Viperp=c(80,Inf,.05,10),Mp=c(150,500,.05,.01),Op=c(150,500,0.05,0.01),Hp=c(0,0,.05,.01),flipchem=c(150,350,.1)) , updateFile=TRUE , returnParams=FALSE , logNe , ... )
     {
         #
         #
@@ -86,9 +86,12 @@ ISaprioriBAFIM <- function( PP , date , dateprev , latitude , longitude , height
 #        IRIlist <- mclapply(seq(nh) , FUN=iriParamsParFun , date=date,latitude=latitude,longitude=longitude,height=height,fitGate=rep(T,nh) , okData=rep(T,nh) , mc.cores=nCores)
         IRIpar <- iriParams( time=date,latitude=mean(latitude),longitude=mean(longitude),heights=height) # IS this accurate enough for low-elevation measurements?
 
+        if(logNe){
+            IRIpar[1,] <- log10(pmax(IRIpar[1,],1e9))
+        }
 
         # parameter value limits
-        parLimits      <- ISparamLimits(3,nSite)
+        parLimits      <- ISparamLimits(3,nSite,logNe)
 
 
         
@@ -109,7 +112,7 @@ ISaprioriBAFIM <- function( PP , date , dateprev , latitude , longitude , height
             ## an approximation for NO+-neutral colllision frequency (Schunk & Walker, Planet. Space Sci., 1971)
             ## This is approximately true for all ions, because ion density is much smaller than neutral density
             ## could replace with the more recent formulas by Schunk and Nagy??
-            ioncoll        <- sum( ionNeutralCollisionFrequency(ptmp)['NO+',] )
+            ioncoll        <- sum( ionNeutralCollisionFrequency( c( ifelse(logNe,10^ptmp[1],ptmp[1] ) , ptmp[2:length(ptmp)] ) )['NO+',] )
 
 
             # initial plasma parameter values
@@ -132,7 +135,7 @@ ISaprioriBAFIM <- function( PP , date , dateprev , latitude , longitude , height
             parInit <- pmax( c( ptmp['e-'] , ptmp['Ti'] , ptmp['Ti'], ptmp['Te'] , ptmp['Te'] , ioncoll , 0 , 0 , 0 , cM/cTot , cO/cTot , cH/cTot , rep(1,nSite) ) , 0 )
             
             
-            parInit[1]     <- max(parInit[1],1e9)
+            parInit[1]     <- max(parInit[1],ifelse(logNe,9,1e9))
 
             nPar <- length(parInit)
             
@@ -141,7 +144,7 @@ ISaprioriBAFIM <- function( PP , date , dateprev , latitude , longitude , height
 
             
             # parameter scaling factors
-            parScales      <- ISparamScales(parInit,3)
+            parScales      <- ISparamScales(parInit,3,logNe)
             
             # scale the initial parameter values
             aprioriParam      <- scaleParams( parInit , parScales , inverse=F)
@@ -410,10 +413,6 @@ ISaprioriBAFIM <- function( PP , date , dateprev , latitude , longitude , height
                 print('Error in range smoothing, skipping..')
             }
 
-            if(any(is.na(log10(PP$param[,1])))){
-                print(PP$param[,1])
-                }
-            
         
             #Pick the parameter profiles
             NeCorr <- Xpost[1:nh];
@@ -459,7 +458,7 @@ ISaprioriBAFIM <- function( PP , date , dateprev , latitude , longitude , height
 
 
             
-            plot((PP$param[,1]),height,xlim=c(0,1e12))
+            plot((PP$param[,1]),height,xlim=c(0,ifelse(logNe,12,1e12)))
             lines((PP$param[,1]+PP$std[,1]),height,col='blue')
             nesmooth <- NeCorr
             nesmooth[nesmooth<=1] <- 1
@@ -594,6 +593,7 @@ ISaprioriBAFIM <- function( PP , date , dateprev , latitude , longitude , height
 #            aprioriStd <- aprioriIRI[[h]]$aprioriStd
             limitParam <- aprioriIRI[[h]]$limitParam
             parScales <- aprioriIRI[[h]]$parScales
+
 
             fitPar <- rep(FALSE,12)
 
@@ -976,7 +976,7 @@ ISaprioriBAFIM <- function( PP , date , dateprev , latitude , longitude , height
             ## }
 
             if (flipchemfit){
-                fcApriori <- aprioriFlipchem( param=aprioriParam , flipchem=fc , flipchemStd=BAFIMpar$flipchem[3],  lat=latitude[h] , lon=longitude[h] , h=height[h] , scaleFun=scaleParams , scale=parScales , ... )
+                fcApriori <- aprioriFlipchem( param=aprioriParam , flipchem=fc , flipchemStd=BAFIMpar$flipchem[3],  lat=latitude[h] , lon=longitude[h] , h=height[h] , scaleFun=scaleParams , scale=parScales , logNe , ... )
                 aprioriTheory[curRow,] <- fcApriori$A
                 aprioriMeas[curRow] <- fcApriori$m
                 aprioriCovar[curRow,curRow] <- fcApriori$var

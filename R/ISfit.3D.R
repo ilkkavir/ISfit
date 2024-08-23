@@ -1,43 +1,44 @@
-ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 , timeResFirst.s=timeRes.s , mlatLimits.deg=c(-90,90),mlonLimits.deg=c(-360,360), beginTime=c(1970,1,1,0,0,0) , endTime=c(2100,1,1,0,0,0) , fitFun=leastSquare.lvmrq , absLimit=5 , diffLimit=1e-2 , maxLambda=1e30 , maxIter=10 , absCalib=FALSE , TiIsotropic=TRUE , TeIsotropic=TRUE , recursive=TRUE , aprioriFunction=ISaprioriH , scaleFun=acfscales , siteScales=NULL, calScale=1, MCMCsettings=list( niter=10000 , updatecov=100 , burninlength=5000 , outputlength=5000 ) , maxdev=2 , trueHessian=FALSE , nCores=1 , reverseTime=FALSE , burnin.s=0 ,  ... )
+ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 , timeResFirst.s=timeRes.s , mlatLimits.deg=c(-90,90),mlonLimits.deg=c(-360,360), beginTime=c(1970,1,1,0,0,0) , endTime=c(2100,1,1,0,0,0) , fitFun=leastSquare.lvmrq , absLimit=5 , diffLimit=1e-2 , maxLambda=1e30 , maxIter=10 , absCalib=FALSE , TiIsotropic=TRUE , TeIsotropic=TRUE , recursive=TRUE , aprioriFunction=ISaprioriH , scaleFun=acfscales , siteScales=NULL, calScale=1, MCMCsettings=list( niter=10000 , updatecov=100 , burninlength=5000 , outputlength=5000 ) , maxdev=2 , trueHessian=FALSE , nCores=1 , reverseTime=FALSE , burnin.s=0 , logNe=TRUE ,  ... )
   {
-
-      # 3D incoherent scatter plasma parameter fit using LPI output files in ddirs
-      #
-      # This is a GUISDAP-style fit, which uses a single ion temperature and collision frequency. Currently 3 ions ( 30.5 , 16.0 , 1.0 )
-      #
-      #
-      #
-      # INPUT:
-      #   ddirs           a vector of data directory paths, each directory must contain data from exactly one site
-      #   odir            Output directory
-      #   heightLimits.km analysis height-gate limits. If NA, range gates of the reference site are used
-      #   timeRes.s       time resolution (integration time)
-      #   timeResFirst.s  time resolution (integration time) in the first time step. Combine with burnin.s to get good initial values for BAFIM
-      #   beginTime       c(year,month,day,hour,minute,seconds) analysis start time
-      #   endTime         c(year,month,day,hour,minute,seconds) analysis end time
-      #   absLimit        limit for absolute value of the residual.
-      #                   The iteration will not be stopped (unles maxIter is reached) before the residual is below absLimit
-      #   diffLimit       Upper limit for fractional change in residual in an iteration step.
-      #   maxLambda       maximum Lambda value in Levenberg-Marquardt iteration
-      #   maxIter         maximum number of iterations
-      #   absCalib        TRUE if the remotes are absolutely calibrated, FALSE to allow for scaling of their calibration coefficients
-      #   TiIsotropic     TRUE if ion thermal velocity distribution is modeled as isotropic, FALSE if bi-maxwellian
-      #   recursive       logical, should the data directories be searched recursively
-      #   scaleFun        function that returns acf scaling factors for each site
-      #   siteScales      ACF scales for each site as returned by siteCalib. (Run first with siteScales=NULL, then run siteCalib
-      #                   and use its output as siteScales in a second analysis run). This scaling affects only the relative site scales
-      #                   actual electron density calibration is done wiht calScale
-      #   calScale        additional scaling factor from ionosonde calibration applied to ALL ACF samples
-      #   MCMCsettings    a list of input arguments for the modMCMC function
-      #   maxdev          maximum angular deviation from the beam centre intersection
-      #   trueHessian     logical, calculate the Hessian from finite differences of cost function instead of the direct theory approximation?
-      #   nCores          number of parallel processes
-      #   reverseTime     logical, should the integration periods be analysed from the last to the first one? (needed for the BAFIM analysis)
-      #   burnin.s        duration of a burnin period. If reverseTime=FALSE, te analysis is started burnin.s seconds after the actual start time, runs backwards in time until the start time, and then runs forward until end of the analysis period. If reverseTime=TRUE, the corresponding thing is done at end of the analysis period. (This is needed for the BAFM analysis)
-      #
-      # OUTPUT:
-      #   None, the results are written to files in odir.
-      #
+      
+      ## 3D incoherent scatter plasma parameter fit using LPI output files in ddirs
+      ##
+      ## This is a GUISDAP-style fit, which uses a single ion temperature and collision frequency. Currently 3 ions ( 30.5 , 16.0 , 1.0 )
+      ##
+      ##
+      ##
+      ## INPUT:
+      ##   ddirs           a vector of data directory paths, each directory must contain data from exactly one site
+      ##   odir            Output directory
+      ##   heightLimits.km analysis height-gate limits. If NA, range gates of the reference site are used
+      ##   timeRes.s       time resolution (integration time)
+      ##   timeResFirst.s  time resolution (integration time) in the first time step. Combine with burnin.s to get good initial values for BAFIM
+      ##   beginTime       c(year,month,day,hour,minute,seconds) analysis start time
+      ##   endTime         c(year,month,day,hour,minute,seconds) analysis end time
+      ##   absLimit        limit for absolute value of the residual.
+      ##                   The iteration will not be stopped (unles maxIter is reached) before the residual is below absLimit
+      ##   diffLimit       Upper limit for fractional change in residual in an iteration step.
+      ##   maxLambda       maximum Lambda value in Levenberg-Marquardt iteration
+      ##   maxIter         maximum number of iterations
+      ##   absCalib        TRUE if the remotes are absolutely calibrated, FALSE to allow for scaling of their calibration coefficients
+      ##   TiIsotropic     TRUE if ion thermal velocity distribution is modeled as isotropic, FALSE if bi-maxwellian
+      ##   recursive       logical, should the data directories be searched recursively
+      ##   scaleFun        function that returns acf scaling factors for each site
+      ##   siteScales      ACF scales for each site as returned by siteCalib. (Run first with siteScales=NULL, then run siteCalib
+      ##                   and use its output as siteScales in a second analysis run). This scaling affects only the relative site scales
+      ##                   actual electron density calibration is done wiht calScale
+      ##   calScale        additional scaling factor from ionosonde calibration applied to ALL ACF samples
+      ##   MCMCsettings    a list of input arguments for the modMCMC function
+      ##   maxdev          maximum angular deviation from the beam centre intersection
+      ##   trueHessian     logical, calculate the Hessian from finite differences of cost function instead of the direct theory approximation?
+      ##   nCores          number of parallel processes
+      ##   reverseTime     logical, should the integration periods be analysed from the last to the first one? (needed for the BAFIM analysis)
+      ##   burnin.s        duration of a burnin period. If reverseTime=FALSE, te analysis is started burnin.s seconds after the actual start time, runs backwards in time until the start time, and then runs forward until end of the analysis period. If reverseTime=TRUE, the corresponding thing is done at end of the analysis period. (This is needed for the BAFM analysis)
+      ##   logNe           logical, fit log10(Ne) instead of Ne? Default TRUE
+      ##
+      ## OUTPUT:
+      ##   None, the results are written to files in odir.
+      ##
 
 
 
@@ -173,7 +174,7 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
                   }else{
                       iperFiles <- lapply( tstamps , function(x,l1,l2){ which( ( x > l1 ) & ( x <= l2 ) ) } , l1=iperLimits[k] , l2=iperLimits[k+1] )
                   }
-                  
+
                   # load all data and collect it in a list
                   nFiles <- sum( sapply( iperFiles , length ) )
                   if( nFiles > 0 ){
@@ -401,7 +402,7 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
                           longitude[h]   <- sites[refsite,4]
                           Btmp           <- igrf(date=date[1:3],lat=latitude[h],lon=longitude[h],height=height[h],isv=0,itype=1)
                           B[h,]          <- c(Btmp$y,Btmp$x,-Btmp$z) # the model has y-axis to east and z-axis downwards, we have x towards east,
-                          dimnames(covar[[h]])   <- list(c('Ne','Tipar','Tiperp','Tepar','Teperp','Coll','Vix','Viy','Viz',paste('Ion',seq(3),sep=''),paste('Site',seq(nd),sep='')),c('Ne','Tipar','Tiperp','Tepar','Teperp','Coll','Vix','Viy','Viz',paste('Ion',seq(3),sep=''),paste('Site',seq(nd),sep='')))
+                          dimnames(covar[[h]])   <- list(c(ifelse(logNe,'logNe','Ne'),'Tipar','Tiperp','Tepar','Teperp','Coll','Vix','Viy','Viz',paste('Ion',seq(3),sep=''),paste('Site',seq(nd),sep='')),c('Ne','Tipar','Tiperp','Tepar','Teperp','Coll','Vix','Viy','Viz',paste('Ion',seq(3),sep=''),paste('Site',seq(nd),sep='')))
                           
                           # if there are actual data, all initializations will be updated
 
@@ -563,7 +564,7 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
                       }
                       
                       # the prior model
-                      apriori <- aprioriFunction( PP=PP , date=date , dateprev=dateprev , latitude=latitude , longitude=longitude , height=height , nSite=nd , nIon=3 , absCalib=absCalib , TiIsotropic=TiIsotropic , TeIsotropic=TeIsotropic , refSite=refsite , siteScales=sScales , B=B2 ,  nCores=nCores , resFile=resFile , updateFile=ifelse(nnn>nburnin,TRUE,FALSE) , ... )
+                      apriori <- aprioriFunction( PP=PP , date=date , dateprev=dateprev , latitude=latitude , longitude=longitude , height=height , nSite=nd , nIon=3 , absCalib=absCalib , TiIsotropic=TiIsotropic , TeIsotropic=TeIsotropic , refSite=refsite , siteScales=sScales , B=B2 ,  nCores=nCores , logNe=logNe , resFile=resFile , updateFile=ifelse(nnn>nburnin,TRUE,FALSE) , ... )
                       
                       
                       # copy the model/initial values in a matrix for backward compatibility
@@ -596,6 +597,7 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
                                          latitude        = latitude,
                                          longitude       = longitude,
                                          fitGate         = fitGate,
+                                         logNe           = logNe,
                                          mc.cores=nCores
                                          )
                       
@@ -635,7 +637,7 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
                               std[h,]   <- sqrt(diag(covar[[h]]))
                               chisqr[h] <- fitpar[[h]][["chisqr"]]
                               status[h] <- fitpar[[h]][["fitStatus"]]
-                              dimnames(covar[[h]])   <- list(c('Ne','Tipar','Tiperp','Tepar','Teperp','Coll','Vix','Viy','Viz',paste('Ion',seq(3),sep=''),paste('Site',seq(nd),sep='')),c('Ne','Tipar','Tiperp','Tepar','Teperp','Coll','Vix','Viy','Viz',paste('Ion',seq(3),sep=''),paste('Site',seq(nd),sep='')))
+                              dimnames(covar[[h]])   <- list(c(ifelse(logNe,'logNe','Ne'),'Tipar','Tiperp','Tepar','Teperp','Coll','Vix','Viy','Viz',paste('Ion',seq(3),sep=''),paste('Site',seq(nd),sep='')),c(ifelse(logNe,'logNe','Ne'),'Tipar','Tiperp','Tepar','Teperp','Coll','Vix','Viy','Viz',paste('Ion',seq(3),sep=''),paste('Site',seq(nd),sep='')))
                               
                               contribSites[[h]] <- unique(unlist(ind.site[[h]]))
                               if(!is.null(fitpar[[h]]$MCMC)){
@@ -643,8 +645,8 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
                                   for( sr in seq(dim(MCMC[[h]][["pars"]][1]))) MCMC[[h]][["pars"]][k,] <-  scaleParams( MCMC[[h]][["pars"]][k,] , parScales[[h]] , inverse=T )
                                   MCMC[[h]][["bestpar"]] <- scaleParams( MCMC[[h]][["bestpar"]] , apriori[[h]]$parScales , inverse=TRUE )
                                   MCMC[[h]][["pars"]] <- t( apply( MCMC[[h]][["pars"]] , FUN=scaleParams , MARGIN=1  , scale=apriori[[h]]$parScales , inverse=TRUE) )
-                                  dimnames(MCMC[[h]][["pars"]]) <- list( NULL , c('Ne','Tipar','Tiperp','Tepar','Teperp','Coll','Vix','Viy','Viz',paste('Ion',seq(3),sep=''),paste('Site',seq(nd),sep='')) )
-                                  names(MCMC[[h]][["bestpar"]]) <- c('Ne','Tipar','Tiperp','Tepar','Teperp','Coll','Vix','Viy','Viz',paste('Ion',seq(3),sep=''),paste('Site',seq(nd),sep=''))
+                                  dimnames(MCMC[[h]][["pars"]]) <- list( NULL , c(ifelse(logNe,'logNe','Ne'),'Tipar','Tiperp','Tepar','Teperp','Coll','Vix','Viy','Viz',paste('Ion',seq(3),sep=''),paste('Site',seq(nd),sep='')) )
+                                  names(MCMC[[h]][["bestpar"]]) <- c(ifelse(logNe,'logNe','Ne'),'Tipar','Tiperp','Tepar','Teperp','Coll','Vix','Viy','Viz',paste('Ion',seq(3),sep=''),paste('Site',seq(nd),sep=''))
                               }
                           }
                       }
@@ -657,9 +659,9 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
                       std[is.na(std)] <- Inf
                       
                       
-                      dimnames(param) <- list(paste('gate',seq(nh),sep=''),c('Ne','Tipar','Tiperp','Tepar','Teperp','Coll','Vix','Viy','Viz',paste('Ion',seq(3),sep=''),paste('Site',seq(nd),sep='')))
-                      dimnames(std)   <- list(paste('gate',seq(nh),sep=''),c('Ne','Tipar','Tiperp','Tepar','Teperp','Coll','Vix','Viy','Viz',paste('Ion',seq(3),sep=''),paste('Site',seq(nd),sep='')))
-                      dimnames(model)   <- list(paste('gate',seq(nh),sep=''),c('Ne','Tipar','Tiperp','Tepar','Teperp','Coll','Vix','Viy','Viz',paste('Ion',seq(3),sep=''),paste('Site',seq(nd),sep='')))
+                      dimnames(param) <- list(paste('gate',seq(nh),sep=''),c(ifelse(logNe,'logNe','Ne'),'Tipar','Tiperp','Tepar','Teperp','Coll','Vix','Viy','Viz',paste('Ion',seq(3),sep=''),paste('Site',seq(nd),sep='')))
+                      dimnames(std)   <- list(paste('gate',seq(nh),sep=''),c(ifelse(logNe,'logNe','Ne'),'Tipar','Tiperp','Tepar','Teperp','Coll','Vix','Viy','Viz',paste('Ion',seq(3),sep=''),paste('Site',seq(nd),sep='')))
+                      dimnames(model)   <- list(paste('gate',seq(nh),sep=''),c(ifelse(logNe,'logNe','Ne'),'Tipar','Tiperp','Tepar','Teperp','Coll','Vix','Viy','Viz',paste('Ion',seq(3),sep=''),paste('Site',seq(nd),sep='')))
                       names(height) <- paste('gate',seq(nh),sep='')
                       names(latitude) <- paste('gate',seq(nh),sep='')
                       names(longitude) <- paste('gate',seq(nh),sep='')
@@ -667,7 +669,7 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
                       
               
                       # save the results to file
-                      PP <- list(param=param,std=std,model=model,chisqr=chisqr,status=status,time_sec=time_sec,date=date,POSIXtime=POSIXtime,height=height,latitude=latitude,longitude=longitude,sites=sites,intersect=intersect,covar=covar,B=B,heightLimits.km=hlims/1000,contribSites=contribSites,mIon=c(30.5,16.0,1.0),MCMC=MCMC,timeLimits.s=iperLimits[k:(k+1)],functionCall=functionCall,apriori=apriori,resFile=resFile , resDir=odir,ViCoordinates='ENUmagnetic',mlatLimits.deg=mlatLimits.deg,mlonLimits.deg=mlonLimits.deg)
+                      PP <- list(param=param,std=std,model=model,chisqr=chisqr,status=status,time_sec=time_sec,date=date,POSIXtime=POSIXtime,height=height,latitude=latitude,longitude=longitude,sites=sites,intersect=intersect,covar=covar,B=B,heightLimits.km=hlims/1000,contribSites=contribSites,mIon=c(30.5,16.0,1.0),MCMC=MCMC,timeLimits.s=iperLimits[k:(k+1)],functionCall=functionCall,apriori=apriori,resFile=resFile , resDir=odir,ViCoordinates='ENUmagnetic',mlatLimits.deg=mlatLimits.deg,mlonLimits.deg=mlonLimits.deg,logNe=logNe)
                       if(nnn>nburnin){
                           save( PP , file=file.path(odir,resFile) )
                       }

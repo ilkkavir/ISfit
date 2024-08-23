@@ -45,6 +45,9 @@ readPP.3D <- function(dpath,measuredOnly=T,nSiteVi=3,recursive=F,mlatmlonstr=NUL
     if (is.null( ViCoord <- PP$ViCoordinates ) ){
         ViCoord <- 'ENUgeodetic'
     }
+    if (is.null( logNe <- PP$logNe ) ){
+        logNe <- FALSE
+    }
     
     # allocate the necessary arrays
     param     <- array(NA,dim=c(nHeight,nPar+4*nSites+7,nFile))
@@ -302,7 +305,7 @@ readPP.3D <- function(dpath,measuredOnly=T,nSiteVi=3,recursive=F,mlatmlonstr=NUL
 
     if(!measuredOnly) warning("Returning also parameters that are based solely on the prior model.")
 
-    return(list(param=param,std=std,model=model,chisqr=chisqr,status=status,height=height,time_sec=time_sec,timeLimits=timeLimits,date=date,POSIXtime=POSIXtime,sites=sites,n=nFile,nPar=nPar,nHeight=nHeight,mIon=mIon,covar=covar,B=B))
+    return(list(param=param,std=std,model=model,chisqr=chisqr,status=status,height=height,time_sec=time_sec,timeLimits=timeLimits,date=date,POSIXtime=POSIXtime,sites=sites,n=nFile,nPar=nPar,nHeight=nHeight,mIon=mIon,covar=covar,B=B,logNe=logNe))
 
 }
 
