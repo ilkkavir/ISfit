@@ -213,6 +213,12 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
                               dlist[[n]][["llhR"]] <- c(NA,NA,NA)
                               dlist[[n]][["radarFreq"]] <- NA
                           }
+
+
+                          ## could calculate the beam intersections and magnetic coordinates for each site already here, so it would
+                          ## be easy to use pre-calculated values whenever possible. 
+
+                          
                       }
 
                       
@@ -449,7 +455,11 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
                                       aSite[[h]][s] <- NA
                                       kSite[[h]][[s]] <- c(NA,NA,NA)
                                   }else{
-                                      # the beam widths and antenna types are stored in dscales
+                                      ## the beam widths and antenna types are stored in dscales
+
+
+                                      ## this should be calculated already immediately after reading data from each site to
+                                      ## enable easy use of pre-calculated values
                                       intersect[[h]][[s]] <- beamIntersection( llhT=sites[s,3:5] , llhR=sites[s,8:10] , azelT=sites[s,6:7] , azelR=sites[s,11:12] , fwhmT=dscales[s,1] , fwhmR=dscales[s,3] , phArrT=dscales[s,2]>0 , phArrR=dscales[s,4]>0 , freq.Hz=sites[s,2] )
                                       
                                       # conversion from lat, lon, height to range in this gate
