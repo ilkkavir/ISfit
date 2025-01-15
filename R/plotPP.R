@@ -465,12 +465,12 @@ plotPP.list <- function(data,par=list(Ne=c(10,12),TeR1=c(0,4000),TiR1=c(0,3000),
                         }else{
                             tickstr <- rep('',length(ticks$tick))
                         }
-                        image(colMeans(data$timeLimits[,tInds]),data$height[,tInds[1]],t(d),xlim=tLim,ylim=hLim,zlim=par[[p]][1:2],col=col.regions(1000),xlab='',xaxt='n',ylab='Height [km]',cex=cex,cex.lab=cex,cex.axis=cex,yaxt='n')
+                        image(colMeans(data$timeLimits[,tInds]),data$height[,tInds[1]],t(d),xlim=tLim,ylim=hLim,zlim=par[[p]][1:2],col=col.regions(1000),xlab='',xaxt='n',ylab='Height [km]',cex=cex,cex.lab=cex,cex.axis=cex,yaxt='n',useRaster=FALSE)
                         axis(1,at=ticks$tick,labels=tickstr,cex=cex,cex.lab=cex,cex.axis=cex)
                         axis(2,at=hticks$tick,labels=hticks$tick,cex=cex,cex.lab=cex,cex.axis=cex)
                         marold <- par()$mar
                         par(mar=c(1,3,1,1)*cex)
-                        image(c(0,1),seq(par[[p]][1],par[[p]][2],length.out=1000),t(matrix(rep(seq(par[[p]][1],par[[p]][2],length.out=1000),2),ncol=2)),col=col.regions(1000),ylab=main[[1]],xaxt='n',xlab='',cex=cex,cex.lab=cex,cex.axis=cex)
+                        image(c(0,1),seq(par[[p]][1],par[[p]][2],length.out=1000),t(matrix(rep(seq(par[[p]][1],par[[p]][2],length.out=1000),2),ncol=2)),col=col.regions(1000),ylab=main[[1]],xaxt='n',xlab='',cex=cex,cex.lab=cex,cex.axis=cex,useRaster=FALSE)
                         par(mar=marold)
                     }
                 }

@@ -55,7 +55,9 @@ acfscales <- function( sites )
                     scales[n,4] <- TRUE
                     scales[n,5] <- FALSE
                 }
-                # Tromso monostatic
+
+
+                ## Tromso monostatic
                 if( abs( sum( sites[n,c(3,4,8,9)] - rep(radarSites()[["TRO"]][1:2],2) ) ) < .1 ){
                     scales[n,6] <- 1
                 }
@@ -69,6 +71,47 @@ acfscales <- function( sites )
                 }
                 # Tromso - KAIRA bistatic
                 if( abs( sum( sites[n,c(3,4,8,9)] - c(radarSites()[["TRO"]][1:2],radarSites()[["KIL"]][1:2]) ) ) < .1 ){
+                    scales[n,6] <- 1e3
+                }
+                
+                ## Skibotn TX
+                if( abs( sum( sites[n,3:4] - radarSites()[["SKI"]][1:2] ) ) < .1 ){
+                    scales[n,1] <- 2.1
+                    scales[n,2] <- TRUE
+                }
+                ## Skibotn RX
+                if( abs( sum( sites[n,8:9] - radarSites()[["SKI"]][1:2] ) ) < .1 ){
+                    scales[n,3] <- 1.2
+                    scales[n,4] <- TRUE
+                    scales[n,5] <- FALSE
+                }
+                ## Karesuvanto RX
+                if( abs( sum( sites[n,8:9] - radarSites()[["KAR"]][1:2] ) ) < .1 ){
+                    scales[n,3] <- 1.7
+                    scales[n,4] <- TRUE
+                    scales[n,5] <- FALSE
+                }
+                ## Kaiseniemi RX
+                if( abs( sum( sites[n,8:9] - radarSites()[["KAI"]][1:2] ) ) < .1 ){
+                    scales[n,3] <- 1.7
+                    scales[n,4] <- TRUE
+                    scales[n,5] <- FALSE
+                }
+
+                ## Skibotn monostatic
+                if( abs( sum( sites[n,c(3,4,8,9)] - rep(radarSites()[["SKI"]][1:2],2) ) ) < .1 ){
+                    scales[n,6] <- 1
+                }
+                # Skibotn - Karesuvanto bistatic
+                if( abs( sum( sites[n,c(3,4,8,9)] - c(radarSites()[["SKI"]][1:2],radarSites()[["KAR"]][1:2]) ) ) < .1 ){
+                    scales[n,6] <- 1
+                }
+                # Skibotn - Kaiseniemi bistatic
+                if( abs( sum( sites[n,c(3,4,8,9)] - c(radarSites()[["SKI"]][1:2],radarSites()[["KAI"]][1:2]) ) ) < .1 ){
+                    scales[n,6] <- 1
+                }
+                # Skibotn - KAIRA bistatic
+                if( abs( sum( sites[n,c(3,4,8,9)] - c(radarSites()[["SKI"]][1:2],radarSites()[["KIL"]][1:2]) ) ) < .1 ){
                     scales[n,6] <- 1e3
                 }
             }
