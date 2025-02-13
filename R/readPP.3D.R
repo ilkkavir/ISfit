@@ -3,7 +3,7 @@ readPP.3D <- function(dpath,measuredOnly=T,nSiteVi=3,recursive=F,mlatmlonstr=NUL
 #
 # read plasma parameters from files
 #
-# I. Virtanen 2010, 2013
+# I. Virtanen 2010, 2013, 2024, 2025
 #
 
     if(is.null(dpath))   return(NULL)

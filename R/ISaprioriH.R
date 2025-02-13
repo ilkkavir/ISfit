@@ -1,4 +1,4 @@
-ISaprioriH <- function( PP , date , latitude , longitude , height , nSite ,  nIon , absCalib=FALSE , TiIsotropic=FALSE , TeIsotropic=FALSE, refSite=1 , siteScales=NULL , hTeTi=100 , hTi=80 , hVi=90, hColl=c(0,0) , B=c(0,0,0) , ViPar0=FALSE , nCores=1, logNe=TRUE , ... )
+ISaprioriH <- function( PP , date , latitude , longitude , height , nSite ,  nIon , absCalib=FALSE , TiIsotropic=FALSE , TeIsotropic=FALSE, refSite=1 , siteScales=NULL , hTeTi=100 , hTi=80 , hVi=90, hColl=c(0,0) , B=c(0,0,0) , ViPar0=FALSE , nCores=1, logNe=TRUE , randomizeInitParams=FALSE , ... )
     {
         #
         #
@@ -205,6 +205,15 @@ ISaprioriH <- function( PP , date , latitude , longitude , height , nSite ,  nIo
             aprioriMeas[curRow] <- 0
             aprioriStd[curRow] <- ifelse(ViPar0&all(B[h,]!=0),1e-3,10)
 
+            ## optional randomization of the iteration start values. Used for analysis of synthetic data when the start values would
+            ## othewise match with the true values
+            if(randomizeInitParams){
+                for(k in seq(1,length(aprioriParam))){
+                    aprioriParam[k] <- aprioriParam[k] + rnorm(n=1,mean=0,sd=min(ifelse(aprioriParam[k]==0,.1,.2*aprioriParam[k]),aprioriStd[k]))
+                }
+                aprioriParam <- pmax(aprioriParam,limitParam[1,])
+                aprioriParam <- pmin(aprioriParam,limitParam[2,])
+            }
             
             apriorilist[[h]] <- list(aprioriParam=aprioriParam,aprioriTheory=aprioriTheory,invAprioriCovar=diag(1/aprioriStd**2),aprioriMeas=aprioriMeas,limitParam=limitParam,parScales=parScales,mIon=mIon,nIon=nIon)
         }

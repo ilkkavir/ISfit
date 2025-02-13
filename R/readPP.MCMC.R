@@ -1,4 +1,4 @@
-readPP.MCMC <- function( dpath , recursive=TRUE , MCMClist=FALSE)
+readPP.MCMC <- function( dpath , recursive=TRUE , MCMClist=FALSE,mlatmlonstr=NULL,...)
     {
         #
         # read plasma parameters from the MCMC fit results
@@ -6,7 +6,7 @@ readPP.MCMC <- function( dpath , recursive=TRUE , MCMClist=FALSE)
         # files, the iteration results can be read with
         # function readPP.3D
         #
-        # I. Virtanen 2014
+        # I. Virtanen 2014, 2025
         #
 
         if(is.null(dpath))   return(NULL)
@@ -17,10 +17,10 @@ readPP.MCMC <- function( dpath , recursive=TRUE , MCMClist=FALSE)
         dpath <- dpath[file.info(dpath)$isdir]
 
         # list the PPI result files
-        flist <- dir(dpath[1],pattern='PP.Rdata',recursive=recursive,full.names=TRUE)
+        flist <- dir(dpath[1],pattern=paste(mlatmlonstr,'PP.Rdata',sep=''),recursive=recursive,full.names=TRUE)
         if(length(dpath)>1){
             for(k in seq(2,length(dpath))){
-                flist <- c(flist,dir(dpath[1],pattern='PP.Rdata',recursive=recursive,full.names=TRUE))
+                flist <- c(flist,dir(dpath[1],pattern=paste(mlatmlonstr,'PP.Rdata',sep=''),recursive=recursive,full.names=TRUE))
             }
         }
         flist <- c(flist,fpath)
@@ -44,6 +44,14 @@ readPP.MCMC <- function( dpath , recursive=TRUE , MCMClist=FALSE)
         # number of receiver sites
         nSites <- dim(PP$sites)[1]
 
+        ## coordinate system for Vi (used to be geographic ENU, but geomagnetic in later versions)
+        if (is.null( ViCoord <- PP$ViCoordinates ) ){
+            ViCoord <- 'ENUgeodetic'
+        }
+        if (is.null( logNe <- PP$logNe ) ){
+            logNe <- FALSE
+        }
+
         # allocate the necessary arrays
         param     <- array(NA,dim=c(nHeight,nPar+4*nSites+7,nFile))
         std       <- array(NA,dim=c(nHeight,nPar+4*nSites+7,nFile))
@@ -55,9 +63,11 @@ readPP.MCMC <- function( dpath , recursive=TRUE , MCMClist=FALSE)
         time_sec  <- vector(length=nFile,mode='numeric')
         date      <- vector(length=nFile,mode='list')
         POSIXtime <- vector(length=nFile,mode='list')
+        timeLimits <- array(NA,dim=c(2,nFile))
         llhT      <- PP$llhT
         llhR      <- PP$llhR
         covar     <- array(NA,dim=c(nHeight,nPar+4*nSites+7,nPar+4*nSites+7,nFile))
+        B         <- array(NA,dim=c(nHeight,3,nFile))
         MCMC  <- list()
 
 
@@ -122,6 +132,8 @@ readPP.MCMC <- function( dpath , recursive=TRUE , MCMClist=FALSE)
             POSIXtime[[k]]      <- PP$POSIXtime
             height[,k]          <- PP$height
             sites[1:nSitesk,,k] <- PP$sites
+            B[,,k]              <- PP$B
+            timeLimits[,k]      <- PP$timeLimits.s
 
             for(r in seq(nHeight)){
 
@@ -134,8 +146,6 @@ readPP.MCMC <- function( dpath , recursive=TRUE , MCMClist=FALSE)
                     MCMC[[k]][[r]][,nPar+1] <- ( MCMC[[k]][[r]][,2] + 2* MCMC[[k]][[r]][,3]) / 3
                     # electron temperature (Te_par + 2*Te_perp)/3
                     MCMC[[k]][[r]][,nPar+2] <- ( MCMC[[k]][[r]][,4] + 2* MCMC[[k]][[r]][,5]) / 3
-                    # ion velocity along magnetic field
-                    MCMC[[k]][[r]][,nPar+3] <- MCMC[[k]][[r]][,7:9]%*%PP$B[r,]/sqrt(sum(PP$B[r,]**2))
                     # ion perpendicular/parallel temperature ratio
                     MCMC[[k]][[r]][,nPar+4] <- MCMC[[k]][[r]][,3] / MCMC[[k]][[r]][,2]
                     # electron perpendicular/parallel temperature ratio
@@ -150,8 +160,34 @@ readPP.MCMC <- function( dpath , recursive=TRUE , MCMClist=FALSE)
                     By <- radarPointings:::vectorProduct.cartesian(Bx,PP$B[r,])
                     By <- By / sqrt(sum(By**2))
 
-                    MCMC[[k]][[r]][,nPar+6] <- MCMC[[k]][[r]][,7:9]%*%Bx
-                    MCMC[[k]][[r]][,nPar+7] <- MCMC[[k]][[r]][,7:9]%*%By
+                    Bz <- -PP$B[r,]/sqrt(sum(PP$B[r,]**2))
+                    ##Bz <- radarPointings:::vectorProduct.cartesian(Bx,By)
+
+                    ## ion velocity along magnetic field (positive upward)
+                    if(ViCoord=='ENUgeodetic'){
+                        ## ion velocity along magnetic field
+                        MCMC[[k]][[r]][,nPar+6] <- MCMC[[k]][[r]][,7:9]%*%Bx
+                        MCMC[[k]][[r]][,nPar+7] <- MCMC[[k]][[r]][,7:9]%*%By
+                        MCMC[[k]][[r]][,nPar+3] <- MCMC[[k]][[r]][,7:9]%*%Bz
+                    }else if(ViCoord=='ENUmagnetic'){
+                        ## rotations to geodetic coordinates
+                        rotmat <- matrix(c(Bx,By,Bz),byrow=F,ncol=3)
+                        irotmat <- solve(rotmat)
+                        ## copy the velocity in magnetic coordinates in the same place as above
+                        MCMC[[k]][[r]][,nPar+6] <- MCMC[[k]][[r]][,7]
+                        MCMC[[k]][[r]][,nPar+7] <- MCMC[[k]][[r]][,8]
+                        MCMC[[k]][[r]][,nPar+3] <- MCMC[[k]][[r]][,9]
+                        ## rotation to geodetic coordinates
+                        Vx <- MCMC[[k]][[r]][,7:9]%*%irotmat[,1]
+                        Vy <- MCMC[[k]][[r]][,7:9]%*%irotmat[,2]
+                        Vz <- MCMC[[k]][[r]][,7:9]%*%irotmat[,3]
+                        MCMC[[k]][[r]][,7] <- Vx
+                        MCMC[[k]][[r]][,8] <- Vy
+                        MCMC[[k]][[r]][,9] <- Vz
+                    }else{
+                        stop('Unknown coordinate system for Vi')
+                    }
+
 
                     for( s in PP$contribSites[[r]]){
 
@@ -219,7 +255,7 @@ readPP.MCMC <- function( dpath , recursive=TRUE , MCMClist=FALSE)
         dimnames(model) <- list(dimnames(PP[["param"]])[[1]],c(dimnames(PP[["param"]])[[2]][1:12],paste('Site',seq(nSites),sep=''),'Ti','Te','ViB','Tiratio','Teratio','ViBx','ViBy', paste('ViR',paste(rep(seq(nSites),each=2),c('','hor'),sep=''),sep=''),paste('TiR',seq(nSites),sep=''),paste('TeR',seq(nSites),sep='')),paste(seq(nFile)))
         dimnames(covar) <- c(list(paste(seq(nHeight))),lapply(dimnames(PP[["covar"]][[1]]),FUN=function(x,nSites){c(x[1:12],paste('Site',seq(nSites),sep=''),'Ti','Te','ViB','Tiratio','Teratio','ViBx','ViBy', paste('ViR',paste(rep(seq(nSites),each=2),c('','hor'),sep=''),sep=''),paste('TiR',seq(nSites),sep=''),paste('TeR',seq(nSites),sep=''))},nSites=nSites),list(paste(seq(nFile))))
 
-        return(list(param=param,std=std,model=model,chisqr=chisqr,status=status,height=height,time_sec=time_sec,date=date,POSIXtime=POSIXtime,sites=sites,n=nFile,nPar=nPar,nHeight=nHeight,mIon=mIon,covar=covar,MCMClist=MCMC,functionCall=PP[["functionCall"]]))
+        return(list(param=param,std=std,model=model,chisqr=chisqr,status=status,height=height,time_sec=time_sec,timeLimits=timeLimits,date=date,POSIXtime=POSIXtime,sites=sites,n=nFile,nPar=nPar,nHeight=nHeight,mIon=mIon,covar=covar,MCMClist=MCMC,functionCall=PP[["functionCall"]],B=B,logNe=logNe))
 
 
 
