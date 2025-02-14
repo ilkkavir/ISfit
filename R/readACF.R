@@ -11,12 +11,13 @@
 ##  ranges    range gate selection
 ##  stdThrsh  standard deviation threshold, data points with standard
 ##            deviation larger than stdThrsh are not used in the average
+##  maxPointDev maximum angular deviation from beam axis in RX pointing (deg)
 ##
 ## Returns:
 ##  ACF an ACF list of the averaged data
 ## 
 
-readACF <- function( dpath , lags=NULL , ranges=NULL , stdThrsh=Inf )
+readACF <- function( dpath , lags=NULL , ranges=NULL , stdThrsh=Inf , maxPointDev=Inf )
   {
     
     if(is.null(dpath))   return(NULL)
@@ -97,7 +98,8 @@ readACF <- function( dpath , lags=NULL , ranges=NULL , stdThrsh=Inf )
     azelR <- azelR / nFile
     range <- range / nFile
     range.km <- range.km / nFile
-    
+
+
     # replace the values in the last data file with the averaged ones and return
     ACF[["ACF"]] <- ACFave
     ACF[["var"]] <- varave
@@ -111,7 +113,35 @@ readACF <- function( dpath , lags=NULL , ranges=NULL , stdThrsh=Inf )
     ACF[["azelT"]] <- azelT
     ACF[["azelR"]] <- azelR
     ACF[["covariance"]] <- NULL
-    
+
+      ## If this is a bistatic measurement, check that we are within the
+      ## given limits from beam axis direction
+      if(any(ACF$llhT!=ACF$llhR)){
+          if(is.finite(maxPointDev)){
+              dazel <- matrix(NA,ncol=2,nrow=nRange)
+              for(k in seq(nRange)){
+                  dazel[k,] <- radarPointings::llhTarget2azelrBeam(llhTarget=radarPointings::range2llh(r=ACF$range.km[k]*1000,llhT=ACF$llhT,azelT=ACF$azelT,llhR=ACF$llhR),llhSite=ACF$llhR)[c('az','el')]-ACF$azelR
+                  
+              }
+              pointDev <- sqrt(dazel[,1]**2 + dazel[,2]**2)
+              rinds <- pointDev <= maxPointDev
+
+              if(any(rinds)){
+                  if(any(!rinds)){
+                      ACF[["ACF"]] <- ACF[["ACF"]][rinds,]
+                      ACF[["var"]] <- ACF[["var"]][rinds,]
+                      ACF[["range"]] <- ACF[["range"]][rinds]
+                      ACF[["range.km"]] <- ACF[["range.km"]][rinds]
+                      ACF[["nGates"]] <- sum(rinds)
+                  }
+              }else{
+                  return(NULL)
+              }
+          }
+      }
+      
+
+      
     return(ACF)
     
   }

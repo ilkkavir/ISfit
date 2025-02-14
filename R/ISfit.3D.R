@@ -180,6 +180,7 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
                       iperFiles <- lapply( tstamps , function(x,l1,l2){ which( ( x > l1 ) & ( x <= l2 ) ) } , l1=iperLimits[k] , l2=iperLimits[k+1] )
                   }
 
+                  
                   # load all data and collect it in a list
                   nFiles <- sum( sapply( iperFiles , length ) )
                   if( nFiles > 0 ){
@@ -187,25 +188,17 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
                       dlist <- vector( mode='list', length=nd)
                       
                       for( n in seq( nd ) ){
+                          dataRead <- FALSE
                           if( length(iperFiles[[n]]) > 0 ){
-                              dlist[[n]] <- readACF( dfiles[[n]][ iperFiles[[n]] ] , lags=lagNums )
-                              if(length(dlist[[n]][["nGates"]])!=length(dlist[[n]][["lag.us"]])){
-                                  dlist[[n]][["nGates"]] <- rep(length(dlist[[n]][["range.km"]]),length(dlist[[n]][["lag.us"]]))
+                              # average lag profiles from a beam, limit to the beam intersection in bistatic measurements using maxPointDev (this is ISfit readACF, not LPI.gdf!)
+                              dataTmp <- readACF( dfiles[[n]][ iperFiles[[n]] ] , lags=lagNums , maxPointDev=maxdev)
+                              dataRead <- ifelse(is.null(dataTmp),FALSE,TRUE)
+                              if(dataRead){
+                                  if( (dataTmp[['azelT']][2]<0) | (dataTmp[['azelR']][2]<0) | (dataTmp[['radarFreq']]<0)) dataRead <- FALSE
                               }
-                              # some sanity checks
-                              if( (dlist[[n]][['azelT']][2]<0) | (dlist[[n]][['azelR']][2]<0) | (dlist[[n]][['radarFreq']]<0) ){
-                                  dlist[[n]] <- list()
-                                  dlist[[n]][["ACF"]] <- matrix(NA)
-                                  dlist[[n]][["var"]] <- matrix(NA)
-                                  dlist[[n]][["lag.us"]] <- NA
-                                  dlist[[n]][["nGates"]] <- 1
-                                  dlist[[n]][["range.km"]] <- NA
-                                  dlist[[n]][["azelT"]] <- c(NA,NA)
-                                  dlist[[n]][["azelR"]] <- c(NA,NA)
-                                  dlist[[n]][["llhT"]] <- c(NA,NA,NA)
-                                  dlist[[n]][["llhR"]] <- c(NA,NA,NA)
-                                  dlist[[n]][["radarFreq"]] <- NA
-                              }
+                          }
+                          if(dataRead){
+                              dlist[[n]] <- dataTmp
                           }else{
                               dlist[[n]] <- list()
                               dlist[[n]][["ACF"]] <- matrix(NA)
@@ -219,14 +212,18 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
                               dlist[[n]][["llhR"]] <- c(NA,NA,NA)
                               dlist[[n]][["radarFreq"]] <- NA
                           }
-
+                          
+                              
+                          if(length(dlist[[n]][["nGates"]])!=length(dlist[[n]][["lag.us"]])){
+                              dlist[[n]][["nGates"]] <- rep(length(dlist[[n]][["range.km"]]),length(dlist[[n]][["lag.us"]]))
+                          }
+                          
 
                           ## could calculate the beam intersections and magnetic coordinates for each site already here, so it would
                           ## be easy to use pre-calculated values whenever possible. 
 
                           
                       }
-
                       
                       # read acf, variance, lag, range, pointing directions, and TX / RX location of each data point
                       acf   <- calScale * unlist( lapply( dlist , function(x){ return( unlist( lapply( seq( ncol( x[["ACF"]] ) ) , function( i , n , x ){ return( x[ 1 : n[i] , i ] ) } , x=x[["ACF"]] , n=x[["nGates"]] ) ) ) } ) )
@@ -473,7 +470,9 @@ ISfit.3D <- function( ddirs='.' , odir='.' ,  heightLimits.km=NA , timeRes.s=60 
                                       rs2 <- height2range( llhT=sites[s,3:5] , azelT=sites[s,6:7] , llhR=sites[s,8:10] , h=hlims[h+1] )
                                       
                                       # gain integral
-                                      gainR[s] <- gategain( intersect[[h]][[s]] , c(rs1,rs2) , maxdev=maxdev)
+                                      gainR[s] <- gategain( intersect[[h]][[s]] , c(rs1,rs2) , maxdev=2 )
+                                      ## the deviation check was moved to readACF
+#                                      gainR[s] <- gategain( intersect[[h]][[s]] , c(rs1,rs2) , maxdev=maxdev)
                                       
                                       # scattering angle
                                       aSite[[h]][s] <- intersect[[h]][[s]][["phi"]]
