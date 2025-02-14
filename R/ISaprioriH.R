@@ -209,7 +209,11 @@ ISaprioriH <- function( PP , date , latitude , longitude , height , nSite ,  nIo
             ## othewise match with the true values
             if(randomizeInitParams){
                 for(k in seq(1,length(aprioriParam))){
-                    aprioriParam[k] <- aprioriParam[k] + rnorm(n=1,mean=0,sd=min(ifelse(aprioriParam[k]==0,.1,.2*aprioriParam[k]),aprioriStd[k]))
+                    if(k==1 & logNe){
+                        aprioriParam[k] <- aprioriParam[k] + rnorm(n=1,mean=0,sd=.1)
+                    }else{
+                        aprioriParam[k] <- aprioriParam[k] + rnorm(n=1,mean=0,sd=min(ifelse(aprioriParam[k]==0,.2,.3*aprioriParam[k]),aprioriStd[k]))
+                    }
                 }
                 aprioriParam <- pmax(aprioriParam,limitParam[1,])
                 aprioriParam <- pmin(aprioriParam,limitParam[2,])
