@@ -239,7 +239,8 @@ readPP.3D <- function(dpath,measuredOnly=T,nSiteVi=3,recursive=F,mlatmlonstr=NUL
                 for( s in PP$contribSites[[r]]){
 
                     # ion velocity seen at site s (positive away)
-                    param[r,nPar+2*s+6,k] <- -PP$param[r,7:9]%*%PP$intersect[[r]][[s]]$k.ENU/sqrt(sum(PP$intersect[[r]][[s]]$k.ENU**2))
+#                    param[r,nPar+2*s+6,k] <- -PP$param[r,7:9]%*%PP$intersect[[r]][[s]]$k.ENU/sqrt(sum(PP$intersect[[r]][[s]]$k.ENU**2))
+                    param[r,nPar+2*s+6,k] <- -param[r,7:9,k]%*%PP$intersect[[r]][[s]]$k.ENU/sqrt(sum(PP$intersect[[r]][[s]]$k.ENU**2))
 #                    std[r,nPar+2*s+6,k] <- sqrt(PP$intersect[[r]][[s]]$k.ENU%*%PP$covar[[r]][7:9,7:9]%*%PP$intersect[[r]][[s]]$k.ENU/sum(PP$intersect[[r]][[s]]$k.ENU**2))
                     std[r,nPar+2*s+6,k] <- sqrt(PP$intersect[[r]][[s]]$k.ENU%*%covar[r,7:9,7:9,k]%*%PP$intersect[[r]][[s]]$k.ENU/sum(PP$intersect[[r]][[s]]$k.ENU**2))
 
