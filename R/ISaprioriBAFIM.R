@@ -4,8 +4,7 @@ ISaprioriBAFIM <- function( PP , date , dateprev , latitude , longitude , height
         #
         #
         #
-        # NOTICE: the flipchem implementation is different from that used in the GUISDAP-BAFIM. 
-        #         Is this a good way to add the flipchem information?
+        # NOTICE: the flipchem implementation is different from that used in the GUISDAP-BAFIM. Here we use a linear approximation. 
         #
         #
         #
@@ -50,7 +49,7 @@ ISaprioriBAFIM <- function( PP , date , dateprev , latitude , longitude , height
         # 
         #  I. Virtanen 2012, 2013, 2023
 
-        # initialize flipchem with the correct date if that will be used
+        # initialize flipchem with the correct date if the model will be used
         fc <- NULL
         if((BAFIMpar$flipchem[2]-BAFIMpar$flipchem[1]) > 0){
             library(reticulate)
@@ -62,7 +61,7 @@ ISaprioriBAFIM <- function( PP , date , dateprev , latitude , longitude , height
         }
 
 
-        
+        ## PP will be empty in the first time step
         if(length(PP)>0){
 
             # we will save the PP list again with modified arrays, make copies as necessary
@@ -77,49 +76,51 @@ ISaprioriBAFIM <- function( PP , date , dateprev , latitude , longitude , height
 
 
         }
-            
-        # This function has not been completed yet!
 
+        ## number of heights
         nh <- length(height)
 
-        # IRI parameters (would it be enough to call this with just one lat and lon?
+        ## IRI parameters. Call with just one lat, lon combination to speed up the analysis.
 #        IRIlist <- mclapply(seq(nh) , FUN=iriParamsParFun , date=date,latitude=latitude,longitude=longitude,height=height,fitGate=rep(T,nh) , okData=rep(T,nh) , mc.cores=nCores)
-        IRIpar <- iriParams( time=date,latitude=mean(latitude),longitude=mean(longitude),heights=height) # IS this accurate enough for low-elevation measurements?
+        IRIpar <- iriParams( time=date,latitude=mean(latitude),longitude=mean(longitude),heights=height)
 
+        ## Take a log of IRI Ne if we fit log10(Ne) instead of Ne. 
         if(logNe){
             IRIpar[1,] <- log10(pmax(IRIpar[1,],1e9))
         }
 
-        # parameter value limits
+        ## Physically reasonable limits for the plasma parameters
         parLimits      <- ISparamLimits(3,nSite,logNe)
 
-
-        
+        ## A list for the prior values
         apriorilist <- list()
 
+        ## Lists for prior values from IRI and produced with filtering in time. The appropriate one will be selected at each altiude in the end. 
         aprioriIRI <- aprioriBAFIM <- list()
+
+        ## Form the IRI prior, loop over altitudes 
         for(h in seq(nh)){
 
 
 
             ################# IRI parameters ###################################
 
-
             
-            # parameters from iri model
+            ## IRI parameters in this gate
             ptmp <- IRIpar[,h]
             
             ## an approximation for NO+-neutral colllision frequency (Schunk & Walker, Planet. Space Sci., 1971)
             ## This is approximately true for all ions, because ion density is much smaller than neutral density
-            ## could replace with the more recent formulas by Schunk and Nagy??
+            ## Should be replaced with the more recent formulas by Schunk and Nagy.
             ioncoll        <- sum( ionNeutralCollisionFrequency( c( ifelse(logNe,10^ptmp[1],ptmp[1] ) , ptmp[2:length(ptmp)] ) )['NO+',] )
 
 
-            # initial plasma parameter values
+            ## Initial ion densities. Make sure that these are not negative.
             cH <- max(ptmp['H+'],0)
             cO <- max(ptmp['O+'],0)
             cM <- max(sum(ptmp[c('NO+','O2+','cluster')]),0)
             cTot <- cH + cO + cM
+            ## make sure that we have reasonable values in the D region and topside. 
             if(cTot<1e7){
                 if(h<150){
                     cH <- 0
@@ -131,40 +132,42 @@ ISaprioriBAFIM <- function( PP , date , dateprev , latitude , longitude , height
                     cTot <- cO + cH
                 }
             }
-                          
+
+            ## A vector of initial plasma parameter values. 
             parInit <- pmax( c( ptmp['e-'] , ptmp['Ti'] , ptmp['Ti'], ptmp['Te'] , ptmp['Te'] , ioncoll , 0 , 0 , 0 , cM/cTot , cO/cTot , cH/cTot , rep(1,nSite) ) , 0 )
             
-            
+            ## Initial Ne must be at least 1e9 m^-3
             parInit[1]     <- max(parInit[1],ifelse(logNe,9,1e9))
 
+            ## number of plasma parameters
             nPar <- length(parInit)
-            
+
+            ## Ion masses (M+, O+, H+)
             mIon <- c(30.5,16.0,1)
 
-
             
-            # parameter scaling factors
+            ## parameter scaling factors
             parScales      <- ISparamScales(parInit,3,logNe)
             
-            # scale the initial parameter values
+            ## scale the initial parameter values
             aprioriParam      <- scaleParams( parInit , parScales , inverse=F)
 
-           # scale the parameter limits
+            ## scale the parameter limits
             limitParam     <- parLimits
             limitParam[1,] <- scaleParams(parLimits[1,] , parScales , inverse=F)
             limitParam[2,] <- scaleParams(parLimits[2,] , parScales , inverse=F)
 
 
-            # the apriori covariance matrix will be diagonal, so we begin with
-            # a vector of standard deviations, which is easier.
+            ## The apriori covariance matrix will be diagonal, so we begin with
+            ## a vector of standard deviations, which is easier.
             aprioriStd                   <- vector(mode='numeric',length=nPar)
 
-            # scaled process noise standard deviations. We use these as prior standard deviations in the first integration period
+            ## Normalized process noise standard deviations. We use these as prior standard deviations in the first integration period
             dt <- abs( as.double(ISOdate(date[1],date[2],date[3],date[4],date[5],date[6])) - as.double(ISOdate(dateprev[1],dateprev[2],dateprev[3],dateprev[4],dateprev[5],dateprev[6])))
             processStdScale <- scaleParams(c( BAFIMpar$Ne[4] , BAFIMpar$Ti[4] , BAFIMpar$Ti[4] ,BAFIMpar$Te[4] , BAFIMpar$Te[4] , BAFIMpar$Coll[4] , BAFIMpar$Viperp[4] , BAFIMpar$Viperp[4] , BAFIMpar$Vipar[4] , BAFIMpar$Mp[4], BAFIMpar$Op[4], BAFIMpar$Hp[4] ) ,  parScales[1:12],inverse=F)*sqrt(dt)
 
             
-            # The user input standard deviation in the fitted region (when starting the filter), small values elsewhere. 
+            ## The user input standard deviation in the fitted region (when starting the filter), small values elsewhere. 
             aprioriStd[1] <- ifelse( height[h]>=BAFIMpar$Ne[1] & height[h]<BAFIMpar$Ne[2] , processStdScale[1] , 1e-3 )
             aprioriStd[2] <- ifelse( height[h]>=BAFIMpar$Ti[1] & height[h]<BAFIMpar$Ti[2] , processStdScale[2] , 1e-3 )
             aprioriStd[3] <- ifelse( height[h]>=BAFIMpar$Ti[1] & height[h]<BAFIMpar$Ti[2] , processStdScale[3] , 1e-3 )
@@ -179,8 +182,7 @@ ISaprioriBAFIM <- function( PP , date , dateprev , latitude , longitude , height
             aprioriStd[12] <- ifelse( height[h]>=BAFIMpar$Hp[1] & height[h]<BAFIMpar$Hp[2] , processStdScale[12] , 1e-3 )
 
             
-#            aprioriIRI[[h]] <- list(aprioriParam=aprioriParam,aprioriStd=aprioriStd,limitParam=limitParam,parScales=parScales,invAprioriCovar=diag(1/aprioriStd**2))
-#            aprioriIRI[[h]] <- list(aprioriParam=aprioriParam,aprioriStd=aprioriStd,limitParam=limitParam,parScales=parScales,aprioriCovar=diag(aprioriStd**2))
+            ## The final IRI prior
             aprioriIRI[[h]] <- list(aprioriParam=aprioriParam,limitParam=limitParam,parScales=parScales,aprioriCovar=diag(aprioriStd**2))
 
         }
@@ -191,99 +193,82 @@ ISaprioriBAFIM <- function( PP , date , dateprev , latitude , longitude , height
 
 
 
-        ############### smooth the plasma parameter profiles in altitude ##########################
-        # Plasma scale heights
+        ############### Smooth the  fitted plasma parameter profiles in altitude ##########################
+
+        ## Plasma scale heights from IRI
         kB <- 1.380649e-23
         amu <- 1.66053907e-27
         IRImol <- colSums(IRIpar[c('NO+','O2+','cluster'),])
         IRItot <- IRImol + IRIpar['O+',] + IRIpar['H+',]
         H <- kB * (IRIpar['Ti',] + IRIpar['Te',]) / 2 / ( amu * ( IRIpar['H+',]/IRItot + 16*IRIpar['O+',]/IRItot + 30.5*IRImol/IRItot ) * 9.82 * ( 6372/(6372+height) )**2 )
-
-
+        
+        
         
         if (length(PP)>0){
-
-            # time step duration
+            
+            ## time step duration
             dt <-abs( as.double(ISOdate(date[1],date[2],date[3],date[4],date[5],date[6])) - PP$time_sec)
-
+            
             if(dt==0){
                 dt <- abs( as.double(ISOdate(date[1],date[2],date[3],date[4],date[5],date[6])) - as.double(ISOdate(dateprev[1],dateprev[2],dateprev[3],dateprev[4],dateprev[5],dateprev[6])))
             }
             
-            # scaling factor for the length scales
+            ## scaling factor for the correlation length scales
             hsAlt <- H/1000 * sqrt(dt)
 
-            # height gate widths
+            ## height gate widths
             dheights <- diff(PP$heightLimits.km)
 
             
-            # replace unrealistic values and failed fits with the previous predictions
+            ## replace unrealistic values and failed fits with the previous predictions
             for(h in seq(nh)){
+                
                 okfit <- TRUE
-                # iri parameters...
+
+                ## iri parameters at this altitude
                 iriPars  <-  scaleParams(aprioriIRI[[h]]$aprioriParam,aprioriIRI[[h]]$parScales,inverse=T)
+
                 if(PP$status[h] | PP$chisqr[h]>100 | any(PP$param[h,] < parLimits[1,]) | any(PP$param[h,] > parLimits[2,] )| any(is.na(PP$param[h,])) | any(PP$param[h,2:5] < .2*iriPars[2:5])){
                     okfit <- FALSE
                 }
 
-                
-                if(!okfit){
-                    ## ## inverse covariance matrix of the prior "measurements"
-                    ## Qtmp <- PP$apriori[[h]]$invAprioriCovar
-                    ## ## prior theory matrix
-                    ## Atmp <- PP$apriori[[h]]$aprioriTheory
-                    ## ## prior "measurement" vector
-                    ## mtmp <- PP$apriori[[h]]$aprioriMeas
-                    ## ## posterior precision matrix of the prior "measurement"
-                    ## prec <- t(Atmp)%*%Qtmp%*%Atmp
-                    ## ## scaling factors for matrix normalization
-                    ## stdp <- sqrt(diag(prec))
-                    ## spre <- outer(stdp,stdp)
-                    ## ## invert the precision matrix, scale with spre to avoid numerical instabilities
-                    ## Stmp <- solve(prec/spre)/spre
-                    ## ## the "measurement"
-                    ## xtmp <- c(Stmp%*%t(Atmp)%*%Qtmp%*%mtmp)
-                    ## ## check that xtmp are within the allowed limits
-                    ## xtmp <- pmin(pmax(xtmp,PP$apriori[[h]]$limitParam[1,]),PP$apriori[[h]]$limitParam[2,])
-                    ## ## scale to physical units
-                    ## PP$param[h,] <- scaleParams(xtmp,PP$apriori[[h]]$parScales,inverse=T)
-                    ## PP$covar[[h]] <- scaleCovar(Stmp,PP$apriori[[h]]$parScales,inverse=T)
-                    ## ## standard deviations from diagonal of the covariance matrix
-                    ## PP$std[h,] <- sqrt(diag(PP$covar[[h]]))
 
+                ## if the previous fit failed
+                ## neglect the correlations and just copy the prior mean and variance to avoid propagating the correlations
+                ## below/above the lowest/highest measured altitude
+                if(!okfit){
+
+                    ## number of parameters
                     nParH <- length(PP$apriori[[h]]$aprioriParam)
-                    ## neglect the correlations and just copy the prior mean and variance to avoid propagating the correlations
-                    ## below/above the lowest/highest measured altitude
+                    ## the previous prediction
                     PP$param[h,] <- scaleParams(PP$apriori[[h]]$aprioriParam,PP$apriori[[h]]$parScales,inverse=T)
-                    ## scaling factors for matrix normalization
+                    ## form the covariance matrix, first scaling factors for matrix normalization to avoid numerical instabilities
                     stdp <- sqrt(diag(PP$apriori[[h]]$invAprioriCovar[1:nParH,1:nParH]))
                     spre <- outer(stdp,stdp)
-                    ## invert the precision matrix, scale with spre to avoid numerical instabilities
+                    ## invert the precision matrix, scale with spre
                     Stmp <- solve(PP$apriori[[h]]$invAprioriCovar[1:nParH,1:nParH]/spre)/spre
                     PP$covar[[h]] <- scaleCovar(diag(diag(Stmp)),PP$apriori[[h]]$parScales,inverse=T)
                     ## standard deviations from diagonal of the covariance matrix
                     PP$std[h,] <- sqrt(diag(PP$covar[[h]]))
 
-                    
-#                    print(height[h])
                 }
-
+                
             }
 
-
+            
             ## need at least three gates for the smoothing
             if(nh>2){
 
-
-                ## the smoothing must be done for unscaled parameters, because the scales vary with altitude!
-
+                
+                ## the smoothing must be done for unnormalized parameters, because the scales vary with altitude!
+                
                 
                 ## Form a correlation prior in range (height) direction
                 A <- matrix(0,nrow=(nh-1+nh-2),ncol=nh)
                 SNe <- STipar <- STiperp <- STepar <- STeperp <- SColl <- SVix <- SViy <- SVipar <-SMp <-  SOp <- SHp <- A[,1]
-
+                
                 Aind <- 1
-            
+                
                 ## The correlation powers solved from known variances, height steps, and correlation lengths
                 corrP <- PP$std[,1:12]**2
                 
@@ -300,16 +285,15 @@ ISaprioriBAFIM <- function( PP , date , dateprev , latitude , longitude , height
                 corrP[,11] <- corrP[,11] * dheights / (BAFIMpar$Op[3]*hsAlt) # O+
                 corrP[,12] <- corrP[,12] * dheights / (BAFIMpar$Hp[3]*hsAlt) # H+
 
-
-            
-                #The first order terms.
-                # M is always zero for the first and higher order terms
-                # The zeroth-order terms are added later
-
+                
+                
+                ## The first order terms.
+                ## M is always zero for the first and higher order terms
+                ## The zeroth-order terms are added later
+                
                 for(hind in seq(1,nh-1)){
-                    # here '1' and '-1' should be scaled according to the difference between the forward gate centre difference and dheights
-                    #A[Aind,hind]   <- 1
-                    #A[Aind,hind+1] <- -1
+
+                    ## here '1' and '-1' are scaled according to the difference between the forward gate centre difference and dheights
                     A[Aind,c(0,1)+hind] <- c(1,-1)/(height[hind+1]-height[hind])*dheights[hind]
 
                     SNe[Aind]      <-  2 * corrP[hind,1]  * dheights[hind] / (BAFIMpar$Ne[3]*hsAlt[hind])
@@ -327,14 +311,9 @@ ISaprioriBAFIM <- function( PP , date , dateprev , latitude , longitude , height
                     Aind           <- Aind + 1
                 }
             
-               # The second order terms
-               # NOTE: This is approximately OK also when the altitude resolution changes, because we assume that
-               # the parameters are constant within a gate...
+               #E The second order terms
                 for(hind in seq(2,nh-1)){
-                    # here '1', '-2' and  '1' should be normalized according to the difference between gate centre separations and dheights
-                    #A[Aind,hind-1] <- 1
-                    #A[Aind,hind] <- -2
-                    #A[Aind,hind+1] <- 1
+                    ## '1', '-2' and  '1' are normalized according to the difference between gate centre separations and dheights
                     A[Aind,hind-1] <- 2/((height[hind+1]-height[hind])*(height[hind+1]-height[hind-1]))*dheights[hind]**2
                     A[Aind,hind] <- 2*(height[hind-1]-height[hind+1])/((height[hind+1]-height[hind])*(height[hind]-height[hind-1])*(height[hind+1]-height[hind-1]))*dheights[hind]**2
                     A[Aind,hind+1] <- 2/((height[hind]-height[hind-1])*(height[hind+1]-height[hind-1]))*dheights[hind]**2
@@ -355,18 +334,19 @@ ISaprioriBAFIM <- function( PP , date , dateprev , latitude , longitude , height
                     Aind <- Aind + 1
                 }
                 
-                # combine all paramters in one large theory matrix
+                ## Combine all paramters from all gates in one large theory matrix
                 nn <- dim(A)
                 n1 <- nn[1]
                 n2 <- nn[2]
                 
-                # we have 12 parameters
+                ## We have 12 parameters
                 Acomb <- matrix(0,nrow=12*n1,ncol=12*n2)
                 Scomb <- matrix(NaN,nrow=12*n1,ncol=1)
                 for(ipar in seq(12)){
                     Acomb[ ((ipar-1)*n1+1) : (ipar*n1) , ((ipar-1)*n2+1) : (ipar*n2) ] <- A
                 }
 
+                ## form the Fisher information matrix
                 Scomb <- c( SNe, STipar , STiperp , STepar , STeperp, SColl, SVix , SViy , SVipar , SMp , SOp , SHp )
                 Qcomb <- t(Acomb)%*%diag(1/Scomb)%*%Acomb
 
@@ -379,7 +359,7 @@ ISaprioriBAFIM <- function( PP , date , dateprev , latitude , longitude , height
 
 
 
-            # The zeroth order terms are measurements and their covariances from the previous step
+            ## The zeroth order terms are measurements and their covariances from the previous step
             Cfit <- matrix(0,ncol=nh*12,nrow=nh*12)
             Mfit <- matrix(NaN,nrow=nh*12,ncol=1)
             for(ih in seq(nh)){
@@ -389,24 +369,25 @@ ISaprioriBAFIM <- function( PP , date , dateprev , latitude , longitude , height
             }
             
 
-            # zeroth-order precision matrix that contains measurements from all heights
+            ## zeroth-order precision matrix that contains measurements from all heights
             Cdiagsqrt <- sqrt(diag(Cfit))
             Cscale <- outer(Cdiagsqrt,Cdiagsqrt)
             Qfit <- solve(Cfit/Cscale)/Cscale
 
 
-            # solve the the whole problem (zeroth, first, and second order terms).
-            # Normalize the variances to unit values to stabilise the matrix inversion
+            ## solve the the whole problem (zeroth, first, and second order terms).
+            ## Normalize the variances to unit values to stabilise the matrix inversion
             Qsum <- Qfit + Qcomb
             Qdiagsqrt <- sqrt(diag(Qsum))
             Qscale <- outer(Qdiagsqrt,Qdiagsqrt)
             Cpost <- solve(Qsum/Qscale)/Qscale
 
+            ## All smoothed profiles in one vector
             Xpost <- Cpost%*%Qfit%*%Mfit
 
 
             
-            # skip the smoothing if it obviously failed
+            ## skip the smoothing if it obviously failed
             if ( any(is.na(Xpost)) | any(is.na(Cpost)) | any(Im(Xpost)!=0) | any(Im(Cpost)!=0) | any(diag(Cpost)<0)){
                 Xpost <- Mfit
                 Cpost <- Cfit
@@ -414,7 +395,7 @@ ISaprioriBAFIM <- function( PP , date , dateprev , latitude , longitude , height
             }
 
         
-            #Pick the parameter profiles
+            ## Pick the smoothed parameter profiles from Xpost
             NeCorr <- Xpost[1:nh];
             TiparCorr <- Xpost[(nh+1):(2*nh)];
             TiperpCorr <- Xpost[(2*nh+1):(3*nh)];
@@ -428,7 +409,7 @@ ISaprioriBAFIM <- function( PP , date , dateprev , latitude , longitude , height
             OpCorr <- Xpost[(10*nh+1):(11*nh)];
             HpCorr <- Xpost[(11*nh+1):(12*nh)];
         
-            #Standard deviations. NOTICE: we could pick the full covariance matrices at each height!
+            #Standard deviations. NOTICE: we will pick also the full covariance matrices at each height later!
             NeErrCorr     <- sqrt(diag(Cpost[              1:nh,             1:nh]));
             TiparErrCorr  <- sqrt(diag(Cpost[(    nh+1): (2*nh),   (nh+1): (2*nh)]));
             TiperpErrCorr <- sqrt(diag(Cpost[(  2*nh+1): (3*nh), (2*nh+1): (3*nh)]));
@@ -444,141 +425,131 @@ ISaprioriBAFIM <- function( PP , date , dateprev , latitude , longitude , height
 
 
 
+            ## some plots for debugging
+            
             if(FALSE){
-            
-#            plot(Xpost[(3*nh+1):(4*nh)],height,xlim=c(0,3000))
-#            lines(PP$param[,4],height)
-            layout(matrix(seq(12),ncol=4))
-            ## plot(log10(PP$param[,1]),height,xlim=c(10,12))
-            ## lines(log10(PP$param[,1]+PP$std[,1]),height,col='blue')
-            ## nesmooth <- NeCorr
-            ## nesmooth[nesmooth<=1] <- 1
-            ## lines(log10(nesmooth),height)
-            ## lines(log10(nesmooth+NeErrCorr),height,col='red')
+                
+                                        #            plot(Xpost[(3*nh+1):(4*nh)],height,xlim=c(0,3000))
+                                        #            lines(PP$param[,4],height)
+                layout(matrix(seq(12),ncol=4))
+                ## plot(log10(PP$param[,1]),height,xlim=c(10,12))
+                ## lines(log10(PP$param[,1]+PP$std[,1]),height,col='blue')
+                ## nesmooth <- NeCorr
+                ## nesmooth[nesmooth<=1] <- 1
+                ## lines(log10(nesmooth),height)
+                ## lines(log10(nesmooth+NeErrCorr),height,col='red')
+                
+                
+                
+                plot((PP$param[,1]),height,xlim=c(0,ifelse(logNe,12,1e12)))
+                lines((PP$param[,1]+PP$std[,1]),height,col='blue')
+                nesmooth <- NeCorr
+                nesmooth[nesmooth<=1] <- 1
+                lines((nesmooth),height)
+                lines((nesmooth+NeErrCorr),height,col='red')
+                lines((nesmooth+sqrt(NeErrCorr**2+BAFIMpar$Ne[4]**2*dt)),height,col='green')
+                
+                plot(PP$param[,2],height,xlim=c(0,2000))
+                lines(TiparCorr,height)
+                lines(PP$param[,2]+PP$std[,2],height,col='blue')
+                lines(TiparCorr+TiparErrCorr,height,col='red')
+                lines((TiparCorr+sqrt(TiparErrCorr**2+BAFIMpar$Ti[4]**2*dt)),height,col='green')
+                
+                plot(PP$param[,3],height,xlim=c(0,2000))
+                lines(TiperpCorr,height)
+                lines(PP$param[,3]+PP$std[,3],height,col='blue')
+                lines(TiperpCorr+TiperpErrCorr,height,col='red')
+                lines((TiperpCorr+sqrt(TiperpErrCorr**2+BAFIMpar$Ti[4]**2*dt)),height,col='green')
+                
+                plot(PP$param[,4],height,xlim=c(0,2000))
+                lines(TeparCorr,height)
+                lines(PP$param[,4]+PP$std[,4],height,col='blue')
+                lines(TeparCorr+TeparErrCorr,height,col='red')
+                lines((TeparCorr+sqrt(TeparErrCorr**2+BAFIMpar$Te[4]**2*dt)),height,col='green')
+                
+                plot(PP$param[,5],height,xlim=c(0,2000))
+                lines(TeperpCorr,height)
+                lines(PP$param[,5]+PP$std[,5],height,col='blue')
+                lines(TeperpCorr+TeperpErrCorr,height,col='red')
+                lines((TeperpCorr+sqrt(TeperpErrCorr**2+BAFIMpar$Te[4]**2*dt)),height,col='green')
+                
+                
+                plot(PP$param[,6],height,xlim=c(0,1e4))
+                lines(CollCorr,height)
+                lines(PP$param[,6]+PP$std[,6],height,col='blue')
+                lines(CollCorr+CollErrCorr,height,col='red')
+                lines((CollCorr+sqrt(CollErrCorr**2+BAFIMpar$Coll[4]**2*dt)),height,col='green')
+                
+                plot(PP$param[,7],height,xlim=c(-1,1)*100)
+                lines(VixCorr,height)
+                lines(PP$param[,7]+PP$std[,7],height,col='blue')
+                lines(VixCorr+VixErrCorr,height,col='red')
+                lines((VixCorr+sqrt(VixErrCorr**2+BAFIMpar$Viperp[4]**2*dt)),height,col='green')
+                
+                plot(PP$param[,8],height,xlim=c(-1,1)*100)
+                lines(ViyCorr,height)
+                lines(PP$param[,8]+PP$std[,8],height,col='blue')
+                lines(ViyCorr+ViyErrCorr,height,col='red')
+                lines((ViyCorr+sqrt(ViyErrCorr**2+BAFIMpar$Viperp[4]**2*dt)),height,col='green')
+                
+                plot(PP$param[,9],height,xlim=c(-1,1)*100)
+                lines(ViparCorr,height)
+                lines(PP$param[,9]+PP$std[,9],height,col='blue')
+                lines(ViparCorr+ViparErrCorr,height,col='red')
+                lines((ViparCorr+sqrt(ViparErrCorr**2+BAFIMpar$Vipar[4]**2*dt)),height,col='green')
+                
+                plot(PP$param[,10],height,xlim=c(0,1))
+                lines(MpCorr,height)
+                lines(PP$param[,10]+PP$std[,10],height,col='blue')
+                lines(MpCorr+MpErrCorr,height,col='red')
+                lines((MpCorr+sqrt(MpErrCorr**2+BAFIMpar$Mp[4]**2*dt)),height,col='green')
+                
+                plot(PP$param[,11],height,xlim=c(0,1))
+                lines(OpCorr,height)
+                lines(PP$param[,11]+PP$std[,11],height,col='blue')
+                lines(OpCorr+OpErrCorr,height,col='red')
+                lines((OpCorr+sqrt(OpErrCorr**2+BAFIMpar$Op[4]**2*dt)),height,col='green')
+                
+                plot(PP$param[,12],height,xlim=c(0,1))
+                lines(HpCorr,height)
+                lines(PP$param[,12]+PP$std[,12],height,col='blue')
+                lines(HpCorr+HpErrCorr,height,col='red')
+                lines((HpCorr+sqrt(HpErrCorr**2+BAFIMpar$Hp[4]**2*dt)),height,col='green')
+                
+                mtext(ISOdate(date[1],date[2],date[3],date[4],date[5],date[6]),side=3,line=-2,outer=T)
+            }
+            ## end of the debugging plots
 
-
             
-            plot((PP$param[,1]),height,xlim=c(0,ifelse(logNe,12,1e12)))
-            lines((PP$param[,1]+PP$std[,1]),height,col='blue')
-            nesmooth <- NeCorr
-            nesmooth[nesmooth<=1] <- 1
-            lines((nesmooth),height)
-            lines((nesmooth+NeErrCorr),height,col='red')
-            lines((nesmooth+sqrt(NeErrCorr**2+BAFIMpar$Ne[4]**2*dt)),height,col='green')
-            
-            plot(PP$param[,2],height,xlim=c(0,2000))
-            lines(TiparCorr,height)
-            lines(PP$param[,2]+PP$std[,2],height,col='blue')
-            lines(TiparCorr+TiparErrCorr,height,col='red')
-            lines((TiparCorr+sqrt(TiparErrCorr**2+BAFIMpar$Ti[4]**2*dt)),height,col='green')
-            
-            plot(PP$param[,3],height,xlim=c(0,2000))
-            lines(TiperpCorr,height)
-            lines(PP$param[,3]+PP$std[,3],height,col='blue')
-            lines(TiperpCorr+TiperpErrCorr,height,col='red')
-            lines((TiperpCorr+sqrt(TiperpErrCorr**2+BAFIMpar$Ti[4]**2*dt)),height,col='green')
-            
-            plot(PP$param[,4],height,xlim=c(0,2000))
-            lines(TeparCorr,height)
-            lines(PP$param[,4]+PP$std[,4],height,col='blue')
-            lines(TeparCorr+TeparErrCorr,height,col='red')
-            lines((TeparCorr+sqrt(TeparErrCorr**2+BAFIMpar$Te[4]**2*dt)),height,col='green')
-
-            plot(PP$param[,5],height,xlim=c(0,2000))
-            lines(TeperpCorr,height)
-            lines(PP$param[,5]+PP$std[,5],height,col='blue')
-            lines(TeperpCorr+TeperpErrCorr,height,col='red')
-            lines((TeperpCorr+sqrt(TeperpErrCorr**2+BAFIMpar$Te[4]**2*dt)),height,col='green')
-            
-            
-            plot(PP$param[,6],height,xlim=c(0,1e4))
-            lines(CollCorr,height)
-            lines(PP$param[,6]+PP$std[,6],height,col='blue')
-            lines(CollCorr+CollErrCorr,height,col='red')
-            lines((CollCorr+sqrt(CollErrCorr**2+BAFIMpar$Coll[4]**2*dt)),height,col='green')
-            
-            plot(PP$param[,7],height,xlim=c(-1,1)*100)
-            lines(VixCorr,height)
-            lines(PP$param[,7]+PP$std[,7],height,col='blue')
-            lines(VixCorr+VixErrCorr,height,col='red')
-            lines((VixCorr+sqrt(VixErrCorr**2+BAFIMpar$Viperp[4]**2*dt)),height,col='green')
-
-            plot(PP$param[,8],height,xlim=c(-1,1)*100)
-            lines(ViyCorr,height)
-            lines(PP$param[,8]+PP$std[,8],height,col='blue')
-            lines(ViyCorr+ViyErrCorr,height,col='red')
-            lines((ViyCorr+sqrt(ViyErrCorr**2+BAFIMpar$Viperp[4]**2*dt)),height,col='green')
-
-            plot(PP$param[,9],height,xlim=c(-1,1)*100)
-            lines(ViparCorr,height)
-            lines(PP$param[,9]+PP$std[,9],height,col='blue')
-            lines(ViparCorr+ViparErrCorr,height,col='red')
-            lines((ViparCorr+sqrt(ViparErrCorr**2+BAFIMpar$Vipar[4]**2*dt)),height,col='green')
-
-            plot(PP$param[,10],height,xlim=c(0,1))
-            lines(MpCorr,height)
-            lines(PP$param[,10]+PP$std[,10],height,col='blue')
-            lines(MpCorr+MpErrCorr,height,col='red')
-            lines((MpCorr+sqrt(MpErrCorr**2+BAFIMpar$Mp[4]**2*dt)),height,col='green')
-
-            plot(PP$param[,11],height,xlim=c(0,1))
-            lines(OpCorr,height)
-            lines(PP$param[,11]+PP$std[,11],height,col='blue')
-            lines(OpCorr+OpErrCorr,height,col='red')
-            lines((OpCorr+sqrt(OpErrCorr**2+BAFIMpar$Op[4]**2*dt)),height,col='green')
-
-            plot(PP$param[,12],height,xlim=c(0,1))
-            lines(HpCorr,height)
-            lines(PP$param[,12]+PP$std[,12],height,col='blue')
-            lines(HpCorr+HpErrCorr,height,col='red')
-            lines((HpCorr+sqrt(HpErrCorr**2+BAFIMpar$Hp[4]**2*dt)),height,col='green')
-            
-                mtext(ISOdate(date[1],date[2],date[3],date[4],date[5],date[6]),side=3,line=-2,outer=T)            }
-
-            
-#            dt <- abs(as.double(ISOdate(date[1],date[2],date[3],date[4],date[5],date[6])) - PP$time_sec)
+            ## collect the smoothed parameters and their error covariances at each height
             for (hind in seq(nh)){
-
-                # the range-smoothed parameters
+                
+                ## the range-smoothed parameters
                 PP$paramRcorr[hind,1:12] <-c(NeCorr[hind],TiparCorr[hind],TiperpCorr[hind],TeparCorr[hind],TeperpCorr[hind],CollCorr[hind],VixCorr[hind],ViyCorr[hind],ViparCorr[hind],MpCorr[hind],OpCorr[hind],HpCorr[hind])
 
+                ## standard deviations
                 PP$stdRcorr[hind,1:12] <- c(NeErrCorr[hind],TiparErrCorr[hind],TiperpErrCorr[hind],TeparErrCorr[hind],TeperpErrCorr[hind],CollErrCorr[hind],VixErrCorr[hind],ViyErrCorr[hind],ViparErrCorr[hind],MpErrCorr[hind],OpErrCorr[hind],HpErrCorr[hind])
 
+                ## error covariance matrices
                 PP$covarRcorr[[hind]][1:12,1:12] <- Cpost[ ((0:11)*nh + hind) , ((0:11)*nh + hind) ]
 
-                # the prior model for the next time step
+                ## the prior model for the next time step
                 aprioriBAFIM[[hind]] <- list()
                 aprioriBAFIM[[hind]][['aprioriParam']] <- scaleParams( PP$paramRcorr[hind,1:12] , aprioriIRI[[hind]]$parScales[1:12] , inverse=FALSE )
-
-                # process noise standard deviation in normalized units
-                processStd <- c( BAFIMpar$Ne[4] , BAFIMpar$Ti[4] , BAFIMpar$Ti[4] ,BAFIMpar$Te[4] , BAFIMpar$Te[4] , BAFIMpar$Coll[4] , BAFIMpar$Viperp[4] , BAFIMpar$Viperp[4] , BAFIMpar$Vipar[4] , BAFIMpar$Mp[4], BAFIMpar$Op[4], BAFIMpar$Hp[4] )*sqrt(dt)
-
                 
-                ## # standard deviations of the smoothed values + the process noise
-                ## aprioriBAFIM[[hind]][['aprioriStd']] <- scaleParams( PP$stdRcorr[hind,1:12] + processStd , aprioriIRI[[hind]]$parScales[1:12] , inverse=FALSE )
-
-                # smoothed plasma parameter error covariance in this gate 
-#                aprioriBAFIM[[hind]][['invAprioriCovar']] <- solve(scaleCovar( PP$covarRcorr[[hind]][1:12,1:12] + diag(processStd[1:12])**2, aprioriIRI[[hind]]$parScales[1:12] , inverse=F ))
+                ## process noise standard deviation in normalized units
+                processStd <- c( BAFIMpar$Ne[4] , BAFIMpar$Ti[4] , BAFIMpar$Ti[4] ,BAFIMpar$Te[4] , BAFIMpar$Te[4] , BAFIMpar$Coll[4] , BAFIMpar$Viperp[4] , BAFIMpar$Viperp[4] , BAFIMpar$Vipar[4] , BAFIMpar$Mp[4], BAFIMpar$Op[4], BAFIMpar$Hp[4] )*sqrt(dt)
+                
+                
+                ## Error covariance matrix of the prediction (covariance of the smoothed parameters + process noise)
                 aprioriBAFIM[[hind]][['aprioriCovar']] <- scaleCovar( PP$covarRcorr[[hind]][1:12,1:12] + diag(processStd[1:12])**2, aprioriIRI[[hind]]$parScales[1:12] , inverse=F )
 
 
-                ## # standard deviations of the smoothed values + the process noise
-                ## aprioriBAFIM[[hind]][["aprioriStd"]] <- sqrt(diag(aprioriBAFIM[[hind]][["aprioriCovar"]]))
-                
-                
             }
 
-            Cpred <- Cpost + diag(rep(processStd,each=nh)**2)
-                
-            stdCpred <- sqrt(diag(Cpred))
-            sCpred <- outer(stdCpred,stdCpred)
-            Qpred <- solve(Cpred/sCpred)/sCpred
-
             
-            PP$BAFIM_G <- Cfit * t(Cpost * Qfit) * Qpred
-
         }else{
-            # IRI parameters are used in the first iteration step
+            ## IRI parameters are used in the first iteration step
             aprioriBAFIM <- aprioriIRI
         }
 
@@ -587,312 +558,173 @@ ISaprioriBAFIM <- function( PP , date , dateprev , latitude , longitude , height
         ## Pick the IRI / BAFIM priors according to the limits in BAFIMpar
  
         for(h in seq(nh)){
-            
 
+            ## first copy the IRI values
             aprioriParam <- aprioriIRI[[h]]$aprioriParam
-#            aprioriStd <- aprioriIRI[[h]]$aprioriStd
             limitParam <- aprioriIRI[[h]]$limitParam
             parScales <- aprioriIRI[[h]]$parScales
 
 
             fitPar <- rep(FALSE,12)
 
-            # length of the parameter vector
-            nPar                         <- length(aprioriParam)
+            ## length of the parameter vector
+            nPar <- length(aprioriParam)
 
-            # check if flipchem will be used in this gate
+            ## check if flipchem will be used in this gate
             flipchemfit <- FALSE
             if(height[h]>=BAFIMpar$flipchem[1] & height[h]<=BAFIMpar$flipchem[2]){
                 flipchemfit <- TRUE
             }
             
-            # number of imaginary apriori "measurements"
-            nApriori                     <- ifelse( flipchemfit , nPar + 7 ,  nPar + 6 )
+            ## number of imaginary apriori "measurements"
+            nApriori <- ifelse( flipchemfit , nPar + 7 ,  nPar + 6 )
 
-            # apriori theory matrix
-            aprioriTheory                <- matrix( 0 , nrow=nApriori , ncol=nPar )
+            ## apriori theory matrix
+            aprioriTheory <- matrix( 0 , nrow=nApriori , ncol=nPar )
 
-            # apriori measurement vector
-            aprioriMeas                  <- aprioriParam#vector(mode='numeric',length=nApriori)
+            ## apriori measurement vector
+            aprioriMeas <- aprioriParam
 
-            # the apriori covariance matrix will be diagonal, so we begin with
-            # a vector of standard deviations, which is easier.
-#            aprioriStd                   <- aprioriStd#vector(mode='numeric',length=nApriori)
-
-            ## invAprioriCovar <- matrix( 0 , nrow=nApriori , ncol=nApriori )
-            ## invAprioriCovar[1:nPar,1:nPar] <- aprioriIRI[[h]]$invAprioriCovar
+            ## first copy the IRI covariances
             aprioriCovar <- matrix( 0 , nrow=nApriori , ncol=nApriori )
             aprioriCovar[1:nPar,1:nPar] <- aprioriIRI[[h]]$aprioriCovar
 
-            # apriori parameter values
+            ## apriori parameter values
             aprioriTheory[1:nPar,1:nPar] <- diag(rep(1,nPar))
 
-            # Fill with the smoothed values where appropriate            
+            ## Fill with the smoothed values where appropriate
+
+            ## Ne
             if (height[h]>=BAFIMpar$Ne[1] & height[h]<BAFIMpar$Ne[2]){
                 aprioriMeas[1] <- aprioriParam[1] <- aprioriBAFIM[[h]]$aprioriParam[1]
-#                aprioriStd[1] <- aprioriBAFIM[[h]]$aprioriStd[1]
-
                 fitPar[1] <- TRUE
-                # does this really work like this??!??
-                # we ar filling in also some kind of cross-information with the parameters we will not fit (and this off-diagonal terms are probably incorrectly weighted!!)
-                # we may need to first form the actual covariance and then invert it!!! 
-                ## invAprioriCovar[1:12,1] <- aprioriBAFIM[[h]]$invAprioriCovar[1:12,1]
-                ## invAprioriCovar[1,1:12] <- aprioriBAFIM[[h]]$invAprioriCovar[1,1:12]
             }
-            
+
+            ## Ti
             if (height[h]>=BAFIMpar$Ti[1] & height[h]<BAFIMpar$Ti[2]){
                 aprioriMeas[2] <- aprioriParam[2] <- aprioriBAFIM[[h]]$aprioriParam[2]
-#                aprioriStd[2] <- aprioriBAFIM[[h]]$aprioriStd[2]
                 aprioriMeas[3] <- aprioriParam[3] <- aprioriBAFIM[[h]]$aprioriParam[3]
-#                aprioriStd[3] <- aprioriBAFIM[[h]]$aprioriStd[3]
                 fitPar[2:3] <- TRUE
-                ## invAprioriCovar[1:12,2] <- aprioriBAFIM[[h]]$invAprioriCovar[1:12,2]
-                ## invAprioriCovar[2,1:12] <- aprioriBAFIM[[h]]$invAprioriCovar[2,1:12]
-                ## invAprioriCovar[1:12,3] <- aprioriBAFIM[[h]]$invAprioriCovar[1:12,3]
-                ## invAprioriCovar[3,1:12] <- aprioriBAFIM[[h]]$invAprioriCovar[3,1:12]
             }else{
-                # remove IRI model values of Tiperp, these are controlled with the Tipar-Tiperp correlation
+                ## remove IRI model values of Tiperp, these are controlled with the Tipar-Tiperp correlation
                 aprioriMeas[3] <- 0
                 aprioriTheory[3,] <- 0
             }
 
+            ## Te
             if (height[h]>=BAFIMpar$Te[1] & height[h]<BAFIMpar$Te[2]){
                 aprioriMeas[4] <- aprioriParam[4] <- aprioriBAFIM[[h]]$aprioriParam[4]
-#                aprioriStd[4] <- aprioriBAFIM[[h]]$aprioriStd[4]
                 aprioriMeas[5] <- aprioriParam[5] <- aprioriBAFIM[[h]]$aprioriParam[5]
-#                aprioriStd[5] <- aprioriBAFIM[[h]]$aprioriStd[5]
                 fitPar[4:5] <- TRUE
-                ## invAprioriCovar[1:12,4] <- aprioriBAFIM[[h]]$invAprioriCovar[1:12,4]
-                ## invAprioriCovar[4,1:12] <- aprioriBAFIM[[h]]$invAprioriCovar[4,1:12]
-                ## invAprioriCovar[1:12,5] <- aprioriBAFIM[[h]]$invAprioriCovar[1:12,5]
-                ## invAprioriCovar[5,1:12] <- aprioriBAFIM[[h]]$invAprioriCovar[5,1:12]
            }else{
-                # remove IRI model values of Teperp, these are controlled with the Tepar-Teperp correlation
+                ## remove IRI model values of Teperp, these are controlled with the Tepar-Teperp correlation
                 aprioriMeas[5] <- 0
                 aprioriTheory[5,] <- 0
             }
 
+            ## Collisions
             if (height[h]>=BAFIMpar$Coll[1] & height[h]<BAFIMpar$Coll[2]){
                 aprioriMeas[6] <- aprioriParam[6] <- aprioriBAFIM[[h]]$aprioriParam[6]
-#                aprioriStd[6] <- aprioriBAFIM[[h]]$aprioriStd[6]
                 fitPar[6] <- TRUE
-                ## invAprioriCovar[1:12,6] <- aprioriBAFIM[[h]]$invAprioriCovar[1:12,6]
-                ## invAprioriCovar[6,1:12] <- aprioriBAFIM[[h]]$invAprioriCovar[6,1:12]
             }
 
+            ## Vi perpendicular components
             if (height[h]>=BAFIMpar$Viperp[1] & height[h]<BAFIMpar$Viperp[2]){
                 aprioriMeas[7] <- aprioriParam[7] <- aprioriBAFIM[[h]]$aprioriParam[7]
-#                aprioriStd[7] <- aprioriBAFIM[[h]]$aprioriStd[7]
                 aprioriMeas[8] <- aprioriParam[8] <- aprioriBAFIM[[h]]$aprioriParam[8]
-#                aprioriStd[8] <- aprioriBAFIM[[h]]$aprioriStd[8]
                 fitPar[7:8] <- TRUE
-                ## invAprioriCovar[1:12,7] <- aprioriBAFIM[[h]]$invAprioriCovar[1:12,7]
-                ## invAprioriCovar[7,1:12] <- aprioriBAFIM[[h]]$invAprioriCovar[7,1:12]
-                ## invAprioriCovar[1:12,8] <- aprioriBAFIM[[h]]$invAprioriCovar[1:12,8]
-                ## invAprioriCovar[8,1:12] <- aprioriBAFIM[[h]]$invAprioriCovar[8,1:12]
             }
-            
+
+            ## Vi parallel
             if (height[h]>=BAFIMpar$Vipar[1] & height[h]<BAFIMpar$Vipar[2]){
                 aprioriMeas[9] <- aprioriParam[9] <- aprioriBAFIM[[h]]$aprioriParam[9]
-#                aprioriStd[9] <- aprioriBAFIM[[h]]$aprioriStd[9]
                 fitPar[9] <- TRUE
-                ## invAprioriCovar[1:12,9] <- aprioriBAFIM[[h]]$invAprioriCovar[1:12,9]
-                ## invAprioriCovar[9,1:12] <- aprioriBAFIM[[h]]$invAprioriCovar[9,1:12]
             }
-            
+
+            ## Molecular ions
             if (height[h]>=BAFIMpar$Mp[1] & height[h]<BAFIMpar$Mp[2]){
                 aprioriMeas[10] <- aprioriParam[10] <- aprioriBAFIM[[h]]$aprioriParam[10]
-#                aprioriStd[10] <- aprioriBAFIM[[h]]$aprioriStd[10]
                 fitPar[10] <- TRUE
-                ## invAprioriCovar[1:12,10] <- aprioriBAFIM[[h]]$invAprioriCovar[1:12,10]
-                ## invAprioriCovar[10,1:12] <- aprioriBAFIM[[h]]$invAprioriCovar[10,1:12]
             }
-            
+
+            ## O+ ions
             if (height[h]>=BAFIMpar$Op[1] & height[h]<BAFIMpar$Op[2]){
                 aprioriMeas[11] <- aprioriParam[11] <- aprioriBAFIM[[h]]$aprioriParam[11]
-#                aprioriStd[11] <- aprioriBAFIM[[h]]$aprioriStd[11]
                 fitPar[11] <- TRUE
-                ## invAprioriCovar[1:12,11] <- aprioriBAFIM[[h]]$invAprioriCovar[1:12,11]
-                ## invAprioriCovar[11,1:12] <- aprioriBAFIM[[h]]$invAprioriCovar[11,1:12]
             }
             
+            ## H+ ions
             if (height[h]>=BAFIMpar$Hp[1] & height[h]<BAFIMpar$Hp[2]){
                 aprioriMeas[12] <- aprioriParam[12] <- aprioriBAFIM[[h]]$aprioriParam[12]
-#                aprioriStd[12] <- aprioriBAFIM[[h]]$aprioriStd[12]
                 fitPar[12] <- TRUE
-                ## invAprioriCovar[1:12,12] <- aprioriBAFIM[[h]]$invAprioriCovar[1:12,12]
-                ## invAprioriCovar[12,1:12] <- aprioriBAFIM[[h]]$invAprioriCovar[12,1:12]
             }
 
 
-
+            ## replace the IRI covariances with the prediction where appropriate
             aprioriCovar[1:12,1:12][fitPar,fitPar] <- aprioriBAFIM[[h]][["aprioriCovar"]][1:12,1:12][fitPar,fitPar]
             
-
+            ## Force the prior values to be within the physically reasonable limits
             aprioriMeas[1:12] <- aprioriParam[1:12] <- pmax(aprioriMeas[1:12],limitParam[1,1:12])
             aprioriMeas[1:12] <- aprioriParam[1:12] <-  pmin(aprioriMeas[1:12],limitParam[2,1:12])
 
-            ## aprioriMeas[1:nPar]          <- aprioriParam
             
-            ## aprioriStd[1]                <- 1e4                                        # electron density
-            ## aprioriStd[2]                <- ifelse(height[h]<BAFIMpar$Ti[1],1e-3,2)                       # parallel ion temperature
-            ## aprioriStd[3]                <- 2                                          # perpendicular ion temperature
-            ## aprioriStd[4]                <- 2                                          # parallel electron temperature
-            ## aprioriStd[5]                <- 2                                          # perpendicular electron temperature
-            ## aprioriStd[6]                <- ifelse((height[h]>BAFIMpar$Coll[1])&(height[h]<BAFIMpar$Coll[2]),1,1e-3)   # ion-neutral collision frequency
-            ## aprioriStd[7]                <- ifelse(height[h]<BAFIMpar$Viperp[1],.1,10)                        # ion velocity, x-component
-            ## aprioriStd[8]                <- ifelse(height[h]<BAFIMpar$Viperp[1],.1,10)                        # ion velocity, y-component
-            ## aprioriStd[9]                <- ifelse(height[h]<BAFIMpar$Vipar[1],.1,10)                        # ion velocity, z-component
-            ## aprioriStd[10:(9+nIon)]      <- 1e-3                                       # ion abundances
-
-
-            ## # remove model information about perpendicular temperatures
-            ## aprioriTheory[3,] <- 0
-            ## aprioriTheory[5,] <- 0
-            ## aprioriMeas[c(3,5)] <- 0
-
-
-
-
-            ####################### replace the IRI predictions with range-smoothed profiles from the previous fit where appropriate ##
-
-
-            # replace the IRI value with results from the previous time step (or from the previous prior if the failed)
-            # and the standard deviations with that from the previous fit + the process noise
-            # 
-            # NOTE: this is a development version, in the final version we will smooth the profiles first!
-            ## if(length(PP)>0){
-            ##     dt <- as.double(ISOdate(date[1],date[2],date[3],date[4],date[5],date[6])) - PP$time_sec
-            ##     processStdScale <- scaleParams(c( BAFIMpar$Ne[4] , BAFIMpar$Ti[4] , BAFIMpar$Ti[4] ,BAFIMpar$Te[4] , BAFIMpar$Te[4] , BAFIMpar$Coll[4] , BAFIMpar$Viperp[4] , BAFIMpar$Viperp[4] , BAFIMpar$Vipar[4] , BAFIMpar$Mp[4], BAFIMpar$Op[4], BAFIMpar$Hp[4] ),parScales[1:12],inverse=F)
-
-            ##     if (!PP$status[h]){
-            ##         parFit <- scaleParams(PP$param[h,],parScales,inverse=F)
-            ##         stdFit <- scaleParams(PP$std[h,],parScales,inverse=F)
-            ##     }else{
-            ##         parFit <- PP$apriori[[h]]$aprioriParam
-            ##         stdFit <- 1/sqrt(diag(PP$apriori[[h]]$invAprioriCovar))
-            ##     }
-            ##     if (height[h]>=BAFIMpar$Ne[1] & height[h]<BAFIMpar$Ne[2]){
-            ##         aprioriMeas[1] <- aprioriParam[1] <- parFit[1]
-            ##         aprioriStd[1] <- stdFit[1] + processStdScale[1]*sqrt(dt)
-            ##     }
-            ##     if (height[h]>=BAFIMpar$Ti[1] & height[h]<BAFIMpar$Ti[2]){
-            ##         aprioriMeas[2] <- aprioriParam[2] <- parFit[2]
-            ##         aprioriStd[2] <- stdFit[2] + processStdScale[2]*sqrt(dt)
-            ##         aprioriMeas[3] <- aprioriParam[3] <- parFit[3]
-            ##         aprioriStd[3] <- stdFit[3] + processStdScale[3]*sqrt(dt)
-            ##     }
-            ##     if (height[h]>=BAFIMpar$Te[1] & height[h]<BAFIMpar$Te[2]){
-            ##         aprioriMeas[4] <- aprioriParam[4] <- parFit[4]
-            ##         aprioriStd[4] <- stdFit[4] + processStdScale[4]*sqrt(dt)
-            ##         aprioriMeas[5] <- aprioriParam[5] <- parFit[5]
-            ##         aprioriStd[5] <- stdFit[5] + processStdScale[5]*sqrt(dt)
-            ##     }
-            ##     if (height[h]>=BAFIMpar$Coll[1] & height[h]<BAFIMpar$Coll[2]){
-            ##         aprioriMeas[6] <- aprioriParam[6] <- parFit[6]
-            ##         aprioriStd[6] <- stdFit[6] + processStdScale[6]*sqrt(dt)
-            ##     }
-            ##     if (height[h]>=BAFIMpar$Viperp[1] & height[h]<BAFIMpar$Viperp[2]){
-            ##         aprioriMeas[7] <- aprioriParam[7] <- parFit[7]
-            ##         aprioriStd[7] <- stdFit[7] + processStdScale[7]*sqrt(dt)
-            ##         aprioriMeas[8] <- aprioriParam[8] <- parFit[8]
-            ##         aprioriStd[8] <- stdFit[8] + processStdScale[8]*sqrt(dt)
-            ##     }
-            ##     if (height[h]>=BAFIMpar$Vipar[1] & height[h]<BAFIMpar$Vipar[2]){
-            ##         aprioriMeas[9] <- aprioriParam[9] <- parFit[9]
-            ##         aprioriStd[9] <- stdFit[9] + processStdScale[9]*sqrt(dt)
-            ##     }
-            ##     if (height[h]>=BAFIMpar$Mp[1] & height[h]<BAFIMpar$Mp[2]){
-            ##         aprioriMeas[10] <- aprioriParam[10] <- parFit[10]
-            ##         aprioriStd[10] <- stdFit[10] + processStdScale[10]*sqrt(dt)
-            ##     }
-            ##     if (height[h]>=BAFIMpar$Op[1] & height[h]<BAFIMpar$Op[2]){
-            ##         aprioriMeas[11] <- aprioriParam[11] <- parFit[11]
-            ##         aprioriStd[11] <- stdFit[11] + processStdScale[11]*sqrt(dt)
-            ##     }
-            ##     if (height[h]>=BAFIMpar$Hp[1] & height[h]<BAFIMpar$Hp[2]){
-            ##         aprioriMeas[12] <- aprioriParam[12] <- parFit[12]
-            ##         aprioriStd[12] <- stdFit[12] + processStdScale[12]*sqrt(dt)
-            ##     }
-            ## }
-
-
-
-
-
-            
-            
+            ## The scaling factors should not be fitted if we have absolute calibration
             if(absCalib){
-#                aprioriStd[(nIon+10):length(aprioriParam)] <- 1e-3 # fix all sites to the same ACF scale
                 diag(aprioriCovar)[(nIon+10):length(aprioriParam)] <- 1e-6
-                ## diag(invAprioriCovar)[(nIon+10):length(aprioriParam)] <- 1e6
             }else{
-#                aprioriStd[(nIon+10):length(aprioriParam)] <- 1   # allow scaling for other sites
                 diag(aprioriCovar)[(nIon+10):length(aprioriParam)] <- 1
-                ## diag(invAprioriCovar)[(nIon+10):length(aprioriParam)] <- 1
             }
+
+            ## scaling factors from a calibration measurement
             if(!is.null(siteScales)){
                 if(!is.matrix(siteScales)) siteScales <- matrix(siteScales,nrow=1)
                 ssinds <- which(!is.na(rowSums(siteScales)))
                 aprioriMeas[ssinds+nIon+9] <- siteScales[ssinds,1]  # user-given scaling factors
                 if(absCalib){
-#                    aprioriStd[ssinds+nIon+9] <- siteScales[ssinds,2]
                     diag(aprioriCovar)[ssinds+nIon+9] <- siteScales[ssinds,2]**2
-                    ## diag(invAprioriCovar)[ssinds+nIon+9] <- 1/siteScales[ssinds,2]**2
                 }
             }
             
-#            aprioriStd[nIon+9+refSite]     <- 1e-3                 # do not allow scaling at the reference site
+            ## we must have one absolutely calibrated reference site
             diag(aprioriCovar)[nIon+9+refSite] <- 1e-6
-            ## diag(invAprioriCovar)[nIon+9+refSite] <- 1e6
             
-            # force certain parameter differences close to zero
+            ## force certain parameter differences close to zero
             curRow                         <- nPar + 1
 
 
 
-            # the temperature ansitropies somewhat diffcult this way,
-            # it would perhaps be better to fit the field-aligned temperature
-            # and the difference Tperp - Tpar. This will require changes in a number
-            # of places but could be worth it...
+            ## the temperature ansitropies somewhat diffcult this way,
+            ## it would perhaps be better to fit the field-aligned temperature
+            ## and the difference Tperp - Tpar. This will require changes in a number
+            ## of places but could be worth it...
 
-            # electron temperature anisotropy
+            ## electron temperature anisotropy
             aprioriTheory[curRow,c(4,5)]   <- c(1,-1)
             aprioriMeas[curRow]            <- 0
             if(TeIsotropic){
-#                aprioriStd[curRow]             <- 1e-3
                 diag(aprioriCovar)[curRow] <- 1e-6
-                ## diag(invAprioriCovar)[curRow] <- 1e6
             }else{
-#                aprioriStd[curRow]             <- 1e3
                 diag(aprioriCovar)[curRow] <- 1e6
-                ## diag(invAprioriCovar)[curRow] <- 1e-6
             }
             curRow                         <- curRow + 1
 
-            # ion temperature anisotropy
+            ## ion temperature anisotropy
             aprioriTheory[curRow,c(2,3)]   <- c(1,-1)
             aprioriMeas[curRow]            <- 0
             if(TiIsotropic){
-#                aprioriStd[curRow]             <- 1e-3
                 diag(aprioriCovar)[curRow] <- 1e-6
-                ## diag(invAprioriCovar)[curRow] <- 1e6
             }else{
-#                aprioriStd[curRow]             <- 1e3
                 diag(aprioriCovar)[curRow] <- 1e6
-                ## diag(invAprioriCovar)[curRow] <- 1e-6
             }
             curRow                         <- curRow + 1
 
-            # Sum of ion abundances must be one
+            ## Sum of ion abundances must be one
             aprioriTheory[curRow,10:(nIon+9)] <- 1
             aprioriMeas[curRow] <- 1
-#            aprioriStd[curRow] <- 1e-3
             diag(aprioriCovar)[curRow] <- 1e-6
-            ## diag(invAprioriCovar)[curRow] <- 1e6
             curRow                         <- curRow + 1
 
-            # Te=Ti below hTeTi. Ne cannot be high when Ti>Te, either
+            ## Te=Ti below hTeTi. Ne cannot be high when Ti>Te, either
             TeTiForce <- FALSE
             if(length(PP)>0){
                 if(PP$param[h,1]>5e11 & PP$param[h,4]>PP$param[h,2]*1.05){
@@ -902,13 +734,10 @@ ISaprioriBAFIM <- function( PP , date , dateprev , latitude , longitude , height
             aprioriTheory[curRow,c(2,4)] <- c(1,-1)
             aprioriMeas[curRow] <- 0
             if(TeTiForce){
-#                aprioriStd[curRow] <- ifelse(height[h]<hTeTi,1e-3,.1)
                 diag(aprioriCovar)[curRow] <- ifelse(height[h]<hTeTi,1e-6,.01)
             }else{
-#                aprioriStd[curRow] <- ifelse(height[h]<hTeTi,1e-3,1e3)
                 diag(aprioriCovar)[curRow] <- ifelse(height[h]<hTeTi,1e-6,1e6)
             }
-            ## diag(invAprioriCovar)[curRow] <- ifelse(height[h]<hTeTi,1e6,1e-6)
             if(height[h]<hTeTi){
                 aprioriTheory[4,] <- 0
                 aprioriTheory[5,] <- 0
@@ -918,100 +747,52 @@ ISaprioriBAFIM <- function( PP , date , dateprev , latitude , longitude , height
             aprioriTheory[curRow,c(3,5)] <- c(1,-1)
             aprioriMeas[curRow] <- 0
             if(TeTiForce){
-#                aprioriStd[curRow] <- ifelse(height[h]<hTeTi,1e-3,.1)
                 diag(aprioriCovar)[curRow] <- ifelse(height[h]<hTeTi,1e-6,.01)
             }else{
-#                aprioriStd[curRow] <- ifelse(height[h]<hTeTi,1e-3,1e3)
                 diag(aprioriCovar)[curRow] <- ifelse(height[h]<hTeTi,1e-6,1e6)
             }
             curRow                         <- curRow + 1
             
-            # optional ViPar=0
+            ## optional ViPar=0
             aprioriTheory[curRow,c(7,8,9)] <- B[h,]/sum(sqrt(B[h,]^2))
             aprioriMeas[curRow] <- 0
-#            aprioriStd[curRow] <- ifelse(ViPar0&all(B[h,]!=0),1e-3,100)
             diag(aprioriCovar)[curRow] <- ifelse(ViPar0&all(B[h,]!=0),1e-6,1e4)
-            ##diag(invAprioriCovar)[curRow] <- ifelse(ViPar0&all(B[h,]!=0),1e6,1e-4)
             curRow                         <- curRow + 1
 
 
-            # 
-            # this could be replaced with a call to ISaprioriUpdateFlicphem
-            #
-            # TODO: - add the partial derivatives of the composition with respect to the other parameters
-            #       - add ISaprioriTheoryUpdateFunction, which is then used to update the theory matrix in the iteration
-            #
-            # FINAL SOLUTION: THE THEORY MATRIX MUST CONTAIN A LINEAR APPROXIMATION OF FLIPCHEM
-            #
-            #
-            # will need:
-            #    - a function that returns the updated theory matrix, the measurement, and the prior covariance
-            #    - must change also leastSquare.lvmrq so that all these can be updated in the iteration, if necessary (or can we do without the update since we have the linear theory now?
-            #    - maybe try first without the update, then the same thing will work also in the mcmc fits. 
-            #
-            ## if (flipchemfit){
-            ##     fysparam <- scaleParams( aprioriParam[1:12] , parScales[1:12] , inverse=T)
-            ##     # ion and electron temperatures ( (Tpar+2*Tperp)/3 )
-            ##     Te <- (fysparam[4] + 2*fysparam[5]) / 3
-            ##     Ti <- (fysparam[2] + 2*fysparam[3]) / 3
-    
-            ##      # call flipchem with parallel temperatures to be sure that 
-            ##     fcout <- fc$get_point(latitude[h],longitude[h],height[h],fysparam[1],Te,Ti)
-
-            ##    # O+ and molecular ion fractions from flicphem
-            ##     fcOp <- fcout[[4]] / fysparam[1]
-            ##     fcMol <- (fcout[[5]]+fcout[[6]]+fcout[[7]]) / fysparam[1]
-
-            ##     aprioriMeas[curRow] <- fcMol
-            ##     aprioriTheory[curRow,10] <- 1
-            ##     aprioriCovar[curRow,curRow] <- BAFIMpar$flipchem[3]^2
-
-            ##     aprioriMeas[curRow+1] <- fcOp
-            ##     aprioriTheory[curRow+1,11] <- 1
-            ##     aprioriCovar[curRow+1,curRow+1] <- BAFIMpar$flipchem[3]^2
-
-            ##     priorUpdateFunction <- ISaprioriUpdateFlipchem
-            ## }else{
-            ##     priorUpdateFunction <- NULL
-            ## }
-
+            ## Optional flipchem input (linear approximation of the chemistry model)
             if (flipchemfit){
                 fcApriori <- aprioriFlipchem( param=aprioriParam , flipchem=fc , flipchemStd=BAFIMpar$flipchem[3],  lat=latitude[h] , lon=longitude[h] , h=height[h] , scaleFun=scaleParams , scale=parScales , logNe , ... )
                 aprioriTheory[curRow,] <- fcApriori$A
                 aprioriMeas[curRow] <- fcApriori$m
                 aprioriCovar[curRow,curRow] <- fcApriori$var
-#                aprioriUpdateFunction <- updateAprioriFlipchem
             }else{
                 aprioriUpdateFunction <- NULL
             }
-            
+
+            ## Fisher information matrix for the iterative solver
             invAprioriCovar <- solve(aprioriCovar)
 
-
-            ## print(PP$height[h])
-            ## print(unname(c(sqrt(diag(aprioriCovar))[c(1,2,4,7,8,9)]*parScales[c(1,2,4,7,8,9)])))
-            ## print(unname(c(PP$std[h,c(1,2,4,7,8,9)])))
-            ## print(unname(PP$stdRcorr[h,c(1,2,4,7,8,9)]))
-            
-#            Apriorilist[[h]] <- list(aprioriParam=aprioriParam,aprioriTheory=aprioriTheory,invAprioriCovar=diag(1/aprioriStd**2),aprioriMeas=aprioriMeas,limitParam=limitParam,parScales=parScales,mIon=mIon,nIon,aprioriParamIRI=aprioriIRI[[h]]$aprioriParam,aprioriParamBAFIM=aprioriBAFIM[[h]]$aprioriParam)
+            ## The final prior model list for the iterative solver
             apriorilist[[h]] <- list(aprioriParam=aprioriParam,aprioriTheory=aprioriTheory,invAprioriCovar=invAprioriCovar,aprioriMeas=aprioriMeas,limitParam=limitParam,parScales=parScales,mIon=mIon,nIon=nIon,aprioriParamIRI=aprioriIRI[[h]]$aprioriParam,aprioriParamBAFIM=aprioriBAFIM[[h]]$aprioriParam,flipchem=fc,flipchemStd=BAFIMpar$flipchem[3],aprioriUpdateFunction=aprioriUpdateFunction)
         }
 
-        
+        ## If there was a previous fit
         if(length(PP)>0){
             
-            # copy the range-smoothed data to the default ouputs (but the original ones are also there in the Filter-versions
+            ## Copy the range-smoothed data to the default ouputs (but the original ones are also there in the Filter-versions
             PP$param <- PP$paramRcorr
             PP$std <- PP$stdRcorr
             PP$covar <- PP$covarRcorr
             PP$BAFIMpar <- BAFIMpar
         
-            # overwrite the output file with the updated copy
+            # Overwrite the output file with the updated copy
             if(updateFile){
                 save(PP,file=file.path(PP$resDir,PP$resFile))
             }
         }
 
+        ## return either the plasma parameter list or the prior model, depending on the input argument
         if(returnParams){
             return(PP)
         }else{
